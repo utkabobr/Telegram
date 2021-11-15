@@ -506,6 +506,9 @@
     <string name="ChannelNotifyMembersInfoOff">Members will receive a silent notification</string>
     <string name="ChannelSignMessages">Sign Messages</string>
     <string name="ChannelSignMessagesInfo">Add names of the admins to the messages they post.</string>
+    <string name="SavingContentTitle">Saving content</string>
+    <string name="RestrictSavingContent">Restrict saving content</string>
+    <string name="RestrictSavingContentInfo">Participants won\'t be able to forward messages from this group or save media files.</string>
     <string name="EditAdmin">Admin Rights</string>
     <string name="EditAdminRank">Custom title</string>
     <string name="EditAdminRankInfo">A custom title that will be shown to all members instead of \'%1$s\'.</string>
@@ -592,6 +595,8 @@
     <string name="TypePublic">Public</string>
     <string name="TypePrivateGroup">Private</string>
     <string name="TypePublicGroup">Public</string>
+    <string name="TypePrivateRestrictedForwards">Private restricted</string>
+    <string name="TypePrivateGroupRestrictedForwards">Private restricted</string>
     <string name="TypeLocationGroup">Link</string>
     <string name="TypeLocationGroupEdit">Tap to add a permanent link</string>
     <string name="ChoosePhoto">Choose photo</string>
@@ -933,6 +938,7 @@
     <string name="ChatDocument">File</string>
     <string name="ChatCamera">Camera</string>
     <string name="NoMessages">No messages here yet...</string>
+    <string name="NoMessagesForDate">No messages for this day...</string>
     <string name="NoScheduledMessages">No scheduled messages here yet...</string>
     <string name="ForwardedMessage">Forwarded message</string>
     <string name="From">From</string>
@@ -1085,6 +1091,7 @@
     <string name="ChatYourSelfDescription4">Use search to quickly find things</string>
     <string name="ChatYourSelfTitle">Your cloud storage</string>
     <string name="JumpToDate">Jump to Date</string>
+    <string name="SelectThisDay">Select this day</string>
     <string name="DeleteForUser">Delete for %1$s</string>
     <string name="DeleteForAll">Delete for all members</string>
     <string name="TextCopied">Text copied to clipboard</string>
@@ -3126,6 +3133,10 @@
     <string name="Next">Next</string>
     <string name="Enable">Enable</string>
     <!--messages-->
+    <string name="ActionForwardsEnabledGroup">un1 enabled forwards from this group</string>
+    <string name="ActionForwardsEnabledChannel">un1 enabled forwards from this channel</string>
+    <string name="ActionForwardsRestrictedGroup">un1 restricted forwards from this group</string>
+    <string name="ActionForwardsRestrictedChannel">un1 restricted forwards from this channel</string>
     <string name="ActionInviteYou">You joined the group via invite link</string>
     <string name="ActionDeletedInviteLinkClickable">un1 deleted invite link un2</string>
     <string name="ActionCreatedInviteLinkClickable">un1 created invite link un2</string>
@@ -3303,6 +3314,10 @@
     <string name="AreYouSureClearHistorySavedMessages">Are you sure you want to clear **Saved Messages**?</string>
     <string name="AreYouSureClearHistoryChannel">Delete all cached text and media from this channel?</string>
     <string name="AreYouSureClearHistoryGroup">Delete all cached text and media from this group?</string>
+    <string name="AreYouSureClearHistoryRange">Are you sure you want to delete all messages for the **%1$s**?</string>
+    <string name="AreYouSureClearHistoryRangeOne">Are you sure you want to delete all messages for that day?</string>
+    <string name="ClearHistoryOptionAlsoRange">Also delete for %1$s</string>
+    <string name="ClearHistoryRangeTitle">Delete messages</string>
     <string name="DeleteMessagesTitle">Delete %1$s</string>
     <string name="DeleteSingleMessagesTitle">Delete message</string>
     <string name="DeleteMessagesTextGroupPart">You can also delete the %1$s from the inboxes of other group members by checking \"Delete for all members\".</string>
@@ -3862,6 +3877,18 @@
     <string name="ContactShortcutVoiceCall">Voice call %1$s</string>
     <string name="ContactShortcutVideoCall">Video call %1$s</string>
     <!--plural-->
+    <string name="Messages_zero">un1 messages</string>
+    <string name="Messages_one">un1 message</string>
+    <string name="Messages_two">un1 messages</string>
+    <string name="Messages_few">un1 messages</string>
+    <string name="Messages_many">un1 messages</string>
+    <string name="Messages_other">un1 messages</string>
+    <string name="SelectedDays_zero">un1 selected days</string>
+    <string name="SelectedDays_one">un1 selected day</string>
+    <string name="SelectedDays_two">un1 selected days</string>
+    <string name="SelectedDays_few">un1 selected days</string>
+    <string name="SelectedDays_many">un1 selected days</string>
+    <string name="SelectedDays_other">un1 selected days</string>
     <string name="MembersAreSpeakingToast_zero">un1 are speaking</string>
     <string name="MembersAreSpeakingToast_one">un1 is speaking</string>
     <string name="MembersAreSpeakingToast_two">un1 are speaking</string>
@@ -4745,6 +4772,7 @@
     <string name="ChatThemeDayNightSwitchTooltip">Tap here to view how **%s** will see this theme when using night mode.</string>
     <string name="AttachMenu">Attach...</string>
     <string name="Calendar">Calendar</string>
+    <string name="SelectDays">Select days</string>
     <string name="MediaZoomIn">Zoom in</string>
     <string name="MediaZoomOut">Zoom out</string>
     <string name="MediaShowPhotos">Show photos</string>
@@ -4809,4 +4837,7 @@
     <string name="UserAcceptedToGroupAction">un1 was accepted into the group</string>
     <string name="UserAcceptedToGroupPush">%1$s was accepted into the group</string>
     <string name="UserAcceptedToGroupPushWithGroup">%2$s|%1$s was accepted into the group</string>
+    <string name="ForwardsRestrictedInfoChannel">Forwards from this channel are restricted.</string>
+    <string name="ForwardsRestrictedInfoGroup">Forwards from this group are restricted.</string>
+    <string name="SendMessageAsTitle">Send message as...</string>
 </resources>

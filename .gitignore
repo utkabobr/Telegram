@@ -4,3 +4,7 @@ build/
 obj/
 *.iml
 local.properties
+TMessagesProj/.cxx/
+captures
+.DS_Store
+

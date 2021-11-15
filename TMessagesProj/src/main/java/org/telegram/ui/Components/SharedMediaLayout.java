@@ -1,7 +1,6 @@
 package org.telegram.ui.Components;
 
 import static org.telegram.messenger.MediaDataController.MEDIA_PHOTOVIDEO;
-import static org.telegram.messenger.MediaDataController.getMediaType;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -56,8 +55,6 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.exoplayer2.util.Log;
-
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.ChatObject;
@@ -73,6 +70,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.browser.Browser;
@@ -1068,6 +1066,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
     private boolean isActionModeShowed;
 
     final Delegate delegate;
+    private HintView fwdRestrictedHint;
 
     public SharedMediaLayout(Context context, long did, SharedMediaPreloader preloader, int commonGroupsCount, ArrayList<Integer> sortedUsers, TLRPC.ChatFull chatInfo, boolean membersFirst, BaseFragment parent, Delegate delegate, int viewType) {
         super(context);
@@ -1423,7 +1422,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             gotoItem.setDuplicateParentStateEnabled(false);
             actionModeLayout.addView(gotoItem, new LinearLayout.LayoutParams(AndroidUtilities.dp(54), ViewGroup.LayoutParams.MATCH_PARENT));
             actionModeViews.add(gotoItem);
-            gotoItem.setOnClickListener(v -> onActionBarItemClick(gotochat));
+            gotoItem.setOnClickListener(v -> onActionBarItemClick(v, gotochat));
 
             forwardItem = new ActionBarMenuItem(context, null, Theme.getColor(Theme.key_actionBarActionModeDefaultSelector), Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2), false);
             forwardItem.setIcon(R.drawable.msg_forward);
@@ -1431,7 +1430,9 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             forwardItem.setDuplicateParentStateEnabled(false);
             actionModeLayout.addView(forwardItem, new LinearLayout.LayoutParams(AndroidUtilities.dp(54), ViewGroup.LayoutParams.MATCH_PARENT));
             actionModeViews.add(forwardItem);
-            forwardItem.setOnClickListener(v -> onActionBarItemClick(forward));
+            forwardItem.setOnClickListener(v -> onActionBarItemClick(v, forward));
+
+            forwardItem.setAlpha(profileActivity.getMessagesController().isChatNoForwards(-dialog_id) ? 0.6f : 1f);
         }
         deleteItem = new ActionBarMenuItem(context, null, Theme.getColor(Theme.key_actionBarActionModeDefaultSelector), Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2), false);
         deleteItem.setIcon(R.drawable.msg_delete);
@@ -1439,7 +1440,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         deleteItem.setDuplicateParentStateEnabled(false);
         actionModeLayout.addView(deleteItem, new LinearLayout.LayoutParams(AndroidUtilities.dp(54), ViewGroup.LayoutParams.MATCH_PARENT));
         actionModeViews.add(deleteItem);
-        deleteItem.setOnClickListener(v -> onActionBarItemClick(delete));
+        deleteItem.setOnClickListener(v -> onActionBarItemClick(v, delete));
 
         photoVideoAdapter = new SharedPhotoVideoAdapter(context) {
             @Override
@@ -2141,6 +2142,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         if (hasMedia[0] >= 0) {
             loadFastScrollData(false);
         }
+    }
+
+    public void setForwardRestrictedHint(HintView hintView) {
+        fwdRestrictedHint = hintView;
     }
 
     private int getMessageId(View child) {
@@ -3012,7 +3017,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         checkCurrentTabValid();
     }
 
-    public void onActionBarItemClick(int id) {
+    public void onActionBarItemClick(View v, int id) {
         if (id == delete) {
             TLRPC.Chat currentChat = null;
             TLRPC.User currentUser = null;
@@ -3030,6 +3035,18 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                 cantDeleteMessagesCount = 0;
             }, null);
         } else if (id == forward) {
+            if (info != null) {
+                TLRPC.Chat chat = profileActivity.getMessagesController().getChat(info.id);
+                if (profileActivity.getMessagesController().isChatNoForwards(chat)) {
+                    if (fwdRestrictedHint != null) {
+                        fwdRestrictedHint.setText(ChatObject.isChannel(chat) && !chat.megagroup ? LocaleController.getString("ForwardsRestrictedInfoChannel", R.string.ForwardsRestrictedInfoChannel) :
+                                LocaleController.getString("ForwardsRestrictedInfoGroup", R.string.ForwardsRestrictedInfoGroup));
+                        fwdRestrictedHint.showForView(v, true);
+                    }
+                    return;
+                }
+            }
+
             Bundle args = new Bundle();
             args.putBoolean("onlySelect", true);
             args.putInt("dialogsType", 3);
@@ -3242,6 +3259,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                     velocityTracker = VelocityTracker.obtain();
                 }
                 velocityTracker.addMovement(ev);
+
+                if (fwdRestrictedHint != null) {
+                    fwdRestrictedHint.hide();
+                }
             }
             if (ev != null && ev.getAction() == MotionEvent.ACTION_DOWN && !startedTracking && !maybeStartTracking && ev.getY() >= AndroidUtilities.dp(48)) {
                 startedTrackingPointerId = ev.getPointerId(0);
