@@ -2530,12 +2530,14 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         title.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem));
                         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
                         title.setTag(this.title);
+                        title.setMaxLines(1);
                         ll2.addView(title);
 
                         TextView subtitle = new TextView(parent.getContext());
                         subtitle.setTextColor(ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem), 0x66));
                         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
                         subtitle.setTag(this.subtitle);
+                        subtitle.setMaxLines(1);
                         ll2.addView(subtitle);
 
                         ll.addView(ll2, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1f, 12, 0, 0, 0));
