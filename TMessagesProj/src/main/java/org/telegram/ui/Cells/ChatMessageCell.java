@@ -11092,7 +11092,13 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                         Theme.chat_namePaint.setColor(getThemedColor(AvatarDrawable.getNameColorNameForId(currentUser.id)));
                     }
                 } else if (currentChat != null) {
-                    if (ChatObject.isChannel(currentChat) && !currentChat.megagroup) {
+                    if (currentMessageObject.isOutOwner() && ChatObject.isChannel(currentChat)) {
+                        if (currentBackgroundDrawable != null && currentBackgroundDrawable.hasGradient()) {
+                            Theme.chat_namePaint.setColor(getThemedColor(Theme.key_chat_messageTextOut));
+                        } else {
+                            Theme.chat_namePaint.setColor(getThemedColor(AvatarDrawable.getNameColorNameForId(currentChat.id)));
+                        }
+                    } else if (ChatObject.isChannel(currentChat) && !currentChat.megagroup) {
                         Theme.chat_namePaint.setColor(Theme.changeColorAccent(getThemedColor(AvatarDrawable.getNameColorNameForId(5))));
                     } else if (currentMessageObject.isOutOwner()) {
                         Theme.chat_namePaint.setColor(getThemedColor(Theme.key_chat_outForwardedNameText));
