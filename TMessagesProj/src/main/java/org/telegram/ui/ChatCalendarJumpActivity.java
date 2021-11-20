@@ -281,11 +281,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
             bottomBtn.setTypeface(Typeface.DEFAULT);
             bottomBtn.setClickable(false);
         } else {
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(dateSelectedStart * 1000L);
-            int sd = c.get(Calendar.DAY_OF_YEAR);
-            c.setTimeInMillis(dateSelectedEnd * 1000L);
-            int daysCount = c.get(Calendar.DAY_OF_YEAR) - sd + 1;
+            int daysCount = dateSelectedEnd / 86400 - dateSelectedStart / 86400 + 1;
 
             actionBar.setTitle(LocaleController.formatPluralString("Days", daysCount));
 
@@ -1140,11 +1136,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
     }
 
     private void showClearHistory(Context ctx, int startDate, int endDate) {
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(startDate * 1000L);
-        int sd = c.get(Calendar.DAY_OF_YEAR);
-        c.setTimeInMillis(endDate * 1000L);
-        int daysCount = c.get(Calendar.DAY_OF_YEAR) - sd;
+        int daysCount = endDate / 86400 - startDate / 86400;
 
         LinearLayout ll = new LinearLayout(ctx);
         ll.setOrientation(LinearLayout.VERTICAL);
