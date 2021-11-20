@@ -60,7 +60,7 @@ public class SimpleAvatarView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        selectPaint.setColor(Theme.getColor(Theme.key_chat_messagePanelVoiceBackground));
+        selectPaint.setColor(Theme.getColor(Theme.key_dialogTextBlue));
         canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, Math.min(getWidth(), getHeight()) / 2f - selectPaint.getStrokeWidth(), selectPaint);
         if (!isAvatarHidden) {
             float pad = selectPaint.getStrokeWidth() * 2.5f * selectProgress;

@@ -36,6 +36,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -66,6 +67,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -2507,9 +2509,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 };
                 rc.setOrientation(LinearLayout.VERTICAL);
                 TextView headerText = new TextView(parent.getContext());
-                headerText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+                headerText.setTextColor(Theme.getColor(Theme.key_dialogTextBlue));
                 headerText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
                 headerText.setText(LocaleController.getString("SendMessageAsTitle", R.string.SendMessageAsTitle));
+                headerText.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"), Typeface.BOLD);
                 int dp = AndroidUtilities.dp(18);
                 headerText.setPadding(dp, dp, dp, dp / 2);
                 rc.addView(headerText);
@@ -2689,14 +2692,15 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     animatorListenerRef.set(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationStart(Animator animation) {
-                            avatar.addOnLayoutChangeListener(new OnLayoutChangeListener() {
+                            avatar.getViewTreeObserver().addOnDrawListener(new ViewTreeObserver.OnDrawListener() {
                                 @Override
-                                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                                    avatar.removeOnLayoutChangeListener(this);
-                                    sAvatar.setHideAvatar(true);
+                                public void onDraw() {
+                                    avatar.post(()->{
+                                        avatar.getViewTreeObserver().removeOnDrawListener(this);
+                                        sAvatar.setHideAvatar(true);
+                                    });
                                 }
                             });
-                            avatar.requestLayout();
                             d.show();
                         }
 
@@ -2706,14 +2710,15 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                             senderSelectView.setScaleX(1);
                             senderSelectView.setScaleY(1);
                             senderSelectView.setAlpha(1);
-                            senderSelectView.addOnLayoutChangeListener(new OnLayoutChangeListener() {
+                            senderSelectView.getViewTreeObserver().addOnDrawListener(new ViewTreeObserver.OnDrawListener() {
                                 @Override
-                                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                                    senderSelectView.removeOnLayoutChangeListener(this);
-                                    senderSelectView.post(d::dismiss);
+                                public void onDraw() {
+                                    senderSelectView.post(()->{
+                                        senderSelectView.getViewTreeObserver().removeOnDrawListener(this);
+                                        d.dismiss();
+                                    });
                                 }
                             });
-                            senderSelectView.requestLayout();
                         }
 
                         @Override
