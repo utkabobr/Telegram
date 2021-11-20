@@ -9648,7 +9648,6 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         isEvent = object != null && object.isEvent;
         sharedMediaType = MediaDataController.MEDIA_PHOTOVIDEO;
         allMediaItem.setText(LocaleController.getString("ShowAllMedia", R.string.ShowAllMedia));
-        menuItem.setVisibility(View.VISIBLE);
         setItemVisible(sendItem, false, false);
         setItemVisible(pipItem, false, true);
         cameraItem.setVisibility(View.GONE);
@@ -9892,7 +9891,6 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 cameraItem.setVisibility(View.VISIBLE);
                 cameraItem.setTag(1);
             }
-            menuItem.setVisibility(View.GONE);
             imagesArrLocals.addAll(photos);
             Object obj = imagesArrLocals.get(index);
             boolean allowCaption;
@@ -10541,13 +10539,11 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             shareItem.setVisibility(allowShare ? View.VISIBLE : View.GONE);
 
             if (currentAnimation != null) {
-                menuItem.setVisibility(View.VISIBLE);
                 menuItem.hideSubItem(gallery_menu_save);
                 if (allowShare) menuItem.showSubItem(gallery_menu_savegif);
                 else menuItem.hideSubItem(gallery_menu_savegif);
                 actionBar.setTitle(LocaleController.getString("AttachGif", R.string.AttachGif));
             } else {
-                menuItem.setVisibility(View.VISIBLE);
                 if (size == 1) {
                     if (isVideo) {
                         actionBar.setTitle(LocaleController.getString("AttachVideo", R.string.AttachVideo));
