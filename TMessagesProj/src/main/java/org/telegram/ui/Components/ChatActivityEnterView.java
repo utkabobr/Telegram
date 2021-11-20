@@ -57,6 +57,7 @@ import android.text.style.ImageSpan;
 import android.util.Property;
 import android.util.TypedValue;
 import android.view.ActionMode;
+import android.view.DisplayCutout;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -65,6 +66,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
@@ -2643,13 +2645,21 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                             AndroidUtilities.setLightNavigationBar(d.getWindow(), brightness >= 0.721f);
                         }
                     }
+                    float offX = 0, offY = 0;
+                    if (AndroidUtilities.isTablet()) {
+                        parentFragment.getFragmentView().getLocationInWindow(location);
+                        popupX += location[0];
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        WindowInsets wi = getRootWindowInsets();
+                        popupX += wi.getSystemWindowInsetLeft();
+                    }
 
-                    int[] endLoc = new int[2];
-                    senderSelectView.getLocationInWindow(endLoc);
-                    float eX = endLoc[0], eY = endLoc[1];
+                    senderSelectView.getLocationInWindow(location);
+                    float eX = location[0], eY = location[1];
 
                     float off = wasSelected ? AndroidUtilities.dp(5) : 0;
-                    float sX = loc[0] + popupX + off + AndroidUtilities.dp(4), sY = loc[1] + popupY + off;
+                    float sX = loc[0] + popupX + off + AndroidUtilities.dp(4) + offX, sY = loc[1] + popupY + off + offY;
                     avatar.setTranslationX(sX);
                     avatar.setTranslationY(sY);
 
