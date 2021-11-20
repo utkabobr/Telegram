@@ -3304,7 +3304,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         fwdRestrictedHint = new HintView(getParentActivity(), 9);
         fwdRestrictedHint.setAlpha(0);
-        frameLayout.addView(fwdRestrictedHint, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 19, 0, 19, 0));
+        frameLayout.addView(fwdRestrictedHint, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP, 12, 0, 12, 0));
         sharedMediaLayout.setForwardRestrictedHint(fwdRestrictedHint);
 
         ViewGroup decorView;
