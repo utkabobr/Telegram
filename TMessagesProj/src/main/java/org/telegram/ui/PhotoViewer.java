@@ -10068,11 +10068,16 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 } else {
                     menuItem.hideSubItem(gallery_menu_delete);
                 }
+                boolean noforwards = MessagesController.getInstance(UserConfig.selectedAccount).isChatNoForwards(newMessageObject.getChatId());
                 if (isEmbedVideo) {
-                    menuItem.showSubItem(gallery_menu_openin);
+                    if (!noforwards)
+                        menuItem.showSubItem(gallery_menu_openin);
+                    else menuItem.hideSubItem(gallery_menu_openin);
                     setItemVisible(pipItem, true, false);
                 } else if (isVideo) {
-                    menuItem.showSubItem(gallery_menu_openin);
+                    if (!noforwards)
+                        menuItem.showSubItem(gallery_menu_openin);
+                    else menuItem.hideSubItem(gallery_menu_openin);
                     final boolean masksItemVisible = masksItem.getVisibility() == View.VISIBLE;
                     if (masksItemVisible) {
                         setItemVisible(masksItem, false, false);
@@ -10229,7 +10234,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 } else if (newMessageObject.getDocument() != null) {
                     actionBar.setTitle(LocaleController.getString("AttachDocument", R.string.AttachDocument));
                 }
-                if (DialogObject.isEncryptedDialog(currentDialogId) && !isEmbedVideo) {
+                if (DialogObject.isEncryptedDialog(currentDialogId) && !isEmbedVideo ||
+                        MessagesController.getInstance(currentAccount).isChatNoForwards(newMessageObject.getChatId())) {
                     setItemVisible(sendItem, false, false);
                 }
                 if (isEmbedVideo || newMessageObject.messageOwner.ttl != 0 && newMessageObject.messageOwner.ttl < 60 * 60 || MessagesController.getInstance(UserConfig.selectedAccount).isChatNoForwards(newMessageObject.getChatId())) {
@@ -10507,7 +10513,10 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             caption = pageBlocksAdapter.getCaption(switchingToIndex);
             isVideo = pageBlocksAdapter.isVideo(switchingToIndex);
             if (isVideo) {
-                menuItem.showSubItem(gallery_menu_openin);
+                if (!MessagesController.getInstance(UserConfig.selectedAccount).isChatNoForwards(-currentDialogId))
+                    menuItem.showSubItem(gallery_menu_openin);
+                else menuItem.hideSubItem(gallery_menu_openin);
+
                 if (!pipAvailable) {
                     pipItem.setEnabled(false);
                     setItemVisible(pipItem, true, true, 0.5f);
