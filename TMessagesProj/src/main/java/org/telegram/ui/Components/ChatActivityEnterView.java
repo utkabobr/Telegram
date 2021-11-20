@@ -2496,8 +2496,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 headerText.setPadding(dp, dp, dp, dp / 2);
                 rc.addView(headerText);
 
-                View divider = new View(getContext());
-                divider.setAlpha(0);
+                View shadow = new View(getContext());
+                shadow.setAlpha(0);
                 FrameLayout rfl = new FrameLayout(getContext());
                 RecyclerListView rv = new RecyclerListView(getContext());
                 LinearLayoutManager llm = new LinearLayoutManager(getContext());
@@ -2719,7 +2719,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
                     senderSelectPopupWindow.dismiss();
                 });
-                rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                RecyclerView.OnScrollListener onScrollListener;
+                rv.addOnScrollListener(onScrollListener = new RecyclerView.OnScrollListener() {
                     final int DURATION = 150;
                     boolean isVisible;
 
@@ -2728,11 +2729,11 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         boolean v = llm.findFirstCompletelyVisibleItemPosition() == 0;
                         if (v != isVisible) {
                             if (v) {
-                                divider.animate().cancel();
-                                divider.animate().alpha(0).setDuration(DURATION).start();
+                                shadow.animate().cancel();
+                                shadow.animate().alpha(0).setDuration(DURATION).start();
                             } else {
-                                divider.animate().cancel();
-                                divider.animate().alpha(1).setDuration(DURATION).start();
+                                shadow.animate().cancel();
+                                shadow.animate().alpha(1).setDuration(DURATION).start();
                             }
                             isVisible = v;
                         }
@@ -2742,8 +2743,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 rfl.addView(rv);
 
                 Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.header_shadow).mutate();
-                divider.setBackground(d);
-                rfl.addView(divider, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 8));
+                shadow.setBackground(d);
+                rfl.addView(shadow, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 8));
 
                 rc.addView(rfl, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                 scrimPopupContainerLayout.addView(rc);
@@ -2822,6 +2823,19 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 senderSelectPopupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED);
                 senderSelectPopupWindow.getContentView().setFocusableInTouchMode(true);
                 senderSelectPopupWindow.setAnimationEnabled(false);
+
+                TLRPC.Peer defPeer = full.default_send_as != null ? full.default_send_as : null;
+                if (defPeer != null) {
+                    for (int i = 0; i < peers.size(); i++) {
+                        TLRPC.Peer p = peers.get(i);
+                        if (p.channel_id != 0 && p.channel_id == defPeer.channel_id || p.user_id != 0 && p.user_id == defPeer.user_id ||
+                                p.chat_id != 0 && p.chat_id == defPeer.chat_id) {
+                            llm.scrollToPositionWithOffset(i, 0);
+                            onScrollListener.onScrolled(rv, 0, 0);
+                            break;
+                        }
+                    }
+                }
 
                 int pad = -AndroidUtilities.dp(4);
                 int[] location = new int[2];
