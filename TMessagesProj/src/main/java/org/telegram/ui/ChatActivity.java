@@ -1752,6 +1752,24 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             topUndoView.hide(true, 0);
         }
     }
+    
+    private int getOtherSameChatsDiff() {
+        int cur = parentLayout.fragmentsStack.indexOf(this);
+        if (cur == -1)
+            cur = parentLayout.fragmentsStack.size();
+        int i = cur;
+        for (int a = 0; a < parentLayout.fragmentsStack.size(); a++) {
+            BaseFragment fragment = parentLayout.fragmentsStack.get(a);
+            if (fragment != this && fragment instanceof ChatActivity) {
+                ChatActivity chatActivity = (ChatActivity) fragment;
+                if (chatActivity.dialog_id == dialog_id) {
+                    i = a;
+                    break;
+                }
+            }
+        }
+        return i - cur;
+    }
 
     @Override
     public void onFragmentDestroy() {
@@ -1855,12 +1873,15 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (currentUser != null) {
             MediaController.getInstance().stopMediaObserver();
         }
-        try {
-            if (Build.VERSION.SDK_INT >= 23) {
-                AndroidUtilities.setFlagSecure(this, false);
+
+        if (getOtherSameChatsDiff() == 0) {
+            try {
+                if (Build.VERSION.SDK_INT >= 23) {
+                    AndroidUtilities.setFlagSecure(this, false);
+                }
+            } catch (Throwable e) {
+                FileLog.e(e);
             }
-        } catch (Throwable e) {
-            FileLog.e(e);
         }
         if (currentUser != null) {
             getMessagesController().cancelLoadFullUser(currentUser.id);
@@ -7783,7 +7804,8 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         chatScrollHelper.setAnimationCallback(chatScrollHelperCallback);
 
         try {
-            if (currentEncryptedChat != null && Build.VERSION.SDK_INT >= 23 && (SharedConfig.passcodeHash.length() == 0 || SharedConfig.allowScreenCapture) || getMessagesController().isChatNoForwards(currentChat)) {
+            if (currentEncryptedChat != null && Build.VERSION.SDK_INT >= 23 && (SharedConfig.passcodeHash.length() == 0 || SharedConfig.allowScreenCapture) ||
+                    getMessagesController().isChatNoForwards(currentChat) && getOtherSameChatsDiff() >= 0) {
                 AndroidUtilities.setFlagSecure(this, true);
             }
         } catch (Throwable e) {
@@ -14204,8 +14226,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 if (fwdChanged) {
                     try {
                         if (Build.VERSION.SDK_INT >= 23) {
-                            AndroidUtilities.setFlagSecure(this, (getMessagesController().isChatNoForwards(currentChat) ||
-                                    currentEncryptedChat != null && SharedConfig.passcodeHash.length() == 0));
+                            if (currentEncryptedChat != null && SharedConfig.passcodeHash.length() == 0) {
+                                AndroidUtilities.setFlagSecure(this, true);
+                            } else if (getOtherSameChatsDiff() >= 0) {
+                                AndroidUtilities.setFlagSecure(this, (getMessagesController().isChatNoForwards(currentChat)));
+                            }
                         }
                     } catch (Throwable e) {
                         FileLog.e(e);
@@ -15886,7 +15911,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     }
 
     private void loadSendAsPeers() {
-        if (sendAsPeersObj != null || currentChat == null || !ChatObject.canSendAsPeers(currentChat)) {
+        if (sendAsPeersObj != null || currentChat == null || !ChatObject.canSendAsPeers(currentChat) || chatActivityEnterView == null) {
             return;
         }
         sendAsPeersObj = getMessagesController().getSendAsPeers(dialog_id);
