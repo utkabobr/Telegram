@@ -277,6 +277,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
     private ActionBarPopupWindow senderSelectPopupWindow;
     private Runnable onEmojiSearchClosed;
     private int popupX, popupY;
+    private Runnable onKeyboardClosed;
 
     private ValueAnimator searchAnimator;
     private float searchToOpenProgress;
@@ -2453,6 +2454,22 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 hidePopup(true, true);
                 return;
             }
+            if (delegate.measureKeyboardHeight() > AndroidUtilities.dp(20)) {
+                int totalHeight = delegate.getContentViewHeight();
+                int keyboard = delegate.measureKeyboardHeight();
+                if (keyboard <= AndroidUtilities.dp(20)) {
+                    totalHeight += keyboard;
+                }
+                if (emojiViewVisible) {
+                    totalHeight -= getEmojiPadding();
+                }
+
+                if (totalHeight < AndroidUtilities.dp(200)) {
+                    onKeyboardClosed = () -> senderSelectView.callOnClick();
+                    closeKeyboard();
+                    return;
+                }
+            }
             if (delegate.getSendAsPeers() != null) {
                 if (senderSelectPopupWindow != null) {
                     senderSelectPopupWindow.setPauseNotifications(false);
@@ -4084,6 +4101,13 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
     public boolean isTopViewVisible() {
         return topView != null && topView.getVisibility() == VISIBLE;
+    }
+
+    public void onAdjustPanTransitionEnd() {
+        if (onKeyboardClosed != null) {
+            onKeyboardClosed.run();
+            onKeyboardClosed = null;
+        }
     }
 
     public void onAdjustPanTransitionStart(boolean keyboardVisible) {

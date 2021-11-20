@@ -2664,6 +2664,13 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 }
 
                 @Override
+                protected void onTransitionEnd() {
+                    if (chatActivityEnterView != null) {
+                        chatActivityEnterView.onAdjustPanTransitionEnd();
+                    }
+                }
+
+                @Override
                 protected void onPanTranslationUpdate(float y, float progress, boolean keyboardVisible) {
                     if (getParentLayout() != null && getParentLayout().isPreviewOpenAnimationInProgress()) {
                         return;
