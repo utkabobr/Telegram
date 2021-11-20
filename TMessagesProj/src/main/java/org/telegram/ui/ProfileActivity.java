@@ -2089,7 +2089,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     allowPullingDown = true;
                     isPulledDown = true;
                     if (otherItem != null) {
-                        otherItem.showSubItem(gallery_menu_save);
+                        if (!getMessagesController().isChatNoForwards(currentChat))
+                            otherItem.showSubItem(gallery_menu_save);
+                        else otherItem.hideSubItem(gallery_menu_save);
                         if (imageUpdater != null) {
                             otherItem.showSubItem(edit_avatar);
                             otherItem.showSubItem(delete_avatar);
@@ -4278,7 +4280,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (allowPullingDown && (openingAvatar || expandProgress >= 0.33f)) {
                     if (!isPulledDown) {
                         if (otherItem != null) {
-                            otherItem.showSubItem(gallery_menu_save);
+                            if (!getMessagesController().isChatNoForwards(currentChat))
+                                otherItem.showSubItem(gallery_menu_save);
+                            else otherItem.hideSubItem(gallery_menu_save);
                             if (imageUpdater != null) {
                                 otherItem.showSubItem(add_photo);
                                 otherItem.showSubItem(edit_avatar);
@@ -6146,6 +6150,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         } else {
             otherItem.addSubItem(gallery_menu_save, R.drawable.msg_gallery, LocaleController.getString("SaveToGallery", R.string.SaveToGallery));
         }
+        if (getMessagesController().isChatNoForwards(currentChat))
+            otherItem.hideSubItem(gallery_menu_save);
+
         if (selfUser) {
             otherItem.addSubItem(logout, R.drawable.msg_leave, LocaleController.getString("LogOut", R.string.LogOut));
         }
