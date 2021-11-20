@@ -2244,7 +2244,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             actionBar.setTitle(LocaleController.formatDateChat(dateOnlyDate, false));
             actionBar.setSubtitle(LocaleController.getString("Loading", R.string.Loading));
 
-            // actionBar.setSubtitle(LocaleController.getPluralString("Messages", messages.size()).replace("un1", String.valueOf(messages.size())));
             TLRPC.TL_messages_getHistory gh1 = new TLRPC.TL_messages_getHistory();
             gh1.peer = getMessagesController().getInputPeer(dialog_id);
             gh1.offset_date = dateOnlyDate;
@@ -19532,7 +19531,16 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         }
         final int type = getMessageType(message);
         if (single) {
-            if (message.messageOwner.action instanceof TLRPC.TL_messageActionPinMessage) {
+            if (message.isDateObject) {
+                if (!ChatObject.isChannel(currentChat)) {
+                    Bundle bundle = new Bundle();
+                    bundle.putLong("dialog_id", dialog_id);
+                    ChatCalendarJumpActivity c = new ChatCalendarJumpActivity(bundle, floatingDateView.getCustomDate(), themeDelegate);
+                    c.setCallback(this::jumpToDate);
+                    presentFragment(c);
+                }
+                return;
+            } else if (message.messageOwner.action instanceof TLRPC.TL_messageActionPinMessage) {
                 if (message.getReplyMsgId() != 0) {
                     scrollToMessageId(message.getReplyMsgId(), message.messageOwner.id, true, message.getDialogId() == mergeDialogId ? 1 : 0, false, 0);
                 } else {
