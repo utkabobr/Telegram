@@ -2446,12 +2446,11 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
         senderSelectView = new SenderSelectView(getContext());
         senderSelectView.setOnClickListener(v -> {
-            if (searchingType != 0) {
+            if (getTranslationY() != 0) {
                 onEmojiSearchClosed = () -> senderSelectView.callOnClick();
-                hidePopup(true);
+                hidePopup(true, true);
                 return;
             }
-            boolean fromSearch = onEmojiSearchClosed != null;
             if (delegate.getSendAsPeers() != null) {
                 if (senderSelectPopupWindow != null) {
                     senderSelectPopupWindow.setPauseNotifications(false);
@@ -2852,7 +2851,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 if (keyboard <= AndroidUtilities.dp(20)) {
                     totalHeight += keyboard;
                 }
-                if (emojiViewVisible && !fromSearch) {
+                if (emojiViewVisible) {
                     totalHeight -= getEmojiPadding();
                 }
 
@@ -7747,12 +7746,16 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
     }
 
     public void hidePopup(boolean byBackButton) {
+        hidePopup(byBackButton, false);
+    }
+
+    public void hidePopup(boolean byBackButton, boolean forceAnimate) {
         if (isPopupShowing()) {
             if (currentPopupContentType == 1 && byBackButton && botButtonsMessageObject != null) {
                 SharedPreferences preferences = MessagesController.getMainSettings(currentAccount);
                 preferences.edit().putInt("hidekeyboard_" + dialog_id, botButtonsMessageObject.getId()).commit();
             }
-            if (byBackButton && searchingType != 0) {
+            if (byBackButton && searchingType != 0 || forceAnimate) {
                 setSearchingTypeInternal(0, true);
                 if (emojiView != null) {
                     emojiView.closeSearch(true);
@@ -7800,10 +7803,6 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         searchToOpenProgress = showSearchingNew ? 1f : 0f;
                         if (emojiView != null) {
                             emojiView.searchProgressChanged();
-                        }
-                        if (searchingType == 0 && onEmojiSearchClosed != null) {
-                            onEmojiSearchClosed.run();
-                            onEmojiSearchClosed = null;
                         }
                     }
                 });
@@ -8394,6 +8393,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         }
                         if (keyboardVisible && isPopupShowing()) {
                             showPopup(0, currentPopupContentType);
+                        }
+                        if (onEmojiSearchClosed != null) {
+                            onEmojiSearchClosed.run();
+                            onEmojiSearchClosed = null;
                         }
                         NotificationCenter.getInstance(currentAccount).onAnimationFinish(notificationsIndex);
                     }
