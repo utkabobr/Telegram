@@ -48,6 +48,7 @@ import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -58,6 +59,7 @@ import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Cells.CheckBoxCell;
 import org.telegram.ui.Components.Easings;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.NumberTextView;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.UndoView;
 
@@ -75,6 +77,15 @@ public class ChatCalendarJumpActivity extends BaseFragment {
     private Paint selectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private RectF tempRect = new RectF();
     private View blurredView;
+
+    private int mMinDate;
+    private boolean wasSelected;
+    private boolean isInForceSelectMode;
+
+    private NumberTextView selectedDaysCountTextView;
+    private TextView selectedDaysTitle;
+
+    private ValueAnimator selectedDaysCounterAnimator;
 
     private ValueAnimator selectionAnimator;
     private TextView bottomBtn;
@@ -180,11 +191,15 @@ public class ChatCalendarJumpActivity extends BaseFragment {
         bottomBtn = new TextView(context);
         bottomBtn.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
         bottomBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-        bottomBtn.setText(LocaleController.getString("ClearHistory", R.string.ClearHistory));
         bottomBtn.setAllCaps(true);
         bottomBtn.setGravity(Gravity.CENTER);
         bottomBtn.setBackground(Theme.getSelectorDrawable(true));
         bottomBtn.setOnClickListener(v -> {
+            if (!isInForceSelectMode && dateSelectedStart == 0 && dateSelectedEnd == 0) {
+                isInForceSelectMode = true;
+                updateTitleAndButton();
+                return;
+            }
             showClearHistory(context, dateSelectedStart, dateSelectedEnd + 86400);
         });
         ll.addView(bottomBtn, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 52));
@@ -228,6 +243,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                 }
             }
         });
+        actionBar.setTitle(LocaleController.getString("Calendar", R.string.Calendar));
 
         undoView = new UndoView(context, this, false, themeDelegate);
         undoView.setVisibility(View.GONE);
@@ -258,36 +274,102 @@ public class ChatCalendarJumpActivity extends BaseFragment {
             monthCount = 3;
         }
 
-
         loadNext();
-        updateColors();
-        activeTextPaint.setColor(Color.WHITE);
-
-        BackDrawable b = new BackDrawable(true);
-        b.setRotation(1, false);
-        actionBar.setBackButtonDrawable(b);
 
         actionsPreviewView = new ChatActivityActionsPreviewView(context);
 
-        updateTitleAndButton();
+        actionBar.setBackButtonDrawable(new BackDrawable(false));
+
+        ActionBarMenu actionMode = actionBar.createActionMode();
+
+        FrameLayout fl = new FrameLayout(actionMode.getContext());
+
+        selectedDaysCountTextView = new NumberTextView(actionMode.getContext());
+        selectedDaysCountTextView.setTextSize(18);
+        selectedDaysCountTextView.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        selectedDaysCountTextView.setAlpha(0);
+        fl.addView(selectedDaysCountTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL));
+        selectedDaysCountTextView.setOnTouchListener((v, event) -> true);
+
+        selectedDaysTitle = new TextView(actionMode.getContext());
+        selectedDaysTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        selectedDaysTitle.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+        selectedDaysTitle.setGravity(Gravity.CENTER_VERTICAL);
+        fl.addView(selectedDaysTitle, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL));
+
+        selectedDaysCountTextView.setOnTextWidthProgressChangedListener((fromWidth, toWidth, progress) -> onAnimateSelectedDaysTitle(selectedDaysCountTextView.getAlpha(), fromWidth, toWidth, progress));
+
+        actionMode.addView(fl, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1f, 65, 0, 0, 0));
+
+        updateColors();
+        activeTextPaint.setColor(Color.WHITE);
+
+        updateTitleAndButton(true);
 
         return fragmentView;
     }
 
+    private void onAnimateSelectedDaysTitle(float alpha, float fromWidth, float toWidth, float progress) {
+        selectedDaysTitle.setTranslationX(AndroidUtilities.dp(8) + (fromWidth + (toWidth - fromWidth) * (1f - Math.abs(progress))) * alpha);
+    }
+
     private void updateTitleAndButton() {
-        if (dateSelectedStart == 0 || dateSelectedEnd == 0) {
-            actionBar.setTitle(LocaleController.getString("SelectDays", R.string.SelectDays));
-            bottomBtn.setAlpha(0.6f);
-            bottomBtn.setTypeface(Typeface.DEFAULT);
-            bottomBtn.setClickable(false);
+        updateTitleAndButton(false);
+    }
+
+    private void updateTitleAndButton(boolean force) {
+        boolean selected = dateSelectedStart != 0 || dateSelectedEnd != 0 || isInForceSelectMode;
+        int daysCount = dateSelectedEnd / 86400 - dateSelectedStart / 86400 + 1;
+        float counterAlpha;
+        if (isInForceSelectMode) {
+            selectedDaysTitle.setText(LocaleController.getString("SelectDays", R.string.SelectDays));
+            counterAlpha = 0;
         } else {
-            int daysCount = dateSelectedEnd / 86400 - dateSelectedStart / 86400 + 1;
+            selectedDaysTitle.setText(LocaleController.getPluralString("DaysSimple", daysCount));
+            selectedDaysCountTextView.setNumber(daysCount, true);
+            counterAlpha = 1;
+        }
+        if (selectedDaysCounterAnimator != null)
+            selectedDaysCounterAnimator.cancel();
+        if (selectedDaysCountTextView.getAlpha() != counterAlpha) {
+            ValueAnimator anim = ValueAnimator.ofFloat(selectedDaysCountTextView.getAlpha(), counterAlpha)
+                    .setDuration(150);
+            anim.addUpdateListener(animation -> {
+                float v = (float) animation.getAnimatedValue();
+                selectedDaysCountTextView.setAlpha(v);
+                onAnimateSelectedDaysTitle(v, selectedDaysCountTextView.getOldTextWidth(), selectedDaysCountTextView.getTextWidth(), selectedDaysCountTextView.getProgress());
+            });
+            anim.start();
+            selectedDaysCounterAnimator = anim;
+        }
 
-            actionBar.setTitle(LocaleController.formatPluralString("Days", daysCount));
+        if (selected != wasSelected || force) {
+            if (selected) {
+                if (daysCount == 0) {
+                    bottomBtn.animate().cancel();
+                    bottomBtn.animate().alpha(0.5f).setDuration(150).start();
+                    bottomBtn.setTypeface(Typeface.DEFAULT);
+                    bottomBtn.setClickable(false);
+                } else {
+                    bottomBtn.animate().cancel();
+                    bottomBtn.animate().alpha(1).setDuration(150).start();
+                    bottomBtn.setClickable(true);
+                    bottomBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"), Typeface.BOLD);
+                }
+                bottomBtn.setText(LocaleController.getString("ClearHistory", R.string.ClearHistory));
+                bottomBtn.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
+                actionBar.showActionMode(true);
+            } else {
+                bottomBtn.animate().cancel();
+                bottomBtn.animate().alpha(1).setDuration(150).start();
+                bottomBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"), Typeface.BOLD);
+                bottomBtn.setClickable(true);
+                bottomBtn.setText(LocaleController.getString("SelectDays", R.string.SelectDays));
+                bottomBtn.setTextColor(Theme.getColor(Theme.key_chat_messagePanelVoiceBackground));
 
-            bottomBtn.setAlpha(1f);
-            bottomBtn.setClickable(true);
-            bottomBtn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"), Typeface.BOLD);
+                actionBar.hideActionMode();
+            }
+            wasSelected = selected;
         }
     }
 
@@ -298,6 +380,8 @@ public class ChatCalendarJumpActivity extends BaseFragment {
         textPaintHeader.setColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         actionBar.setTitleColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         actionBar.setItemsColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText), false);
+        selectedDaysTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        selectedDaysCountTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         actionBar.setItemsBackgroundColor(Theme.getColor(Theme.key_listSelector), false);
     }
 
@@ -346,7 +430,27 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                         minMontYear = month;
                     }
                 }
-                for (int date = res.min_date; date < maxDate; date += 86400) {
+
+                int minDate;
+                loading = false;
+                if (!res.messages.isEmpty()) {
+                    lastId = res.messages.get(res.messages.size() - 1).id;
+                    endReached = false;
+                    checkLoadNext();
+                    int d = res.messages.get(res.messages.size() - 1).date;
+                    calendar.setTimeInMillis(d * 1000L);
+                    calendar.set(Calendar.HOUR_OF_DAY, 0);
+                    calendar.set(Calendar.MINUTE, 0);
+                    calendar.set(Calendar.SECOND, 0);
+                    calendar.set(Calendar.MILLISECOND, 0);
+                    d = (int) (calendar.getTimeInMillis() / 1000L);
+                    minDate = d;
+                } else {
+                    endReached = true;
+                    minDate = res.min_date;
+                    mMinDate = res.min_date;
+                }
+                for (int date = minDate; date < maxDate; date += 86400) {
                     calendar.setTimeInMillis(date * 1000L);
                     calendar.set(Calendar.HOUR_OF_DAY, 0);
                     calendar.set(Calendar.MINUTE, 0);
@@ -368,14 +472,6 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                     }
                 }
 
-                loading = false;
-                if (!res.messages.isEmpty()) {
-                    lastId = res.messages.get(res.messages.size() - 1).id;
-                    endReached = false;
-                    checkLoadNext();
-                } else {
-                    endReached = true;
-                }
                 if (isOpened) {
                     checkEnterItems = true;
                 }
@@ -504,7 +600,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                                         selectionAnimator.cancel();
                                         selectionAnimator = null;
                                     }
-                                    if (dateSelectedStart != 0 || dateSelectedEnd != 0) {
+                                    if (dateSelectedStart != 0 || dateSelectedEnd != 0 || isInForceSelectMode) {
                                         if (dateSelectedStart == day.date && dateSelectedEnd == day.date) {
                                             dateSelectedStart = dateSelectedEnd = 0;
                                             animateSelection();
@@ -520,7 +616,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                                             animateSelection();
                                             return true;
                                         }
-                                        if (dateSelectedStart == dateSelectedEnd) {
+                                        if (!isInForceSelectMode && dateSelectedStart == dateSelectedEnd) {
                                             if (day.date > dateSelectedEnd) {
                                                 dateSelectedEnd = day.date;
                                             } else {
@@ -531,6 +627,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                                         }
 
                                         dateSelectedStart = dateSelectedEnd = day.date;
+                                        if (isInForceSelectMode) isInForceSelectMode = false;
                                         animateSelection();
                                         return true;
                                     }
@@ -705,7 +802,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
             float cxTo2 = appear ? xStep * endColumn + xStep / 2f : cxFrom2;
             float toAlpha = appear ? 1 : 0;
 
-            RowAnimationValue pr = new RowAnimationValue(cxFrom1, cxFrom2);
+            RowAnimationValue pr = new RowAnimationValue(cxFrom1, cxFrom2, fromAlpha);
             rowSelectionPos.put(row, pr);
 
             if (animate) {
@@ -868,7 +965,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                 int nowTime = (int) (System.currentTimeMillis() / 1000L);
 
                 PeriodDay day = messagesByDays != null ? messagesByDays.get(i, null) : null;
-                if (nowTime < startMonthTime + (i + 1) * 86400) {
+                if (nowTime < startMonthTime + (i + 1) * 86400 || startMonthTime + (i + 1) * 86400 < mMinDate) {
                     int oldAlpha = textPaint.getAlpha();
                     textPaint.setAlpha((int) (oldAlpha * 0.3f));
                     canvas.drawText(Integer.toString(i + 1), cx, cy + AndroidUtilities.dp(5), textPaint);
@@ -1231,9 +1328,10 @@ public class ChatCalendarJumpActivity extends BaseFragment {
         float startX, endX;
         float alpha;
 
-        RowAnimationValue(float s, float e) {
+        RowAnimationValue(float s, float e, float a) {
             startX = s;
             endX = e;
+            alpha = a;
         }
     }
 }

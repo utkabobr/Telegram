@@ -4099,6 +4099,12 @@
     <string name="Days_few">%1$d days</string>
     <string name="Days_many">%1$d days</string>
     <string name="Days_other">%1$d days</string>
+    <string name="DaysSimple_zero">days</string>
+    <string name="DaysSimple_one">day</string>
+    <string name="DaysSimple_two">days</string>
+    <string name="DaysSimple_few">days</string>
+    <string name="DaysSimple_many">days</string>
+    <string name="DaysSimple_other">days</string>
     <string name="Weeks_zero">%1$d weeks</string>
     <string name="Weeks_one">%1$d week</string>
     <string name="Weeks_two">%1$d weeks</string>
