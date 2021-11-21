@@ -1213,7 +1213,8 @@ public class ChatCalendarJumpActivity extends BaseFragment {
 
     @Override
     public boolean onBackPressed() {
-        if (dateSelectedStart != 0 && dateSelectedEnd != 0) {
+        if (dateSelectedStart != 0 && dateSelectedEnd != 0 || isInForceSelectMode) {
+            isInForceSelectMode = false;
             dateSelectedStart = dateSelectedEnd = 0;
             animateSelection();
             return false;
