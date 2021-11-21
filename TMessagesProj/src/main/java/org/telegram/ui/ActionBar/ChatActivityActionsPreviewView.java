@@ -68,7 +68,7 @@ public class ChatActivityActionsPreviewView extends FrameLayout {
 
     {
         actionsWidth = AndroidUtilities.isTablet() ? AndroidUtilities.dp(300) : (int) (getContext().getResources().getDisplayMetrics().widthPixels * 0.6f);
-        Arrays.fill(radii, AndroidUtilities.dp(10));
+        Arrays.fill(radii, AndroidUtilities.dp(6));
         topBottomPadding = AndroidUtilities.dp(16);
         setVisibility(GONE);
         setOnClickListener(v -> dismiss());
