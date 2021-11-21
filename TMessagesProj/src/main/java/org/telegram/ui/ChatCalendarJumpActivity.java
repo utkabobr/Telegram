@@ -867,6 +867,17 @@ public class ChatCalendarJumpActivity extends BaseFragment {
                     imagesByDays = new SparseArray<>();
                 }
 
+                for (int i = 0; i < daysInMonth; i++) {
+                    PeriodDay day = messagesByDays.get(i, null);
+                    if (day != null) {
+                        day.selectProgress = day.date >= dateSelectedStart && day.date <= dateSelectedEnd ? 1 : 0;
+
+                        if (day.date == dateSelectedStart || day.date == dateSelectedEnd)
+                            day.selectStartEndProgress = 1;
+                        else day.selectStartEndProgress = 0;
+                    }
+                }
+
                 for (int i = 0; i < messagesByDays.size(); i++) {
                     int key = messagesByDays.keyAt(i);
                     if (imagesByDays.get(key, null) != null) {
