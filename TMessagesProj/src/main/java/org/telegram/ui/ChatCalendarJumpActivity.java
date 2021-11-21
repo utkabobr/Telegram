@@ -401,7 +401,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
             if (error == null) {
                 TLRPC.TL_messages_searchResultsCalendar res = (TLRPC.TL_messages_searchResultsCalendar) response;
 
-                int maxDate = (int) (System.currentTimeMillis() / 1000L) + 86400;
+                int maxDate = (int) (System.currentTimeMillis() / 1000L);
                 for (int i = 0; i < res.periods.size(); i++) {
                     TLRPC.TL_searchResultsCalendarPeriod period = res.periods.get(i);
                     calendar.setTimeInMillis(period.date * 1000L);
