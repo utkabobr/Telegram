@@ -9130,19 +9130,20 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void setDefaultSendAs(long chatId, long newPeer) {
+        TLRPC.ChatFull cachedFull = getChatFull(-chatId);
+        if (cachedFull != null) {
+            cachedFull.default_send_as = getPeer(newPeer);
+            getMessagesStorage().updateChatInfo(cachedFull, false);
+            getNotificationCenter().postNotificationName(NotificationCenter.updateDefaultSendAsPeer, chatId, cachedFull.default_send_as);
+        }
+
         TLRPC.TL_messages_saveDefaultSendAs req = new TLRPC.TL_messages_saveDefaultSendAs();
         req.peer = getInputPeer(chatId);
         req.send_as = getInputPeer(newPeer);
         getConnectionsManager().sendRequest(req, (response, error) -> {
             if (response instanceof TLRPC.TL_boolTrue) {
                 TLRPC.ChatFull full = getChatFull(-chatId);
-                if (full != null) {
-                    AndroidUtilities.runOnUIThread(() -> {
-                        full.default_send_as = getPeer(newPeer);
-                        getMessagesStorage().updateChatInfo(full, false);
-                        getNotificationCenter().postNotificationName(NotificationCenter.updateDefaultSendAsPeer, chatId, full.default_send_as);
-                    });
-                } else loadFullChat(-chatId, 0, true);
+                if (full == null) loadFullChat(-chatId, 0, true);
             } else if (error != null && error.code == 400) {
                 loadFullChat(-chatId, 0, true);
             }
