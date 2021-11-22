@@ -6476,6 +6476,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             updateFieldRight(1);
         }
         updateFieldHint(false);
+        updateSendAsButton();
     }
 
     public ImageView getAttachButton() {
@@ -6781,11 +6782,13 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             }
         }
         boolean wasVisible = senderSelectView.getVisibility() == View.VISIBLE;
-        boolean isVisible = delegate.getSendAsPeers() != null && defPeer != null && delegate.getSendAsPeers().peers.size() > 1;
+        boolean isVisible = delegate.getSendAsPeers() != null && defPeer != null && delegate.getSendAsPeers().peers.size() > 1 && !isEditingMessage();
+        int pad = AndroidUtilities.dp(2);
+        MarginLayoutParams params = (MarginLayoutParams) senderSelectView.getLayoutParams();
         float sA = isVisible ? 0 : 1;
-        float sX = isVisible ? -senderSelectView.getLayoutParams().width : 0;
+        float sX = isVisible ? -senderSelectView.getLayoutParams().width - params.leftMargin - pad : 0;
         float eA = isVisible ? 1 : 0;
-        float eX = isVisible ? 0 : -senderSelectView.getLayoutParams().width;
+        float eX = isVisible ? 0 : -senderSelectView.getLayoutParams().width - params.leftMargin - pad;
 
         if (wasVisible != isVisible) {
             ValueAnimator a = (ValueAnimator) senderSelectView.getTag();
@@ -6795,13 +6798,11 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             }
 
             if (parentFragment.getOtherSameChatsDiff() == 0) {
-                senderSelectView.setAlpha(sA);
-                senderSelectView.setTranslationX(sX);
-                ValueAnimator anim = ValueAnimator.ofFloat(sA, eA).setDuration(166);
+                ValueAnimator anim = ValueAnimator.ofFloat(0, 1).setDuration(150);
                 anim.addUpdateListener(animation -> {
                     float val = (float) animation.getAnimatedValue();
 
-                    senderSelectView.setAlpha(val);
+                    senderSelectView.setAlpha(sA + (eA - sA) * val);
                     senderSelectView.setTranslationX(sX + (eX - sX) * val);
                     for (ImageView emoji : emojiButton)
                         emoji.setTranslationX(senderSelectView.getTranslationX());
@@ -6812,12 +6813,25 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     public void onAnimationStart(Animator animation) {
                         if (isVisible)
                             senderSelectView.setVisibility(VISIBLE);
+                        senderSelectView.setAlpha(sA);
+                        senderSelectView.setTranslationX(sX);
+                        for (ImageView emoji : emojiButton)
+                            emoji.setTranslationX(senderSelectView.getTranslationX());
+                        messageEditText.setTranslationX(senderSelectView.getTranslationX());
+
+                        if (botCommandsMenuButton.getTag() == null) {
+                            animationParamsX.clear();
+                        }
                     }
 
                     @Override
                     public void onAnimationEnd(Animator animation) {
-                        if (!isVisible)
+                        if (!isVisible) {
                             senderSelectView.setVisibility(GONE);
+                            for (ImageView emoji : emojiButton)
+                                emoji.setTranslationX(0);
+                            messageEditText.setTranslationX(0);
+                        }
                     }
 
                     @Override
