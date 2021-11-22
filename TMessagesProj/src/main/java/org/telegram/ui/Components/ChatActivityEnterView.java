@@ -2737,8 +2737,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         senderSelectView.setAlpha(f);
                     });
                     ValueAnimator anim = ValueAnimator.ofFloat(0, 1).setDuration(350);
-                    float pos = (rc.getMeasuredHeight() - loc[1]) / (float)AndroidUtilities.dp(58);
-                    float mAmplitude = 0.25f - pos * 0.009f,
+                    float pos = (rv.getY() + rv.getMeasuredHeight() - loc[1]) / (float)AndroidUtilities.dp(58);
+                    float mAmplitude = 0.2f - pos * 0.01f,
                             mFrequency = 6f - pos * 0.325f;
                     anim.setInterpolator(time -> (float) (-1 * Math.pow(Math.E, -time / mAmplitude) *
                             Math.cos(mFrequency * time) + 1));
