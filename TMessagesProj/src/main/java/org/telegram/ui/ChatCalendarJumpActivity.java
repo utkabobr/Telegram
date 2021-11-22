@@ -1144,7 +1144,7 @@ public class ChatCalendarJumpActivity extends BaseFragment {
         }
 
         if (minIndex != -1) adapter.notifyItemRangeChanged(0, minIndex);
-        if (maxIndex != -1) adapter.notifyItemRangeChanged(maxIndex, adapter.getItemCount() - maxIndex);
+        if (maxIndex != -1) adapter.notifyItemRangeChanged(maxIndex + 1, adapter.getItemCount() - maxIndex);
     }
 
     private void updateRowSelections(MonthView m, boolean animate) {
