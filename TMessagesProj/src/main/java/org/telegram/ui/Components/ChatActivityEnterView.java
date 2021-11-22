@@ -2552,6 +2552,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
                         title.setTag(this.title);
                         title.setMaxLines(1);
+                        title.setEllipsize(TextUtils.TruncateAt.END);
                         ll2.addView(title);
 
                         TextView subtitle = new TextView(parent.getContext());
@@ -2559,6 +2560,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
                         subtitle.setTag(this.subtitle);
                         subtitle.setMaxLines(1);
+                        subtitle.setEllipsize(TextUtils.TruncateAt.END);
                         ll2.addView(subtitle);
 
                         ll.addView(ll2, LayoutHelper.createLinear(0, LayoutHelper.MATCH_PARENT, 1f, 12, 0, 0, 0));
