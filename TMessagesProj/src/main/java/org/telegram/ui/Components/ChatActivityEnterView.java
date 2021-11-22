@@ -2738,8 +2738,8 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     });
                     ValueAnimator anim = ValueAnimator.ofFloat(0, 1).setDuration(350);
                     float pos = (rv.getY() + rv.getMeasuredHeight() - loc[1]) / (float)AndroidUtilities.dp(58);
-                    float mAmplitude = 0.2f - pos * 0.01f,
-                            mFrequency = 6f - pos * 0.325f;
+                    float mAmplitude = 0.18f - pos * 0.009f,
+                            mFrequency = 5.7f - pos * 0.325f;
                     anim.setInterpolator(time -> (float) (-1 * Math.pow(Math.E, -time / mAmplitude) *
                             Math.cos(mFrequency * time) + 1));
                     anim.addUpdateListener(animation -> {
