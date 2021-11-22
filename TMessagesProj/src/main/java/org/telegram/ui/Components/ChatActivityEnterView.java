@@ -2861,11 +2861,18 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
                 TLRPC.Peer defPeer = full.default_send_as != null ? full.default_send_as : null;
                 if (defPeer != null) {
+                    int itemHeight = AndroidUtilities.dp(14 + 44);
+                    int totalRecyclerHeight = peers.size() * itemHeight;
                     for (int i = 0; i < peers.size(); i++) {
                         TLRPC.Peer p = peers.get(i);
                         if (p.channel_id != 0 && p.channel_id == defPeer.channel_id || p.user_id != 0 && p.user_id == defPeer.user_id ||
                                 p.chat_id != 0 && p.chat_id == defPeer.chat_id) {
-                            llm.scrollToPositionWithOffset(i, 0);
+                            int off = 0;
+                            if (i != peers.size() - 1 && rv.getMeasuredHeight() < totalRecyclerHeight) {
+                                off = rv.getMeasuredHeight() % itemHeight;
+                            }
+
+                            llm.scrollToPositionWithOffset(i, off + AndroidUtilities.dp(7) + (totalRecyclerHeight - (peers.size() - 2) * itemHeight));
                             onScrollListener.onScrolled(rv, 0, 0);
                             break;
                         }
