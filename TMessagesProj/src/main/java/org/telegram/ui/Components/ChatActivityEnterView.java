@@ -6794,49 +6794,59 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 senderSelectView.setTag(null);
             }
 
-            senderSelectView.setAlpha(sA);
-            senderSelectView.setTranslationX(sX);
-            ValueAnimator anim = ValueAnimator.ofFloat(sA, eA).setDuration(166);
-            anim.addUpdateListener(animation -> {
-                float val = (float) animation.getAnimatedValue();
+            if (parentFragment.getOtherSameChatsDiff() == 0) {
+                senderSelectView.setAlpha(sA);
+                senderSelectView.setTranslationX(sX);
+                ValueAnimator anim = ValueAnimator.ofFloat(sA, eA).setDuration(166);
+                anim.addUpdateListener(animation -> {
+                    float val = (float) animation.getAnimatedValue();
 
-                senderSelectView.setAlpha(val);
-                senderSelectView.setTranslationX(sX + (eX - sX) * val);
-                for (ImageView emoji : emojiButton)
-                    emoji.setTranslationX(senderSelectView.getTranslationX());
-                messageEditText.setTranslationX(senderSelectView.getTranslationX());
-            });
-            anim.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationStart(Animator animation) {
-                    if (isVisible)
-                        senderSelectView.setVisibility(VISIBLE);
-                }
-
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    if (!isVisible)
-                        senderSelectView.setVisibility(GONE);
-                }
-
-                @Override
-                public void onAnimationCancel(Animator animation) {
-                    if (isVisible) {
-                        senderSelectView.setVisibility(VISIBLE);
-                    } else {
-                        senderSelectView.setVisibility(GONE);
-                    }
-                    senderSelectView.setAlpha(eA);
-                    senderSelectView.setTranslationX(eX);
+                    senderSelectView.setAlpha(val);
+                    senderSelectView.setTranslationX(sX + (eX - sX) * val);
                     for (ImageView emoji : emojiButton)
                         emoji.setTranslationX(senderSelectView.getTranslationX());
                     messageEditText.setTranslationX(senderSelectView.getTranslationX());
+                });
+                anim.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+                        if (isVisible)
+                            senderSelectView.setVisibility(VISIBLE);
+                    }
 
-                    requestLayout();
-                }
-            });
-            anim.start();
-            senderSelectView.setTag(anim);
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        if (!isVisible)
+                            senderSelectView.setVisibility(GONE);
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+                        if (isVisible) {
+                            senderSelectView.setVisibility(VISIBLE);
+                        } else {
+                            senderSelectView.setVisibility(GONE);
+                        }
+                        senderSelectView.setAlpha(eA);
+                        senderSelectView.setTranslationX(eX);
+                        for (ImageView emoji : emojiButton)
+                            emoji.setTranslationX(senderSelectView.getTranslationX());
+                        messageEditText.setTranslationX(senderSelectView.getTranslationX());
+
+                        requestLayout();
+                    }
+                });
+                anim.start();
+                senderSelectView.setTag(anim);
+            } else {
+                senderSelectView.setVisibility(isVisible ? VISIBLE : GONE);
+                senderSelectView.setTranslationX(eX);
+                for (ImageView emoji : emojiButton)
+                    emoji.setTranslationX(eX);
+                messageEditText.setTranslationX(eX);
+                senderSelectView.setAlpha(eA);
+                senderSelectView.setTag(null);
+            }
         }
     }
 

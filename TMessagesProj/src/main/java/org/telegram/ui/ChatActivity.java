@@ -1754,8 +1754,15 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             topUndoView.hide(true, 0);
         }
     }
-    
-    private int getOtherSameChatsDiff() {
+
+    /**
+     * Gets same chats index difference
+     * [..., other_same, this, ...] => -1
+     * [..., this, other_same, ...] => 1
+     * [..., this, ...] => 0
+     * @return Other same chats index difference
+     */
+    public int getOtherSameChatsDiff() {
         int cur = parentLayout.fragmentsStack.indexOf(this);
         if (cur == -1)
             cur = parentLayout.fragmentsStack.size();
