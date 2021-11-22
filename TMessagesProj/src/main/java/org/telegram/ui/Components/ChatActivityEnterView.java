@@ -2754,21 +2754,19 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
 
                     senderSelectPopupWindow.dismiss();
                 });
-                RecyclerView.OnScrollListener onScrollListener;
-                rv.addOnScrollListener(onScrollListener = new RecyclerView.OnScrollListener() {
-                    final int DURATION = 150;
-                    boolean isVisible;
+                int shadowDuration = 150;
+                rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    Boolean isVisible;
 
                     @Override
                     public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                         boolean v = llm.findFirstCompletelyVisibleItemPosition() == 0;
-                        if (v != isVisible) {
+                        if (isVisible == null || v != isVisible) {
+                            shadow.animate().cancel();
                             if (v) {
-                                shadow.animate().cancel();
-                                shadow.animate().alpha(0).setDuration(DURATION).start();
+                                shadow.animate().alpha(0).setDuration(shadowDuration).start();
                             } else {
-                                shadow.animate().cancel();
-                                shadow.animate().alpha(1).setDuration(DURATION).start();
+                                shadow.animate().alpha(1).setDuration(shadowDuration).start();
                             }
                             isVisible = v;
                         }
@@ -2873,7 +2871,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                             }
 
                             llm.scrollToPositionWithOffset(i, off + AndroidUtilities.dp(7) + (totalRecyclerHeight - (peers.size() - 2) * itemHeight));
-                            onScrollListener.onScrolled(rv, 0, 0);
+                            if (rv.computeVerticalScrollOffset() > 0) {
+                                shadow.animate().cancel();
+                                shadow.animate().alpha(1).setDuration(shadowDuration).start();
+                            }
                             break;
                         }
                     }
