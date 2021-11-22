@@ -6237,6 +6237,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         slideText.setCancelToProgress(0f);
 
                         delegate.onAudioVideoInterfaceUpdated();
+                        updateSendAsButton();
                     }
                 }
             });
@@ -6244,6 +6245,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             recordTimerView.stop();
         }
         delegate.onAudioVideoInterfaceUpdated();
+        updateSendAsButton();
     }
 
     @Override
@@ -6791,7 +6793,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             }
         }
         boolean wasVisible = senderSelectView.getVisibility() == View.VISIBLE;
-        boolean isVisible = delegate.getSendAsPeers() != null && defPeer != null && delegate.getSendAsPeers().peers.size() > 1 && !isEditingMessage();
+        boolean isVisible = delegate.getSendAsPeers() != null && defPeer != null && delegate.getSendAsPeers().peers.size() > 1 && !isEditingMessage() && !isRecordingAudioVideo();
         int pad = AndroidUtilities.dp(2);
         MarginLayoutParams params = (MarginLayoutParams) senderSelectView.getLayoutParams();
         float sA = isVisible ? 0 : 1;
