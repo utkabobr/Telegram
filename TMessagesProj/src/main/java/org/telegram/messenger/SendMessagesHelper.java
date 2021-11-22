@@ -1881,7 +1881,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         newMsg.from_id = peer_id;
                     }
                     newMsg.post = true;
-                } else if (ChatObject.getSendAsPeerId(chat, getMessagesController().getChatFull(-peer)) != myId) {
+                } else {
                     long fromPeerId = ChatObject.getSendAsPeerId(chat, getMessagesController().getChatFull(-peer));
 
                     if (fromPeerId == myId) {
