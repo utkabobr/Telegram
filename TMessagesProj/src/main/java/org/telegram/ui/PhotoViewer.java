@@ -10068,12 +10068,11 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 }
                 boolean noforwards = MessagesController.getInstance(UserConfig.selectedAccount).isChatNoForwards(newMessageObject.getChatId());
                 if (isEmbedVideo) {
-                    if (!noforwards)
-                        menuItem.showSubItem(gallery_menu_openin);
-                    else menuItem.hideSubItem(gallery_menu_openin);
+                    menuItem.showSubItem(gallery_menu_openin);
                     setItemVisible(pipItem, true, false);
                 } else if (isVideo) {
-                    if (!noforwards)
+                    if (!noforwards || (slideshowMessageId == 0 ? newMessageObject.messageOwner.media.webpage != null && newMessageObject.messageOwner.media.webpage.url != null :
+                            imagesArr.get(0).messageOwner.media.webpage != null && imagesArr.get(0).messageOwner.media.webpage.url != null))
                         menuItem.showSubItem(gallery_menu_openin);
                     else menuItem.hideSubItem(gallery_menu_openin);
                     final boolean masksItemVisible = masksItem.getVisibility() == View.VISIBLE;
@@ -10092,6 +10091,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         menuItem.hideSubItem(gallery_menu_masks2);
                     }
                 } else {
+                    speedGap.setVisibility(View.GONE);
                     menuItem.hideSubItem(gallery_menu_openin);
                     final boolean pipItemVisible = pipItem.getVisibility() == View.VISIBLE;
                     final boolean shouldMasksItemBeVisible = newMessageObject.hasAttachedStickers() && !DialogObject.isEncryptedDialog(newMessageObject.getDialogId());
@@ -10663,10 +10663,12 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 }
             }
             if (isVideo || isEmbedVideo) {
-                menuItem.showSubItem(gallery_menu_speed);
                 speedGap.setVisibility(View.VISIBLE);
+                menuItem.showSubItem(gallery_menu_speed);
             } else {
                 menuItem.hideSubItem(gallery_menu_speed);
+                speedGap.setVisibility(View.GONE);
+                menuItem.checkHideMenuItem();
             }
         } else if (!secureDocuments.isEmpty()) {
             if (index < 0 || index >= secureDocuments.size()) {
