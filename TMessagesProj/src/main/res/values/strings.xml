@@ -4846,4 +4846,5 @@
     <string name="ForwardsRestrictedInfoChannel">Forwards from this channel are restricted.</string>
     <string name="ForwardsRestrictedInfoGroup">Forwards from this group are restricted.</string>
     <string name="SendMessageAsTitle">Send message as...</string>
+    <string name="OpenChannelPost">VIEW POST</string>
 </resources>
