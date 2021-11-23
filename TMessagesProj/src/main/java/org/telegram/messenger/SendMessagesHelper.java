@@ -1882,7 +1882,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                     }
                     newMsg.post = true;
                 } else {
-                    long fromPeerId = ChatObject.getSendAsPeerId(chat, getMessagesController().getChatFull(-peer));
+                    long fromPeerId = ChatObject.getSendAsPeerId(chat, getMessagesController().getChatFull(-peer), true);
 
                     if (fromPeerId == myId) {
                         newMsg.from_id = new TLRPC.TL_peerUser();
@@ -1890,7 +1890,6 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         newMsg.flags |= TLRPC.MESSAGE_FLAG_HAS_FROM_ID;
                     } else {
                         newMsg.from_id = getMessagesController().getPeer(fromPeerId);
-                        newMsg.flags |= TLRPC.MESSAGE_FLAG_HAS_FROM_ID;
                         if (rank != null) {
                             newMsg.post_author = rank;
                             newMsg.flags |= 65536;
