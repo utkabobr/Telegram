@@ -326,10 +326,6 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
             if (object instanceof ListItem) {
                 ListItem item = (ListItem) object;
                 File file = item.file;
-                boolean isExternalStorageManager = false;
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    isExternalStorageManager = Environment.isExternalStorageManager();
-                }
                 if (file == null) {
                     if (item.icon == R.drawable.files_gallery) {
                         HashMap<Object, Object> selectedPhotos = new HashMap<>();
@@ -373,7 +369,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
                         if (delegate != null) {
                             delegate.startMusicSelectActivity();
                         }
-                    } else if (!BuildVars.NO_SCOPED_STORAGE && item.icon == R.drawable.files_storage && !isExternalStorageManager) {
+                    } else if (!BuildVars.NO_SCOPED_STORAGE && item.icon == R.drawable.files_storage) {
                         delegate.startDocumentSelectActivity();
                     } else {
                         int top = getTopForScroll();
@@ -946,11 +942,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
         items.clear();
 
         HashSet<String> paths = new HashSet<>();
-        boolean isExternalStorageManager = false;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            isExternalStorageManager = Environment.isExternalStorageManager();
-        }
-        if (!BuildVars.NO_SCOPED_STORAGE && !isExternalStorageManager) {
+        if (!BuildVars.NO_SCOPED_STORAGE) {
             ListItem ext = new ListItem();
             ext.title = LocaleController.getString("InternalStorage", R.string.InternalStorage);
             ext.icon = R.drawable.files_storage;
@@ -1035,7 +1027,7 @@ public class ChatAttachAlertDocumentLayout extends ChatAttachAlert.AttachAlertLa
 
         ListItem fs;
         try {
-            File telegramPath = new File(ApplicationLoader.applicationContext.getExternalFilesDir(null), "Telegram");
+            File telegramPath = new File(Environment.getExternalStorageDirectory(), "Telegram");
             if (telegramPath.exists()) {
                 fs = new ListItem();
                 fs.title = "Telegram";

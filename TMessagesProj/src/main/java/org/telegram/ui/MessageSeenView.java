@@ -1,8 +1,6 @@
 package org.telegram.ui;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.ColorFilter;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
@@ -21,8 +19,6 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.exoplayer2.util.Log;
-
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
@@ -33,8 +29,6 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.tgnet.ConnectionsManager;
-import org.telegram.tgnet.RequestDelegate;
-import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AvatarDrawable;
@@ -47,7 +41,6 @@ import org.telegram.ui.Components.RecyclerListView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Vector;
 
 public class MessageSeenView extends FrameLayout {
 
@@ -76,11 +69,11 @@ public class MessageSeenView extends FrameLayout {
         titleView.setLines(1);
         titleView.setEllipsize(TextUtils.TruncateAt.END);
 
-        addView(titleView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 40, 0, 62, 0));
+        addView(titleView, LayoutHelper.createFrameRelatively(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL, 40, 0, 62, 0));
 
         avatarsImageView = new AvatarsImageView(context, false);
         avatarsImageView.setStyle(AvatarsImageView.STYLE_MESSAGE_SEEN);
-        addView(avatarsImageView, LayoutHelper.createFrame(24 + 12 + 12 + 8, LayoutHelper.MATCH_PARENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
+        addView(avatarsImageView, LayoutHelper.createFrameRelatively(24 + 12 + 12 + 8, LayoutHelper.MATCH_PARENT, Gravity.END | Gravity.CENTER_VERTICAL, 0, 0, 0, 0));
 
         titleView.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem));
 
@@ -89,7 +82,7 @@ public class MessageSeenView extends FrameLayout {
         req.peer = MessagesController.getInstance(currentAccount).getInputPeer(messageObject.getDialogId());
 
         iconView = new ImageView(context);
-        addView(iconView, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 11, 0, 0, 0));
+        addView(iconView, LayoutHelper.createFrameRelatively(24, 24, Gravity.START | Gravity.CENTER_VERTICAL, 11, 0, 0, 0));
         Drawable drawable = ContextCompat.getDrawable(context, isVoice ? R.drawable.msg_played : R.drawable.msg_seen).mutate();
         drawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultSubmenuItemIcon), PorterDuff.Mode.MULTIPLY));
         iconView.setImageDrawable(drawable);
@@ -134,7 +127,7 @@ public class MessageSeenView extends FrameLayout {
                 } else {
                     if (ChatObject.isChannel(chat)) {
                         TLRPC.TL_channels_getParticipants usersReq = new TLRPC.TL_channels_getParticipants();
-                        usersReq.limit = 50;
+                        usersReq.limit = ChatActivity.MESSAGE_SEEN_MAX_PARTICIPANTS;
                         usersReq.offset = 0;
                         usersReq.filter = new TLRPC.TL_channelParticipantsRecent();
                         usersReq.channel = MessagesController.getInstance(currentAccount).getInputChannel(chat.id);
@@ -215,13 +208,15 @@ public class MessageSeenView extends FrameLayout {
                 avatarsImageView.setObject(i, currentAccount, null);
             }
         }
+        float tX;
         if (users.size() == 1) {
-            avatarsImageView.setTranslationX(AndroidUtilities.dp(24));
+            tX = AndroidUtilities.dp(24);
         } else if (users.size() == 2) {
-            avatarsImageView.setTranslationX(AndroidUtilities.dp(12));
+            tX = AndroidUtilities.dp(12);
         } else {
-            avatarsImageView.setTranslationX(0);
+            tX = 0;
         }
+        avatarsImageView.setTranslationX(LocaleController.isRTL ? AndroidUtilities.dp(12) : tX);
 
         avatarsImageView.commitTransition(false);
         if (peerIds.size() == 1 && users.get(0) != null) {

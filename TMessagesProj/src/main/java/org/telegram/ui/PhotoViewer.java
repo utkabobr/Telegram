@@ -9865,9 +9865,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             MessageObject openingObject = imagesArr.get(index);
             if (!openingObject.scheduled && (parentChatActivity == null || !parentChatActivity.isThreadChat())) {
                 opennedFromMedia = true;
-                if (object != null) {
-                    startOffset = object.starOffset;
-                }
+                startOffset = object.starOffset;
                 menuItem.showSubItem(gallery_menu_showinchat);
                 if (openingObject.canForwardMessage()) {
                     setItemVisible(sendItem, true, false);

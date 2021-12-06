@@ -60,6 +60,11 @@ import android.util.SparseArray;
 import android.util.StateSet;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
+import androidx.core.graphics.ColorUtils;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.telegram.messenger.AndroidUtilities;
@@ -67,7 +72,6 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.Bitmaps;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatThemeController;
-import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLocation;
@@ -78,6 +82,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SvgHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.time.SunDate;
@@ -101,7 +106,6 @@ import org.telegram.ui.Components.RoundStatusDrawable;
 import org.telegram.ui.Components.ScamDrawable;
 import org.telegram.ui.Components.SendingFileDrawable;
 import org.telegram.ui.Components.StatusDrawable;
-import org.telegram.messenger.SvgHelper;
 import org.telegram.ui.Components.ThemeEditorView;
 import org.telegram.ui.Components.TypingDotsDrawable;
 import org.telegram.ui.RoundVideoProgressShadow;
@@ -120,15 +124,9 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.UiThread;
-import androidx.core.graphics.ColorUtils;
 
 public class Theme {
 
@@ -2733,6 +2731,8 @@ public class Theme {
     public static Paint chat_radialProgress2Paint;
     public static Paint chat_radialProgressPausedPaint;
     public static Paint chat_radialProgressPausedSeekbarPaint;
+    public static Paint chat_reactionInsideBackgroundPaint;
+    public static Paint chat_reactionOutlinePaint;
 
     public static TextPaint chat_msgTextPaint;
     public static TextPaint chat_actionTextPaint;
@@ -3442,6 +3442,10 @@ public class Theme {
     public static final String key_chat_inTextSelectionHighlight = "chat_inTextSelectionHighlight";
     public static final String key_chat_recordedVoiceHighlight = "key_chat_recordedVoiceHighlight";
     public static final String key_chat_TextSelectionCursor = "chat_TextSelectionCursor";
+    public static final String key_chat_reactionInBackground = "chat_reactionInBackground";
+    public static final String key_chat_reactionInOutline = "chat_reactionInOutline";
+    public static final String key_chat_reactionOutBackground = "chat_reactionOutBackground";
+    public static final String key_chat_reactionOutOutline = "chat_reactionOutOutline";
 
     public static final String key_voipgroup_listSelector = "voipgroup_listSelector";
     public static final String key_voipgroup_inviteMembersBackground = "voipgroup_inviteMembersBackground";
@@ -3714,6 +3718,8 @@ public class Theme {
     private static final HashMap<String, Drawable> defaultChatDrawables = new HashMap<>();
     private static final HashMap<String, String> defaultChatDrawableColorKeys = new HashMap<>();
 
+    public static final String key_paint_chatReactionInsideBackground = "paintChatReactionInsideBackground";
+    public static final String key_paint_chatReactionOutline = "paintChatReactionOutline";
     public static final String key_paint_chatActionBackground = "paintChatActionBackground";
     public static final String key_paint_chatActionBackgroundSelected = "paintChatActionBackgroundSelected";
     public static final String key_paint_chatActionText = "paintChatActionText";
@@ -4036,6 +4042,10 @@ public class Theme {
         defaultColors.put(key_chat_inMediaIconSelected, 0xffeff8fe);
         defaultColors.put(key_chat_outMediaIcon, 0xffefffde);
         defaultColors.put(key_chat_outMediaIconSelected, 0xffe1f8cf);
+        defaultColors.put(key_chat_reactionInBackground, 0xffeff8fe);
+        defaultColors.put(key_chat_reactionInOutline, 0xff4e92cc);
+        defaultColors.put(key_chat_reactionOutBackground, 0xffe1f8cf);
+        defaultColors.put(key_chat_reactionOutOutline, 0xff55ab4f);
         defaultColors.put(key_chat_messageTextIn, 0xff000000);
         defaultColors.put(key_chat_messageTextOut, 0xff000000);
         defaultColors.put(key_chat_messageLinkIn, 0xff2678b6);
@@ -8219,12 +8229,19 @@ public class Theme {
             chat_actionBackgroundPaint2 = new Paint(Paint.ANTI_ALIAS_FLAG);
             chat_actionBackgroundSelectedPaint2 = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+            chat_reactionInsideBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            chat_reactionOutlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            chat_reactionOutlinePaint.setStrokeWidth(AndroidUtilities.dp(2));
+            chat_reactionOutlinePaint.setStyle(Paint.Style.STROKE);
+
             addChatPaint(key_paint_chatActionBackground, chat_actionBackgroundPaint, key_chat_serviceBackground);
             addChatPaint(key_paint_chatActionBackgroundSelected, chat_actionBackgroundSelectedPaint, key_chat_serviceBackgroundSelected);
             addChatPaint(key_paint_chatActionText, chat_actionTextPaint, key_chat_serviceText);
             addChatPaint(key_paint_chatBotButton, chat_botButtonPaint, key_chat_botButtonText);
             addChatPaint(key_paint_chatComposeBackground, chat_composeBackgroundPaint, key_chat_messagePanelBackground);
             addChatPaint(key_paint_chatTimeBackground, chat_timeBackgroundPaint, key_chat_mediaTimeBackground);
+            addChatPaint(key_paint_chatReactionInsideBackground, chat_reactionInsideBackgroundPaint, key_chat_inMediaIcon);
+            addChatPaint(key_paint_chatReactionOutline, chat_reactionOutlinePaint, key_chat_reactionInOutline);
         }
     }
 

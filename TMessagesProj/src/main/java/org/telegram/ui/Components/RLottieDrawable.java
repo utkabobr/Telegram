@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 public class RLottieDrawable extends BitmapDrawable implements Animatable {
 
     public static native long create(String src, String json, int w, int h, int[] params, boolean precache, int[] colorReplacement, boolean limitFps);
+    public static native void getInfo(String src, String json, int[] params);
     protected static native long createWithJson(String json, String name, int[] params, int[] colorReplacement);
     public static native void destroy(long ptr);
     private static native void setLayerColor(long ptr, String layer, int color);
@@ -723,6 +724,17 @@ public class RLottieDrawable extends BitmapDrawable implements Animatable {
         autoRepeat = 2;
         start();
         return true;
+    }
+
+    public void rewind() {
+        setCurrentFrame(0, false, true);
+    }
+
+    public void trueRestart() {
+        autoRepeat = 0;
+        autoRepeatPlayCount = 0;
+        currentFrame = 0;
+        start();
     }
 
     public void setVibrationPattern(HashMap<Integer, Integer> pattern) {

@@ -98,7 +98,7 @@ public class MessagesStorage extends BaseController {
     private CountDownLatch openSync = new CountDownLatch(1);
 
     private static volatile MessagesStorage[] Instance = new MessagesStorage[UserConfig.MAX_ACCOUNT_COUNT];
-    private final static int LAST_DB_VERSION = 86;
+    private final static int LAST_DB_VERSION = 87;
     private boolean databaseMigrationInProgress;
 
     public static MessagesStorage getInstance(int num) {
@@ -402,6 +402,8 @@ public class MessagesStorage extends BaseController {
 
                 database.executeFast("CREATE TABLE polls_v2(mid INTEGER, uid INTEGER, id INTEGER, PRIMARY KEY (mid, uid));").stepThis().dispose();
                 database.executeFast("CREATE INDEX IF NOT EXISTS polls_id_v2 ON polls_v2(id);").stepThis().dispose();
+
+                database.executeFast("CREATE TABLE reactions(data BLOB, hash INTEGER, date INTEGER);").stepThis().dispose();
 
                 //version
                 database.executeFast("PRAGMA user_version = " + LAST_DB_VERSION).stepThis().dispose();
@@ -1525,6 +1527,11 @@ public class MessagesStorage extends BaseController {
             executeNoException("UPDATE scheduled_messages_v2 SET replydata = NULL");
             database.executeFast("PRAGMA user_version = 86").stepThis().dispose();
             version = 86;
+        }
+        if (version == 86) {
+            database.executeFast("CREATE TABLE IF NOT EXISTS reactions(data BLOB, hash INTEGER, date INTEGER);").stepThis().dispose();
+            database.executeFast("PRAGMA user_version = 87").stepThis().dispose();
+            version = 87;
         }
 
         FileLog.d("MessagesStorage db migration finished");

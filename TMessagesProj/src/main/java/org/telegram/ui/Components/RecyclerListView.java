@@ -41,9 +41,15 @@ import android.view.ViewPropertyAnimator;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.FrameLayout;
 
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.ColorUtils;
+import androidx.core.view.GestureDetectorCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
 
@@ -51,11 +57,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
-
-import androidx.core.content.ContextCompat;
-import androidx.core.graphics.ColorUtils;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 public class RecyclerListView extends RecyclerView {
 
@@ -106,7 +107,7 @@ public class RecyclerListView extends RecyclerView {
 
     public boolean scrollingByUser;
 
-    private GestureDetector gestureDetector;
+    private GestureDetectorCompat gestureDetector;
     private View currentChildView;
     private int currentChildPosition;
     private boolean interceptedByChild;
@@ -156,6 +157,24 @@ public class RecyclerListView extends RecyclerView {
     }
 
     public interface OnItemClickListenerExtended {
+        /**
+         * @param view View to check
+         * @param position Position to check
+         * @return If click should be delayed for a double tap
+         */
+        default boolean hasDoubleTap(View view, int position) {
+            return false;
+        }
+
+        /**
+         * Called when user double tapped the view
+         * @param view View that is being double tapped
+         * @param position View position
+         * @param x Event x
+         * @param y Event y
+         */
+        default void onDoubleTap(View view, int position, float x, float y) {}
+
         void onItemClick(View view, int position, float x, float y);
     }
 
@@ -722,14 +741,50 @@ public class RecyclerListView extends RecyclerView {
     private class RecyclerListViewItemClickListener implements OnItemTouchListener {
 
         public RecyclerListViewItemClickListener(Context context) {
-            gestureDetector = new GestureDetector(context, new GestureDetector.OnGestureListener() {
+            gestureDetector = new GestureDetectorCompat(context, new GestureDetector.SimpleOnGestureListener() {
+                private View doubleTapView;
+
                 @Override
                 public boolean onSingleTapUp(MotionEvent e) {
-                    if (currentChildView != null && (onItemClickListener != null || onItemClickListenerExtended != null)) {
+                    if (currentChildView != null) {
+                        if (onItemClickListenerExtended != null && onItemClickListenerExtended.hasDoubleTap(currentChildView, currentChildPosition)) {
+                            doubleTapView = currentChildView;
+                        } else {
+                            onPressItem(currentChildView, e);
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                @Override
+                public boolean onSingleTapConfirmed(MotionEvent e) {
+                    if (doubleTapView != null && onItemClickListenerExtended != null) {
+                        if (onItemClickListenerExtended.hasDoubleTap(doubleTapView, currentChildPosition)) {
+                            onPressItem(doubleTapView, e);
+                            doubleTapView = null;
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                @Override
+                public boolean onDoubleTap(MotionEvent e) {
+                    if (doubleTapView != null && onItemClickListenerExtended != null && onItemClickListenerExtended.hasDoubleTap(doubleTapView, currentChildPosition)) {
+                        onItemClickListenerExtended.onDoubleTap(doubleTapView, currentChildPosition, e.getX(), e.getY());
+                        doubleTapView = null;
+                        return true;
+                    }
+                    return false;
+                }
+
+                private void onPressItem(View cv, MotionEvent e) {
+                    if (cv != null && (onItemClickListener != null || onItemClickListenerExtended != null)) {
                         final float x = e.getX();
                         final float y = e.getY();
-                        onChildPressed(currentChildView, x, y, true);
-                        final View view = currentChildView;
+                        onChildPressed(cv, x, y, true);
+                        final View view = cv;
                         final int position = currentChildPosition;
                         if (instantClick && position != -1) {
                             view.playSoundEffect(SoundEffectConstants.CLICK);
@@ -764,15 +819,13 @@ public class RecyclerListView extends RecyclerView {
                         }, ViewConfiguration.getPressedStateDuration());
 
                         if (selectChildRunnable != null) {
-                            View pressedChild = currentChildView;
                             AndroidUtilities.cancelRunOnUIThread(selectChildRunnable);
                             selectChildRunnable = null;
                             currentChildView = null;
                             interceptedByChild = false;
-                            removeSelection(pressedChild, e);
+                            removeSelection(cv, e);
                         }
                     }
-                    return true;
                 }
 
                 @Override
@@ -797,21 +850,6 @@ public class RecyclerListView extends RecyclerView {
 
                 @Override
                 public boolean onDown(MotionEvent e) {
-                    return false;
-                }
-
-                @Override
-                public void onShowPress(MotionEvent e) {
-
-                }
-
-                @Override
-                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                    return false;
-                }
-
-                @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
                     return false;
                 }
             });

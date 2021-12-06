@@ -1855,6 +1855,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             accountInstance.getMediaDataController().loadRecents(MediaDataController.TYPE_FAVE, false, true, false);
             accountInstance.getMediaDataController().loadRecents(MediaDataController.TYPE_GREETINGS, false, true, false);
             accountInstance.getMediaDataController().checkFeaturedStickers();
+            accountInstance.getMediaDataController().checkReactions();
             for (String emoji : messagesController.diceEmojies) {
                 accountInstance.getMediaDataController().loadStickersByEmojiOrName(emoji, true, true);
             }

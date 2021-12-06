@@ -8,10 +8,10 @@
 
 package org.telegram.messenger;
 
-import androidx.annotation.UiThread;
-
 import android.os.SystemClock;
 import android.util.SparseArray;
+
+import androidx.annotation.UiThread;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +74,7 @@ public class NotificationCenter {
     public static final int didReceivedWebpagesInUpdates = totalEvents++;
     public static final int stickersDidLoad = totalEvents++;
     public static final int diceStickersDidLoad = totalEvents++;
+    public static final int reactionsDidLoad = totalEvents++;
     public static final int featuredStickersDidLoad = totalEvents++;
     public static final int groupStickersDidLoad = totalEvents++;
     public static final int messagesReadContent = totalEvents++;
@@ -99,6 +100,7 @@ public class NotificationCenter {
     public static final int archivedStickersCountDidLoad = totalEvents++;
     public static final int paymentFinished = totalEvents++;
     public static final int channelRightsUpdated = totalEvents++;
+    public static final int chatAvailableReactionsUpdated = totalEvents++;
     public static final int openArticle = totalEvents++;
     public static final int updateMentionsCount = totalEvents++;
     public static final int didUpdatePollResults = totalEvents++;

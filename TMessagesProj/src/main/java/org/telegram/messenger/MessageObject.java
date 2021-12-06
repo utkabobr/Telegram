@@ -25,6 +25,8 @@ import android.text.style.URLSpan;
 import android.text.util.Linkify;
 import android.util.Base64;
 
+import androidx.collection.LongSparseArray;
+
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.browser.Browser;
 import org.telegram.tgnet.ConnectionsManager;
@@ -57,8 +59,6 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import androidx.collection.LongSparseArray;
-
 public class MessageObject {
 
     public static final int MESSAGE_SEND_STATE_SENT = 0;
@@ -66,10 +66,14 @@ public class MessageObject {
     public static final int MESSAGE_SEND_STATE_SEND_ERROR = 2;
     public static final int MESSAGE_SEND_STATE_EDITING = 3;
 
+    // TODO: Make all types constants
     public static final int TYPE_PHOTO = 1;
+    public static final int TYPE_VOICE = 2;
     public static final int TYPE_VIDEO = 3;
     public static final int TYPE_ROUND_VIDEO = 5;
+    public static final int TYPE_FILE = 9;
     public static final int TYPE_STICKER = 13;
+    public static final int TYPE_MUSIC = 14;
     public static final int TYPE_ANIMATED_STICKER = 15;
     public static final int TYPE_POLL = 17;
 
@@ -113,6 +117,8 @@ public class MessageObject {
     public boolean viewsReloaded;
     public boolean pollVisibleOnScreen;
     public long pollLastCheckTime;
+    public boolean reactionsVisibleOnScreen;
+    public long reactionsLastCheckTime;
     public int wantedBotKeyboardWidth;
     public boolean attachPathExists;
     public boolean mediaExists;
@@ -2129,8 +2135,36 @@ public class MessageObject {
         message.flags |= 1048576;
     }
 
+    public boolean isReactionsAvailable() {
+        return !isEditing() && !isSponsored() && isSent() && messageOwner.action == null;
+    }
+
     public boolean hasReactions() {
         return messageOwner.reactions != null && !messageOwner.reactions.results.isEmpty();
+    }
+
+    public int getReactionsCount() {
+        int i = 0;
+        if (hasReactions()) {
+            for (TLRPC.TL_reactionCount c : messageOwner.reactions.results) {
+                i += c.count;
+            }
+        }
+        return i;
+    }
+
+    public boolean isCurrentUserReacted() {
+        return getCurrentReactionEmoji() != null;
+    }
+
+    public String getCurrentReactionEmoji() {
+        if (messageOwner.reactions != null) {
+            for (TLRPC.TL_reactionCount c : messageOwner.reactions.results)
+                if (c.chosen)
+                    return c.reaction;
+        }
+
+        return null;
     }
 
     public static void updatePollResults(TLRPC.TL_messageMediaPoll media, TLRPC.PollResults results) {
@@ -2405,12 +2439,16 @@ public class MessageObject {
         }
     }
 
+    public void measureReactionButtons() {
+        // TODO: Here
+    }
+
     public void measureInlineBotButtons() {
         if (isRestrictedMessage) {
             return;
         }
         wantedBotKeyboardWidth = 0;
-        if (messageOwner.reply_markup instanceof TLRPC.TL_replyInlineMarkup || messageOwner.reactions != null && !messageOwner.reactions.results.isEmpty()) {
+        if (messageOwner.reply_markup instanceof TLRPC.TL_replyInlineMarkup) {
             Theme.createCommonMessageResources();
             if (botButtonsLayout == null) {
                 botButtonsLayout = new StringBuilder();
@@ -2442,24 +2480,6 @@ public class MessageObject {
                         }
                         maxButtonSize = Math.max(maxButtonSize, (int) Math.ceil(width) + AndroidUtilities.dp(4));
                     }
-                }
-                wantedBotKeyboardWidth = Math.max(wantedBotKeyboardWidth, (maxButtonSize + AndroidUtilities.dp(12)) * size + AndroidUtilities.dp(5) * (size - 1));
-            }
-        } else if (messageOwner.reactions != null) {
-            int size = messageOwner.reactions.results.size();
-            for (int a = 0; a < size; a++) {
-                TLRPC.TL_reactionCount reactionCount = messageOwner.reactions.results.get(a);
-                int maxButtonSize = 0;
-                botButtonsLayout.append(0).append(a);
-                CharSequence text = Emoji.replaceEmoji(String.format("%d %s", reactionCount.count, reactionCount.reaction), Theme.chat_msgBotButtonPaint.getFontMetricsInt(), AndroidUtilities.dp(15), false);
-                StaticLayout staticLayout = new StaticLayout(text, Theme.chat_msgBotButtonPaint, AndroidUtilities.dp(2000), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
-                if (staticLayout.getLineCount() > 0) {
-                    float width = staticLayout.getLineWidth(0);
-                    float left = staticLayout.getLineLeft(0);
-                    if (left < width) {
-                        width -= left;
-                    }
-                    maxButtonSize = Math.max(maxButtonSize, (int) Math.ceil(width) + AndroidUtilities.dp(4));
                 }
                 wantedBotKeyboardWidth = Math.max(wantedBotKeyboardWidth, (maxButtonSize + AndroidUtilities.dp(12)) * size + AndroidUtilities.dp(5) * (size - 1));
             }
@@ -3113,9 +3133,9 @@ public class MessageObject {
             } else if (isVideo()) {
                 type = TYPE_VIDEO;
             } else if (isVoice()) {
-                type = 2;
+                type = TYPE_VOICE;
             } else if (isMusic()) {
-                type = 14;
+                type = TYPE_MUSIC;
             } else if (messageOwner.media instanceof TLRPC.TL_messageMediaContact) {
                 type = 12;
             } else if (messageOwner.media instanceof TLRPC.TL_messageMediaPoll) {
@@ -3133,10 +3153,10 @@ public class MessageObject {
                     } else if (isAnimatedSticker()) {
                         type = TYPE_ANIMATED_STICKER;
                     } else {
-                        type = 9;
+                        type = TYPE_FILE;
                     }
                 } else {
-                    type = 9;
+                    type = TYPE_FILE;
                 }
             } else if (messageOwner.media instanceof TLRPC.TL_messageMediaGame) {
                 type = 0;
@@ -5188,7 +5208,7 @@ public class MessageObject {
             return AndroidUtilities.dp(72);
         } else if (type == 12) {
             return AndroidUtilities.dp(71);
-        } else if (type == 9) {
+        } else if (type == TYPE_FILE) {
             return AndroidUtilities.dp(100);
         } else if (type == 4) {
             return AndroidUtilities.dp(114);
@@ -5961,7 +5981,7 @@ public class MessageObject {
                 }
             }
         }
-        if (!mediaExists && type == 8 || type == 3 || type == 9 || type == 2 || type == 14 || type == TYPE_ROUND_VIDEO) {
+        if (!mediaExists && type == 8 || type == 3 || type == TYPE_FILE || type == 2 || type == 14 || type == TYPE_ROUND_VIDEO) {
             if (messageOwner.attachPath != null && messageOwner.attachPath.length() > 0) {
                 File f = new File(messageOwner.attachPath);
                 attachPathExists = f.exists();

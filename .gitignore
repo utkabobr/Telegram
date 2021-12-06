@@ -4,3 +4,6 @@ build/
 obj/
 *.iml
 local.properties
+.cxx
+.DS_Store
+/captures/

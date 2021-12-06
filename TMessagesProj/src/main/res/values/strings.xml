@@ -3910,6 +3910,18 @@
     <string name="PeopleJoinedRemaining_two">%1$d remaining</string>
     <string name="PeopleJoinedRemaining_few">%1$d remaining</string>
     <string name="PeopleJoinedRemaining_many">%1$d remaining</string>
+    <string name="ReactionsCount_other">%1$d reactions</string>
+    <string name="ReactionsCount_zero">%1$d reactions</string>
+    <string name="ReactionsCount_one">%1$d reaction</string>
+    <string name="ReactionsCount_two">%1$d reactions</string>
+    <string name="ReactionsCount_few">%1$d reactions</string>
+    <string name="ReactionsCount_many">%1$d reactions</string>
+    <string name="Reacted_other">%1$d/%2$d Reacted</string>
+    <string name="Reacted_zero">%1$d/%2$d Reacted</string>
+    <string name="Reacted_one">%1$d/%2$d Reacted</string>
+    <string name="Reacted_two">%1$d/%2$d Reacted</string>
+    <string name="Reacted_few">%1$d/%2$d Reacted</string>
+    <string name="Reacted_many">%1$d/%2$d Reacted</string>
     <string name="CanJoin_other">%1$d can join</string>
     <string name="CanJoin_zero">%1$d can join</string>
     <string name="CanJoin_one">%1$d can join</string>
@@ -4809,5 +4821,11 @@
     <string name="UserAcceptedToGroupAction">un1 was accepted into the group</string>
     <string name="UserAcceptedToGroupPush">%1$s was accepted into the group</string>
     <string name="UserAcceptedToGroupPushWithGroup">%2$s|%1$s was accepted into the group</string>
-    <string name="OpenChannelPost">VIEW POST</string>
+    <string name="Reactions">Reactions</string>
+    <string name="ReactionsOff">Off</string>
+    <string name="ReactionsCount">%1$s/%2$s</string>
+    <string name="EnableReactions">Enable Reactions</string>
+    <string name="EnableReactionsChannelInfo">Allow subscribers to react to channel posts.</string>
+    <string name="EnableReactionsGroupInfo">Allow participants to react to group messages.</string>
+    <string name="AvailableReactions">Available reactions</string>
 </resources>

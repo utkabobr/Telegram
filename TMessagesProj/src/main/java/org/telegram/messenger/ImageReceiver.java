@@ -27,14 +27,15 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.view.View;
 
+import androidx.annotation.Keep;
+import androidx.core.util.Consumer;
+
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.Components.AnimatedFileDrawable;
 import org.telegram.ui.Components.LoadingStickerDrawable;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RecyclableDrawable;
-
-import androidx.annotation.Keep;
 
 import java.util.ArrayList;
 
@@ -186,6 +187,8 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
     private BitmapShader legacyShader;
     private Canvas legacyCanvas;
     private Paint legacyPaint;
+
+    private Consumer<RLottieDrawable> onLottieDrawableCreatedListener;
 
     private ImageLocation strippedLocation;
     private ImageLocation currentImageLocation;
@@ -1965,6 +1968,20 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         return allowStartAnimation;
     }
 
+    public void rewindLottie() {
+        RLottieDrawable rLottieDrawable = getLottieAnimation();
+        if (rLottieDrawable != null) {
+            rLottieDrawable.rewind();
+        }
+    }
+
+    public void startLottieOnce() {
+        RLottieDrawable rLottieDrawable = getLottieAnimation();
+        if (rLottieDrawable != null && !rLottieDrawable.isRunning()) {
+            rLottieDrawable.trueRestart();
+        }
+    }
+
     public void startAnimation() {
         AnimatedFileDrawable animation = getAnimation();
         if (animation != null) {
@@ -2051,10 +2068,18 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
         return param;
     }
 
+    public void setOnLottieDrawableCreatedListener(Consumer<RLottieDrawable> onLottieDrawableCreatedListener) {
+        this.onLottieDrawableCreatedListener = onLottieDrawableCreatedListener;
+    }
+
     protected boolean setImageBitmapByKey(Drawable drawable, String key, int type, boolean memCache, int guid) {
         if (drawable == null || key == null || currentGuid != guid) {
             return false;
         }
+        if (onLottieDrawableCreatedListener != null && drawable instanceof RLottieDrawable) {
+            onLottieDrawableCreatedListener.accept((RLottieDrawable) drawable);
+        }
+
         if (type == TYPE_IMAGE) {
             if (!key.equals(currentImageKey)) {
                 return false;

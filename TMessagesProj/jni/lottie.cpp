@@ -51,6 +51,32 @@ typedef struct LottieInfo {
     volatile uint32_t framesAvailableInCache = 0;
 };
 
+JNIEXPORT void Java_org_telegram_ui_Components_RLottieDrawable_getInfo(JNIEnv *env, jclass clazz, jstring src, jstring json, jintArray data) {
+    char const *srcString = env->GetStringUTFChars(src, nullptr);
+    std::map<int32_t, int32_t> *colors = nullptr;
+    std::unique_ptr<Animation> animation;
+    if (json != nullptr) {
+        char const *jsonString = env->GetStringUTFChars(json, nullptr);
+        if (jsonString) {
+            animation = rlottie::Animation::loadFromData(jsonString, srcString, colors);
+            env->ReleaseStringUTFChars(json, jsonString);
+        }
+    } else {
+        animation = rlottie::Animation::loadFromFile(srcString, colors);
+    }
+    if (srcString) {
+        env->ReleaseStringUTFChars(src, srcString);
+    }
+
+    jint *dataArr = env->GetIntArrayElements(data, nullptr);
+    if (dataArr != nullptr) {
+        dataArr[0] = (jint) animation->totalFrame();
+        dataArr[1] = (jint) animation->frameRate();
+        dataArr[2] = 0;
+        env->ReleaseIntArrayElements(data, dataArr, 0);
+    }
+}
+
 JNIEXPORT jlong Java_org_telegram_ui_Components_RLottieDrawable_create(JNIEnv *env, jclass clazz, jstring src, jstring json, jint w, jint h, jintArray data, jboolean precache, jintArray colorReplacement, jboolean limitFps) {
     auto info = new LottieInfo();
 
