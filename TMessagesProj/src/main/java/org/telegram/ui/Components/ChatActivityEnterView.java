@@ -145,6 +145,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ChatActivityEnterView extends FrameLayout implements NotificationCenter.NotificationCenterDelegate, SizeNotifierFrameLayout.SizeNotifierFrameLayoutDelegate, StickersAlert.StickersAlertDelegate {
@@ -2054,6 +2055,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
         messageEditText.setHintTextColor(getThemedColor(Theme.key_chat_messagePanelHint));
         messageEditText.setCursorColor(getThemedColor(Theme.key_chat_messagePanelCursor));
         frameLayout.addView(messageEditText, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 52, 0, isChat ? 50 : 2, 0));
+        AtomicBoolean shiftPressed = new AtomicBoolean();
         messageEditText.setOnKeyListener(new OnKeyListener() {
 
             boolean ctrlPressed = false;
@@ -2083,11 +2085,14 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         }
                     }
                     return true;
-                } else if (i == KeyEvent.KEYCODE_ENTER && (ctrlPressed || sendByEnter) && keyEvent.getAction() == KeyEvent.ACTION_DOWN && editingMessageObject == null) {
+                } else if (i == KeyEvent.KEYCODE_ENTER && (ctrlPressed || (sendByEnter && !shiftPressed.get())) && keyEvent.getAction() == KeyEvent.ACTION_DOWN && editingMessageObject == null) {
                     sendMessage();
                     return true;
                 } else if (i == KeyEvent.KEYCODE_CTRL_LEFT || i == KeyEvent.KEYCODE_CTRL_RIGHT) {
                     ctrlPressed = keyEvent.getAction() == KeyEvent.ACTION_DOWN;
+                    return true;
+                } else if (i == KeyEvent.KEYCODE_CTRL_LEFT || i == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+                    shiftPressed.set(keyEvent.getAction() == KeyEvent.ACTION_DOWN);
                     return true;
                 }
                 return false;
@@ -2103,7 +2108,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     sendMessage();
                     return true;
                 } else if (keyEvent != null && i == EditorInfo.IME_NULL) {
-                    if ((ctrlPressed || sendByEnter) && keyEvent.getAction() == KeyEvent.ACTION_DOWN && editingMessageObject == null) {
+                    if ((ctrlPressed || (sendByEnter && !shiftPressed.get())) && keyEvent.getAction() == KeyEvent.ACTION_DOWN && editingMessageObject == null) {
                         sendMessage();
                         return true;
                     }
@@ -2143,7 +2148,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                 if (innerTextChange == 1) {
                     return;
                 }
-                if (sendByEnter && !isPaste && editingMessageObject == null && count > before && charSequence.length() > 0 && charSequence.length() == start + count && charSequence.charAt(charSequence.length() - 1) == '\n') {
+                if (sendByEnter && !shiftPressed.get() && !isPaste && editingMessageObject == null && count > before && charSequence.length() > 0 && charSequence.length() == start + count && charSequence.charAt(charSequence.length() - 1) == '\n') {
                     nextChangeIsSend = true;
                 }
                 isPaste = false;
