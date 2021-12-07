@@ -346,6 +346,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private TextView updateTextView;
 
     private DialogsActivityDelegate delegate;
+    private ChatActivity lastChatActivity;
 
     private ArrayList<Long> selectedDialogs = new ArrayList<>();
 
@@ -3028,11 +3029,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (searchString != null) {
                         if (getMessagesController().checkCanOpenChat(args, DialogsActivity.this)) {
                             getNotificationCenter().postNotificationName(NotificationCenter.closeChats);
-                            presentFragment(new ChatActivity(args));
+                            presentFragment(lastChatActivity = new ChatActivity(args));
                         }
                     } else {
                         if (getMessagesController().checkCanOpenChat(args, DialogsActivity.this)) {
-                            presentFragment(new ChatActivity(args));
+                            presentFragment(lastChatActivity = new ChatActivity(args));
                         }
                     }
                 }
@@ -4870,6 +4871,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             args.putInt("dialog_filter_id", filterId);
             if (AndroidUtilities.isTablet()) {
                 if (openedDialogId == dialogId && adapter != searchViewPager.dialogsSearchAdapter) {
+                    if (lastChatActivity != null)
+                        lastChatActivity.onScrollDown();
                     return;
                 }
                 if (viewPages != null) {
@@ -4885,7 +4888,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (searchString != null) {
                 if (getMessagesController().checkCanOpenChat(args, DialogsActivity.this)) {
                     getNotificationCenter().postNotificationName(NotificationCenter.closeChats);
-                    presentFragment(new ChatActivity(args));
+                    presentFragment(lastChatActivity = new ChatActivity(args));
                 }
             } else {
                 if (getMessagesController().checkCanOpenChat(args, DialogsActivity.this)) {
@@ -4896,7 +4899,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                             chatActivity.setPreloadedSticker(sticker, true);
                         }
                     }
-                    presentFragment(chatActivity);
+                    presentFragment(lastChatActivity = chatActivity);
                 }
             }
         }

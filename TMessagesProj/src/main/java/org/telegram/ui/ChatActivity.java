@@ -1376,6 +1376,22 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         super(args);
     }
 
+    public void onScrollDown() {
+        wasManualScroll = true;
+        textSelectionHelper.cancelTextSelectionRunnable();
+        if (createUnreadMessageAfterId != 0) {
+            scrollToMessageId(createUnreadMessageAfterId, 0, false, returnToLoadIndex, true, 0);
+        } else if (returnToMessageId > 0) {
+            scrollToMessageId(returnToMessageId, 0, true, returnToLoadIndex, true, 0);
+        } else {
+            scrollToLastMessage(false);
+            if (!pinnedMessageIds.isEmpty()) {
+                forceScrollToFirst = true;
+                forceNextPinnedMessageId = pinnedMessageIds.get(0);
+            }
+        }
+    }
+
     @Override
     public boolean onFragmentCreate() {
         final long chatId = arguments.getLong("chat_id", 0);
@@ -5890,21 +5906,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         pagedownButton = new FrameLayout(context);
         pagedownButton.setVisibility(View.INVISIBLE);
         contentView.addView(pagedownButton, LayoutHelper.createFrame(66, 61, Gravity.RIGHT | Gravity.BOTTOM, 0, 0, -3, 5));
-        pagedownButton.setOnClickListener(view -> {
-            wasManualScroll = true;
-            textSelectionHelper.cancelTextSelectionRunnable();
-            if (createUnreadMessageAfterId != 0) {
-                scrollToMessageId(createUnreadMessageAfterId, 0, false, returnToLoadIndex, true, 0);
-            } else if (returnToMessageId > 0) {
-                scrollToMessageId(returnToMessageId, 0, true, returnToLoadIndex, true, 0);
-            } else {
-                scrollToLastMessage(false);
-                if (!pinnedMessageIds.isEmpty()) {
-                    forceScrollToFirst = true;
-                    forceNextPinnedMessageId = pinnedMessageIds.get(0);
-                }
-            }
-        });
+        pagedownButton.setOnClickListener(view -> onScrollDown());
 
         mentiondownButton = new FrameLayout(context);
         mentiondownButton.setVisibility(View.INVISIBLE);
