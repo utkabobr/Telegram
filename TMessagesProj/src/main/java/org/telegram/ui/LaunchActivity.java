@@ -26,8 +26,13 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -40,6 +45,7 @@ import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.Gravity;
@@ -61,8 +67,10 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.arch.core.util.Function;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.pm.ShortcutInfoCompat;
 import androidx.core.content.pm.ShortcutManagerCompat;
+import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -135,6 +143,7 @@ import org.telegram.ui.Components.PipRoundVideoView;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.RadialProgress2;
+import org.telegram.ui.Components.Rect;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.SharingLocationsAlert;
 import org.telegram.ui.Components.SideMenultItemAnimator;
@@ -362,6 +371,8 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
         if (AndroidUtilities.isTablet()) {
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
+            int sidePadding = AndroidUtilities.dp(72);
+            DisplayMetrics dm = getResources().getDisplayMetrics();
             RelativeLayout launchLayout = new RelativeLayout(this) {
 
                 private boolean inLayout;
@@ -396,7 +407,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                     }
                     backgroundTablet.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
                     shadowTablet.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
-                    layersActionBarLayout.measure(MeasureSpec.makeMeasureSpec(Math.min(AndroidUtilities.dp(530), width), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(Math.min(AndroidUtilities.dp(528), height), MeasureSpec.EXACTLY));
+                    layersActionBarLayout.measure(MeasureSpec.makeMeasureSpec(Math.min(dm.widthPixels - sidePadding, width), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(Math.min(dm.heightPixels - sidePadding - AndroidUtilities.statusBarHeight, height), MeasureSpec.EXACTLY));
 
                     inLayout = false;
                 }
@@ -418,7 +429,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
                         actionBarLayout.layout(0, 0, actionBarLayout.getMeasuredWidth(), actionBarLayout.getMeasuredHeight());
                     }
                     int x = (width - layersActionBarLayout.getMeasuredWidth()) / 2;
-                    int y = (height - layersActionBarLayout.getMeasuredHeight()) / 2;
+                    int y = (height - layersActionBarLayout.getMeasuredHeight() + (AndroidUtilities.isInMultiwindow ? 0 : AndroidUtilities.statusBarHeight)) / 2;
                     layersActionBarLayout.layout(x, y, x + layersActionBarLayout.getMeasuredWidth(), y + layersActionBarLayout.getMeasuredHeight());
                     backgroundTablet.layout(0, 0, backgroundTablet.getMeasuredWidth(), backgroundTablet.getMeasuredHeight());
                     shadowTablet.layout(0, 0, shadowTablet.getMeasuredWidth(), shadowTablet.getMeasuredHeight());
@@ -444,7 +455,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
             launchLayout.addView(rightActionBarLayout);
 
             shadowTabletSide = new FrameLayout(this);
-            shadowTabletSide.setBackgroundColor(0x40295274);
+            shadowTabletSide.setBackgroundColor(ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_divider), 0x40));
             launchLayout.addView(shadowTabletSide);
 
             shadowTablet = new FrameLayout(this);
@@ -480,11 +491,36 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
 
             });
 
-            layersActionBarLayout = new ActionBarLayout(this);
+            Drawable d = ContextCompat.getDrawable(this, R.drawable.popup_fixed_alert);
+            d.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), PorterDuff.Mode.MULTIPLY));
+            android.graphics.Rect sPad = new android.graphics.Rect();
+            d.getPadding(sPad);
+            int corners = AndroidUtilities.dp(6);
+            Path path = new Path();
+            RectF rectf = new RectF();
+            layersActionBarLayout = new ActionBarLayout(this) {
+                @Override
+                protected void dispatchDraw(Canvas canvas) {
+                    int s = canvas.save();
+                    rectf.set(sPad.left, sPad.top, getWidth() - sPad.right, getHeight() - sPad.bottom);
+                    path.rewind();
+                    path.addRoundRect(rectf, corners, corners, Path.Direction.CW);
+                    canvas.clipPath(path);
+                    super.dispatchDraw(canvas);
+                    canvas.restoreToCount(s);
+                }
+
+                @Override
+                public void setThemeAnimationValue(float value) {
+                    super.setThemeAnimationValue(value);
+                    d.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground), PorterDuff.Mode.MULTIPLY));
+                    shadowTabletSide.setBackgroundColor(ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_divider), 0x40));
+                }
+            };
             layersActionBarLayout.setRemoveActionBarExtraHeight(true);
             layersActionBarLayout.setBackgroundView(shadowTablet);
             layersActionBarLayout.setUseAlphaAnimations(true);
-            layersActionBarLayout.setBackgroundResource(R.drawable.boxshadow);
+            layersActionBarLayout.setBackground(d);
             layersActionBarLayout.init(layerFragmentsStack);
             layersActionBarLayout.setDelegate(this);
             layersActionBarLayout.setDrawerLayoutContainer(drawerLayoutContainer);
