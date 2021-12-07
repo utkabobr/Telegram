@@ -77,6 +77,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.time.SunDate;
@@ -1710,9 +1711,6 @@ public class Theme {
 
         private void save() {
             try {
-                String key = getKey();
-                SharedPreferences themeConfig = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                SharedPreferences.Editor editor = themeConfig.edit();
                 JSONObject jsonObject = new JSONObject();
                 jsonObject.put("wall", fileName);
                 jsonObject.put("owall", originalFileName);
@@ -1725,8 +1723,7 @@ public class Theme {
                 jsonObject.put("wBlur", isBlurred);
                 jsonObject.put("wMotion", isMotion);
                 jsonObject.put("pIntensity", intensity);
-                editor.putString(key, jsonObject.toString());
-                editor.commit();
+                SharedPrefsHelper.getThemeSharedPrefs().edit().putString(getKey(), jsonObject.toString()).apply();
             } catch (Throwable e) {
                 FileLog.e(e);
             }
@@ -1734,8 +1731,7 @@ public class Theme {
 
         private void delete() {
             String key = getKey();
-            SharedPreferences themeConfig = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-            themeConfig.edit().remove(key).commit();
+            SharedPrefsHelper.getThemeSharedPrefs().edit().remove(key).apply();
             new File(ApplicationLoader.getFilesDirFixed(), fileName).delete();
             new File(ApplicationLoader.getFilesDirFixed(), originalFileName).delete();
         }
@@ -4826,7 +4822,7 @@ public class Theme {
         currentColorsNoAccent = new HashMap<>();
         currentColors = new HashMap<>();
 
-        SharedPreferences themeConfig = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+        SharedPreferences themeConfig = SharedPrefsHelper.getThemeSharedPrefs();
 
         ThemeInfo themeInfo = new ThemeInfo();
         themeInfo.name = "Blue";
@@ -6581,7 +6577,7 @@ public class Theme {
     }
 
     private static void saveOtherThemes(boolean full, boolean migration) {
-        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+        SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
         SharedPreferences.Editor editor = preferences.edit();
         if (full) {
             JSONArray array = new JSONArray();
@@ -6598,8 +6594,7 @@ public class Theme {
             editor.putInt("lastLoadingThemesTime" + (a != 0 ? a : ""), lastLoadingThemesTime[a]);
         }
 
-        editor.putInt("lastLoadingCurrentThemeTime", lastLoadingCurrentThemeTime);
-        editor.commit();
+        editor.putInt("lastLoadingCurrentThemeTime", lastLoadingCurrentThemeTime).apply();
 
         if (full) {
             for (int b = 0; b < 5; b++) {

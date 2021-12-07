@@ -128,6 +128,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.SecretChatHelper;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
@@ -25780,7 +25781,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 if (Theme.getActiveTheme().isDark() == isDark) {
                     activeTheme = Theme.getActiveTheme();
                 } else {
-                    SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+                    SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
                     String dayThemeName = preferences.getString("lastDayTheme", "Blue");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
                         dayThemeName = "Blue";

@@ -37,6 +37,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
@@ -145,7 +146,7 @@ public class DrawerProfileCell extends FrameLayout {
                 return;
             }
             switchingTheme = true;
-            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+            SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
             String dayThemeName = preferences.getString("lastDayTheme", "Blue");
             if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
                 dayThemeName = "Blue";

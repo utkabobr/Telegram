@@ -16,6 +16,7 @@ import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ResultCallback;
 import org.telegram.tgnet.TLRPC;
@@ -98,7 +99,7 @@ public class EmojiThemes {
         EmojiThemes themeItem = new EmojiThemes();
         themeItem.emoji = "\uD83C\uDFA8";
 
-        SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+        SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
         String lastDayCustomTheme = preferences.getString("lastDayCustomTheme", null);
         int dayAccentId = preferences.getInt("lastDayCustomThemeAccentId", -1);
         if (lastDayCustomTheme == null || Theme.getTheme(lastDayCustomTheme) == null) {
@@ -452,7 +453,7 @@ public class EmojiThemes {
     public static Theme.ThemeInfo getDefaultThemeInfo(boolean isDark) {
         Theme.ThemeInfo themeInfo = isDark ? Theme.getCurrentNightTheme() : Theme.getCurrentTheme();
         if (isDark != themeInfo.isDark()) {
-            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+            SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
             String lastThemeName = isDark
                     ? preferences.getString("lastDarkTheme", "Dark Blue")
                     : preferences.getString("lastDayTheme", "Blue");
@@ -582,7 +583,7 @@ public class EmojiThemes {
         boolean dark = themeInfo.isDark();
         String key = dark ? "lastDarkCustomTheme" : "lastDayCustomTheme";
         String accentKey = dark ? "lastDarkCustomThemeAccentId" : "lastDayCustomThemeAccentId";
-        ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit()
+        SharedPrefsHelper.getThemeSharedPrefs().edit()
                 .putString(key, themeInfo.getKey())
                 .putInt(accentKey, accentId)
                 .apply();

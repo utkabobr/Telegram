@@ -37,8 +37,7 @@ public class BuildVars {
     static {
         Context ctx = ApplicationLoader.applicationContext;
         if (ctx != null) {
-            SharedPreferences sharedPreferences = ctx.getSharedPreferences("systemConfig", Context.MODE_PRIVATE);
-            LOGS_ENABLED = DEBUG_VERSION || sharedPreferences.getBoolean("logsEnabled", DEBUG_VERSION);
+            LOGS_ENABLED = DEBUG_VERSION || SharedPrefsHelper.getSystemConfigSharedPrefs().getBoolean("logsEnabled", DEBUG_VERSION);
         }
     }
 

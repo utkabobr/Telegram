@@ -40,6 +40,7 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ConnectionsManager;
@@ -740,9 +741,8 @@ public class ThemesHorizontalListCell extends RecyclerListView implements Notifi
             Theme.PatternsLoader.createLoader(false);
         }
 
-        SharedPreferences.Editor editor = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit();
-        editor.putString(currentType == ThemeActivity.THEME_TYPE_NIGHT || themeInfo.isDark() ? "lastDarkTheme" : "lastDayTheme", themeInfo.getKey());
-        editor.commit();
+        SharedPrefsHelper.getThemeSharedPrefs().edit().putString(currentType == ThemeActivity.THEME_TYPE_NIGHT ||
+                themeInfo.isDark() ? "lastDarkTheme" : "lastDayTheme", themeInfo.getKey()).apply();
 
         if (currentType == ThemeActivity.THEME_TYPE_NIGHT) {
             if (themeInfo == Theme.getCurrentNightTheme()) {

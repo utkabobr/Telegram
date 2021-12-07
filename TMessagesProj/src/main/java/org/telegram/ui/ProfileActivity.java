@@ -106,6 +106,7 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.NotificationsController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
@@ -2736,8 +2737,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 getMessagesController().forceResetDialogs();
                             } else if (which == 4) {
                                 BuildVars.LOGS_ENABLED = !BuildVars.LOGS_ENABLED;
-                                SharedPreferences sharedPreferences = ApplicationLoader.applicationContext.getSharedPreferences("systemConfig", Context.MODE_PRIVATE);
-                                sharedPreferences.edit().putBoolean("logsEnabled", BuildVars.LOGS_ENABLED).commit();
+                                SharedPrefsHelper.getSystemConfigSharedPrefs().edit().putBoolean("logsEnabled", BuildVars.LOGS_ENABLED).apply();
                                 updateRowsIds();
                                 listAdapter.notifyDataSetChanged();
                             } else if (which == 5) {

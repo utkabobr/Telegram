@@ -79,6 +79,7 @@ import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.SvgHelper;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
@@ -2067,9 +2068,7 @@ public class ThemePreviewActivity extends BaseFragment implements DownloadContro
                     parentLayout.rebuildAllFragmentViews(false, false);
                     Theme.applyThemeFile(new File(applyingTheme.pathToFile), applyingTheme.name, applyingTheme.info, false);
                     MessagesController.getInstance(applyingTheme.account).saveTheme(applyingTheme, null, false, false);
-                    SharedPreferences.Editor editor = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit();
-                    editor.putString("lastDayTheme", applyingTheme.getKey());
-                    editor.commit();
+                    SharedPrefsHelper.getThemeSharedPrefs().edit().putString("lastDayTheme", applyingTheme.getKey()).apply();
                 }
                 finishFragment();
                 if (screenType == SCREEN_TYPE_PREVIEW) {

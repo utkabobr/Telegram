@@ -57,6 +57,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.time.SunDate;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -915,7 +916,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         button.setTextColor(Theme.getColor(Theme.key_dialogTextRed2));
                     }
                 } else if (id == day_night_switch) {
-                    SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+                    SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
                     String dayThemeName = preferences.getString("lastDayTheme", "Blue");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
                         dayThemeName = "Blue";

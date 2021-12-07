@@ -24,6 +24,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.EmojiThemes;
@@ -129,11 +130,8 @@ public class DefaultThemesPreviewCell extends LinearLayout {
             ((ThemeSmallPreviewView) view).playEmojiAnimation();
 
             if (info != null) {
-                SharedPreferences.Editor editor = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit();
-                editor.putString(currentType == ThemeActivity.THEME_TYPE_NIGHT || info.isDark() ? "lastDarkTheme" : "lastDayTheme", info.getKey());
-                editor.commit();
+                SharedPrefsHelper.getThemeSharedPrefs().edit().putString(currentType == ThemeActivity.THEME_TYPE_NIGHT || info.isDark() ? "lastDarkTheme" : "lastDayTheme", info.getKey()).apply();
             }
-
         });
 
         progressView = new FlickerLoadingView(getContext(), null);
@@ -176,7 +174,7 @@ public class DefaultThemesPreviewCell extends LinearLayout {
                     }
                     int iconOldColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4);
                     DrawerProfileCell.switchingTheme = true;
-                    SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
+                    SharedPreferences preferences = SharedPrefsHelper.getThemeSharedPrefs();
                     String dayThemeName = preferences.getString("lastDayTheme", "Blue");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
                         dayThemeName = "Blue";
@@ -356,9 +354,8 @@ public class DefaultThemesPreviewCell extends LinearLayout {
             Theme.PatternsLoader.createLoader(false);
         }
         if (currentType != ThemeActivity.THEME_TYPE_OTHER) {
-            SharedPreferences.Editor editor = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE).edit();
-            editor.putString(currentType == ThemeActivity.THEME_TYPE_NIGHT || themeInfo.isDark() ? "lastDarkTheme" : "lastDayTheme", themeInfo.getKey());
-            editor.commit();
+            SharedPrefsHelper.getThemeSharedPrefs().edit().putString(currentType == ThemeActivity.THEME_TYPE_NIGHT ||
+                    themeInfo.isDark() ? "lastDarkTheme" : "lastDayTheme", themeInfo.getKey()).apply();
         }
         if (currentType == ThemeActivity.THEME_TYPE_NIGHT) {
             if (themeInfo == Theme.getCurrentNightTheme()) {

@@ -63,6 +63,7 @@ import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedPrefsHelper;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.ActionBarLayout;
@@ -1485,7 +1486,7 @@ public class ThemeEditorView {
         };
         windowManager = (WindowManager) activity.getSystemService(Context.WINDOW_SERVICE);
 
-        preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Context.MODE_PRIVATE);
+        preferences = SharedPrefsHelper.getThemeSharedPrefs();
 
         int sidex = preferences.getInt("sidex", 1);
         int sidey = preferences.getInt("sidey", 0);
