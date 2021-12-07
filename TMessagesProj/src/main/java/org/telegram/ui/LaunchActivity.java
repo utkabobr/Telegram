@@ -4210,7 +4210,7 @@ public class LaunchActivity extends Activity implements ActionBarLayout.ActionBa
         });
         onPasscodePause();
         actionBarLayout.onPause();
-        if (AndroidUtilities.isTablet()) {
+        if (AndroidUtilities.isTablet() && rightActionBarLayout != null && layersActionBarLayout != null) { // Layouts could be null if device is transitioning from regular state to a tablet
             rightActionBarLayout.onPause();
             layersActionBarLayout.onPause();
         }
