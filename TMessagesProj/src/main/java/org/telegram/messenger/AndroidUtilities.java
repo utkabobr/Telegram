@@ -224,7 +224,6 @@ public class AndroidUtilities {
     }
 
     static {
-        leftBaseline = isTablet() ? 80 : 72;
         checkDisplaySize(ApplicationLoader.applicationContext, null);
     }
 
@@ -1637,6 +1636,7 @@ public class AndroidUtilities {
 
     public static void checkDisplaySize(Context context, Configuration newConfiguration) {
         try {
+            leftBaseline = isTablet() ? 80 : 72;
             float oldDensity = density;
             density = context.getResources().getDisplayMetrics().density;
             float newDensity = density;
@@ -1776,6 +1776,13 @@ public class AndroidUtilities {
 
     public static boolean isValidWallChar(char ch) {
         return ch == '-' || ch == '~';
+    }
+
+    /**
+     * Some devices can change their form, so we should reset that flag if configuration changes
+     */
+    public static void resetTabletFlag() {
+        isTablet = null;
     }
 
     public static boolean isTablet() {
