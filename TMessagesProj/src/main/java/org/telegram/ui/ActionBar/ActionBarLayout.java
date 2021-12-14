@@ -755,7 +755,7 @@ public class ActionBarLayout extends FrameLayout {
                     if (!inPreviewMode && !transitionAnimationPreviewMode && !startedTracking && currentFragment.isSwipeBackEnabled(ev)) {
                         float velX = velocityTracker.getXVelocity();
                         float velY = velocityTracker.getYVelocity();
-                        if (velX >= 3500 && velX > Math.abs(velY) && currentFragment.canBeginSlide()) {
+                        if (velX >= 600 && velX > Math.abs(velY * 1.5f) && currentFragment.canBeginSlide()) {
                             prepareForMoving(ev);
                             if (!beginTrackingSent) {
                                 if (((Activity) getContext()).getCurrentFocus() != null) {
