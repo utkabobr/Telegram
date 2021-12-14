@@ -123,6 +123,8 @@ public class NotificationCenter {
     public static final int stickersImportComplete = totalEvents++;
     public static final int dialogDeleted = totalEvents++;
 
+    public static final int tabletSideWidthChanged = totalEvents++;
+
     public static final int walletPendingTransactionsChanged = totalEvents++;
     public static final int walletSyncProgressChanged = totalEvents++;
 

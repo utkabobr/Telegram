@@ -1565,6 +1565,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (chatMode == 0) {
             getNotificationCenter().addObserver(this, NotificationCenter.didLoadSponsoredMessages);
         }
+        getNotificationCenter().addObserver(this, NotificationCenter.tabletSideWidthChanged);
         getNotificationCenter().addObserver(this, NotificationCenter.didLoadSendAsPeers);
         getNotificationCenter().addObserver(this, NotificationCenter.closeChats);
         getNotificationCenter().addObserver(this, NotificationCenter.messagesDeleted);
@@ -1923,6 +1924,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         getNotificationCenter().removeObserver(this, NotificationCenter.dialogDeleted);
         getNotificationCenter().removeObserver(this, NotificationCenter.didLoadSponsoredMessages);
         getNotificationCenter().removeObserver(this, NotificationCenter.didLoadSendAsPeers);
+        getNotificationCenter().removeObserver(this, NotificationCenter.tabletSideWidthChanged);
         if (currentEncryptedChat != null) {
             getNotificationCenter().removeObserver(this, NotificationCenter.didVerifyMessagesStickers);
         }
@@ -14427,6 +14429,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 }
                 checkWaitingForReplies();
             }
+        } else if (id == NotificationCenter.tabletSideWidthChanged) {
+            // We should modify max width
+            chatAdapter.notifyDataSetChanged();
         } else if (id == NotificationCenter.didLoadSendAsPeers) {
             loadSendAsPeers();
         } else if (id == NotificationCenter.didLoadSponsoredMessages) {

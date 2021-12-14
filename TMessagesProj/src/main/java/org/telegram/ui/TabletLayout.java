@@ -22,14 +22,16 @@ import androidx.core.math.MathUtils;
 import androidx.core.view.GestureDetectorCompat;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SharedPrefsHelper;
+import org.telegram.messenger.UserConfig;
 import org.telegram.ui.ActionBar.ActionBarLayout;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 
 public class TabletLayout extends ViewGroup {
     private final static float MIN_SIDE_WIDTH = 0.25f, MAX_SIDE_WIDTH = 0.75f;
-    private final static int MIN_SIDE_DP = 300, MAX_SIDE_DP = 400;
+    private final static int MIN_SIDE_DP = 280, MAX_SIDE_DP = 380;
     private final static int ANIM_DURATION = 300;
 
     private int sideWidth;
@@ -195,6 +197,7 @@ public class TabletLayout extends ViewGroup {
                     set.start();
                     animator = set;
                 };
+                NotificationCenter.getInstance(UserConfig.selectedAccount).postNotificationName(NotificationCenter.tabletSideWidthChanged);
                 requestLayout();
             }
         }
@@ -213,7 +216,7 @@ public class TabletLayout extends ViewGroup {
                 canvas.drawBitmap(sideFromSnapshot, 0, 0, bitmapPaint);
                 canvas.drawBitmap(contentFromSnapshot, snapshotFromWidth, 0, bitmapPaint);
             } else {
-                bitmapPaint.setAlpha((int) ((1f - snapshotProgress) * 0xFF));
+                bitmapPaint.setAlpha(0xFF);
                 canvas.save();
                 canvas.scale(1f + (1f - snapshotFromWidth / snapshotToWidth) * snapshotProgress, 1f);
                 canvas.drawBitmap(sideFromSnapshot, 0, 0, bitmapPaint);
@@ -225,7 +228,7 @@ public class TabletLayout extends ViewGroup {
                 canvas.drawBitmap(sideToSnapshot, 0, 0, bitmapPaint);
                 canvas.restore();
 
-                bitmapPaint.setAlpha((int) ((1f - snapshotProgress) * 0xFF));
+                bitmapPaint.setAlpha(0xFF);
                 canvas.drawBitmap(contentFromSnapshot, snapshotFromWidth + (snapshotToWidth - snapshotFromWidth) * snapshotProgress, 0, bitmapPaint);
                 bitmapPaint.setAlpha((int) (snapshotProgress * 0xFF));
                 canvas.drawBitmap(contentToSnapshot, snapshotFromWidth + (snapshotToWidth - snapshotFromWidth) * snapshotProgress, 0, bitmapPaint);
@@ -332,8 +335,12 @@ public class TabletLayout extends ViewGroup {
     }
 
     private int clampWidth(float w) {
-        int wd = (int) (MathUtils.clamp(w, MIN_SIDE_WIDTH, MAX_SIDE_WIDTH) * getWidth());
-        return MathUtils.clamp(wd, AndroidUtilities.dp(MIN_SIDE_DP), getWidth() - AndroidUtilities.dp(MAX_SIDE_DP));
+        return clampWidth(getWidth(), w);
+    }
+
+    public static int clampWidth(int displayWidth, float w) {
+        int wd = (int) (MathUtils.clamp(w, MIN_SIDE_WIDTH, MAX_SIDE_WIDTH) * displayWidth);
+        return MathUtils.clamp(wd, AndroidUtilities.dp(MIN_SIDE_DP), displayWidth - AndroidUtilities.dp(MAX_SIDE_DP));
     }
 
     private void updateColors() {

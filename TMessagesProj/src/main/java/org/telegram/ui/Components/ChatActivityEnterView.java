@@ -2684,10 +2684,6 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                         }
                     }
                     float offX = 0, offY = 0;
-                    if (AndroidUtilities.isTablet()) {
-                        parentFragment.getFragmentView().getLocationInWindow(location);
-                        popupX += location[0];
-                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         WindowInsets wi = getRootWindowInsets();
                         popupX += wi.getSystemWindowInsetLeft();
