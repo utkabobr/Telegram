@@ -4112,7 +4112,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                                 maxPhotoWidth = currentPhotoObject.w;
                             } else if (documentAttachType == DOCUMENT_ATTACH_TYPE_STICKER || documentAttachType == DOCUMENT_ATTACH_TYPE_WALLPAPER || documentAttachType == DOCUMENT_ATTACH_TYPE_THEME) {
                                 if (AndroidUtilities.isTablet()) {
-                                    maxPhotoWidth = (int) (AndroidUtilities.getMinTabletSide() * 0.5f);
+                                    maxPhotoWidth = (int) Math.min(AndroidUtilities.dp(120), AndroidUtilities.getMinTabletSide() * 0.5f);
                                 } else {
                                     maxPhotoWidth = (int) (getParentWidth() * 0.5f);
                                 }

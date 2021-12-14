@@ -1800,18 +1800,12 @@ public class AndroidUtilities {
     public static int getMinTabletSide() {
         if (!isSmallTablet()) {
             int smallSide = Math.min(displaySize.x, displaySize.y);
-            int leftSide = smallSide * 35 / 100;
-            if (leftSide < dp(320)) {
-                leftSide = dp(320);
-            }
+            int leftSide = (int) Math.max(dp(320), smallSide * SharedPrefsHelper.TabletPrefs.getSideWidth());
             return smallSide - leftSide;
         } else {
             int smallSide = Math.min(displaySize.x, displaySize.y);
             int maxSide = Math.max(displaySize.x, displaySize.y);
-            int leftSide = maxSide * 35 / 100;
-            if (leftSide < dp(320)) {
-                leftSide = dp(320);
-            }
+            int leftSide = (int) Math.max(dp(320), maxSide * SharedPrefsHelper.TabletPrefs.getSideWidth());
             return Math.min(smallSide, maxSide - leftSide);
         }
     }
