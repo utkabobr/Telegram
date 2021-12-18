@@ -1462,7 +1462,8 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                             entity instanceof TLRPC.TL_messageEntityItalic ||
                             entity instanceof TLRPC.TL_messageEntityPre ||
                             entity instanceof TLRPC.TL_messageEntityCode ||
-                            entity instanceof TLRPC.TL_messageEntityTextUrl) {
+                            entity instanceof TLRPC.TL_messageEntityTextUrl ||
+                            entity instanceof TLRPC.TL_messageEntitySpoiler) {
                         entities.add(entity);
                     }
                 }

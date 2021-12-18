@@ -4019,7 +4019,8 @@ public class MessageObject {
                     entity instanceof TLRPC.TL_messageEntityPre ||
                     entity instanceof TLRPC.TL_messageEntityMentionName ||
                     entity instanceof TLRPC.TL_inputMessageEntityMentionName ||
-                    entity instanceof TLRPC.TL_messageEntityTextUrl) {
+                    entity instanceof TLRPC.TL_messageEntityTextUrl ||
+                    entity instanceof TLRPC.TL_messageEntitySpoiler) {
                 if (spans != null && spans.length > 0) {
                     for (int b = 0; b < spans.length; b++) {
                         if (spans[b] == null) {
@@ -4039,7 +4040,9 @@ public class MessageObject {
             newRun.start = entity.offset;
             newRun.end = newRun.start + entity.length;
             TLRPC.MessageEntity urlEntity = null;
-            if (entity instanceof TLRPC.TL_messageEntityStrike) {
+            if (entity instanceof TLRPC.TL_messageEntitySpoiler) {
+                newRun.flags = TextStyleSpan.FLAG_STYLE_SPOILER;
+            } else if (entity instanceof TLRPC.TL_messageEntityStrike) {
                 newRun.flags = TextStyleSpan.FLAG_STYLE_STRIKE;
             } else if (entity instanceof TLRPC.TL_messageEntityUnderline) {
                 newRun.flags = TextStyleSpan.FLAG_STYLE_UNDERLINE;

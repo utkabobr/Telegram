@@ -4479,7 +4479,9 @@ public class MediaDataController extends BaseController {
             newRun.start = entity.offset;
             newRun.end = newRun.start + entity.length;
             TLRPC.MessageEntity urlEntity = null;
-            if (entity instanceof TLRPC.TL_messageEntityStrike) {
+            if (entity instanceof TLRPC.TL_messageEntitySpoiler) {
+                newRun.flags = TextStyleSpan.FLAG_STYLE_SPOILER;
+            } else if (entity instanceof TLRPC.TL_messageEntityStrike) {
                 newRun.flags = TextStyleSpan.FLAG_STYLE_STRIKE;
             } else if (entity instanceof TLRPC.TL_messageEntityUnderline) {
                 newRun.flags = TextStyleSpan.FLAG_STYLE_UNDERLINE;
@@ -4570,42 +4572,26 @@ public class MediaDataController extends BaseController {
     }
 
     public void addStyle(int flags, int spanStart, int spanEnd, ArrayList<TLRPC.MessageEntity> entities) {
-        if ((flags & TextStyleSpan.FLAG_STYLE_BOLD) != 0) {
-            TLRPC.MessageEntity entity = new TLRPC.TL_messageEntityBold();
-            entity.offset = spanStart;
-            entity.length = spanEnd - spanStart;
-            entities.add(entity);
-        }
-        if ((flags & TextStyleSpan.FLAG_STYLE_ITALIC) != 0) {
-            TLRPC.MessageEntity entity = new TLRPC.TL_messageEntityItalic();
-            entity.offset = spanStart;
-            entity.length = spanEnd - spanStart;
-            entities.add(entity);
-        }
-        if ((flags & TextStyleSpan.FLAG_STYLE_MONO) != 0) {
-            TLRPC.MessageEntity entity = new TLRPC.TL_messageEntityCode();
-            entity.offset = spanStart;
-            entity.length = spanEnd - spanStart;
-            entities.add(entity);
-        }
-        if ((flags & TextStyleSpan.FLAG_STYLE_STRIKE) != 0) {
-            TLRPC.MessageEntity entity = new TLRPC.TL_messageEntityStrike();
-            entity.offset = spanStart;
-            entity.length = spanEnd - spanStart;
-            entities.add(entity);
-        }
-        if ((flags & TextStyleSpan.FLAG_STYLE_UNDERLINE) != 0) {
-            TLRPC.MessageEntity entity = new TLRPC.TL_messageEntityUnderline();
-            entity.offset = spanStart;
-            entity.length = spanEnd - spanStart;
-            entities.add(entity);
-        }
-        if ((flags & TextStyleSpan.FLAG_STYLE_QUOTE) != 0) {
-            TLRPC.MessageEntity entity = new TLRPC.TL_messageEntityBlockquote();
-            entity.offset = spanStart;
-            entity.length = spanEnd - spanStart;
-            entities.add(entity);
-        }
+        if ((flags & TextStyleSpan.FLAG_STYLE_SPOILER) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntitySpoiler(), spanStart, spanEnd));
+        if ((flags & TextStyleSpan.FLAG_STYLE_BOLD) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntityBold(), spanStart, spanEnd));
+        if ((flags & TextStyleSpan.FLAG_STYLE_ITALIC) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntityItalic(), spanStart, spanEnd));
+        if ((flags & TextStyleSpan.FLAG_STYLE_MONO) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntityCode(), spanStart, spanEnd));
+        if ((flags & TextStyleSpan.FLAG_STYLE_STRIKE) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntityStrike(), spanStart, spanEnd));
+        if ((flags & TextStyleSpan.FLAG_STYLE_UNDERLINE) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntityUnderline(), spanStart, spanEnd));
+        if ((flags & TextStyleSpan.FLAG_STYLE_QUOTE) != 0)
+            entities.add(setEntityStartEnd(new TLRPC.TL_messageEntityBlockquote(), spanStart, spanEnd));
+    }
+
+    private TLRPC.MessageEntity setEntityStartEnd(TLRPC.MessageEntity entity, int spanStart, int spanEnd) {
+        entity.offset = spanStart;
+        entity.length = spanEnd - spanStart;
+        return entity;
     }
 
     public ArrayList<TLRPC.MessageEntity> getEntities(CharSequence[] message, boolean allowStrike) {
@@ -4622,6 +4608,7 @@ public class MediaDataController extends BaseController {
         final String bold = "**";
         final String italic = "__";
         final String strike = "~~";
+        final String spoiler = "||";
         while ((index = TextUtils.indexOf(message[0], !isPre ? mono : pre, lastIndex)) != -1) {
             if (start == -1) {
                 isPre = message[0].length() - index > 2 && message[0].charAt(index + 1) == '`' && message[0].charAt(index + 2) == '`';
@@ -4744,7 +4731,7 @@ public class MediaDataController extends BaseController {
             }
         }
 
-        int count = allowStrike ? 3 : 2;
+        int count = allowStrike ? 4 : 3;
         for (int c = 0; c < count; c++) {
             lastIndex = 0;
             start = -1;
@@ -4760,6 +4747,10 @@ public class MediaDataController extends BaseController {
                     checkChar = '_';
                     break;
                 case 2:
+                    checkString = spoiler;
+                    checkChar = '|';
+                    break;
+                case 3:
                 default:
                     checkString = strike;
                     checkChar = '~';
@@ -4800,6 +4791,8 @@ public class MediaDataController extends BaseController {
                             entity = new TLRPC.TL_messageEntityBold();
                         } else if (c == 1) {
                             entity = new TLRPC.TL_messageEntityItalic();
+                        } else if (c == 2) {
+                            entity = new TLRPC.TL_messageEntitySpoiler();
                         } else {
                             entity = new TLRPC.TL_messageEntityStrike();
                         }

@@ -1143,6 +1143,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private final static int text_regular = 54;
     private final static int text_strike = 55;
     private final static int text_underline = 56;
+    private final static int text_spoiler = 57;
 
     private final static int search = 40;
 
@@ -2160,6 +2161,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
                         chatActivityEnterView.getEditField().makeSelectedItalic();
                     }
+                } else if (id == text_spoiler) {
+                    if (chatActivityEnterView != null) {
+                        chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
+                        chatActivityEnterView.getEditField().makeSelectedSpoiler();
+                    }
                 } else if (id == text_mono) {
                     if (chatActivityEnterView != null) {
                         chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
@@ -2421,6 +2427,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             editTextItem.setTag(null);
             editTextItem.setVisibility(View.GONE);
 
+            editTextItem.addSubItem(text_spoiler, LocaleController.getString("Spoiler", R.string.Spoiler));
             SpannableStringBuilder stringBuilder = new SpannableStringBuilder(LocaleController.getString("Bold", R.string.Bold));
             stringBuilder.setSpan(new TypefaceSpan(AndroidUtilities.getTypeface("fonts/rmedium.ttf")), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             editTextItem.addSubItem(text_bold, stringBuilder);
@@ -17467,29 +17474,32 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (Build.VERSION.SDK_INT >= 23) {
             menu.removeItem(android.R.id.shareText);
         }
+        int order = 6;
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_spoiler, order++, LocaleController.getString("Spoiler", R.string.Spoiler));
+
         SpannableStringBuilder stringBuilder = new SpannableStringBuilder(LocaleController.getString("Bold", R.string.Bold));
         stringBuilder.setSpan(new TypefaceSpan(AndroidUtilities.getTypeface("fonts/rmedium.ttf")), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        menu.add(R.id.menu_groupbolditalic, R.id.menu_bold, 6, stringBuilder);
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_bold, order++, stringBuilder);
         stringBuilder = new SpannableStringBuilder(LocaleController.getString("Italic", R.string.Italic));
         stringBuilder.setSpan(new TypefaceSpan(AndroidUtilities.getTypeface("fonts/ritalic.ttf")), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        menu.add(R.id.menu_groupbolditalic, R.id.menu_italic, 7, stringBuilder);
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_italic, order++, stringBuilder);
         stringBuilder = new SpannableStringBuilder(LocaleController.getString("Mono", R.string.Mono));
         stringBuilder.setSpan(new TypefaceSpan(Typeface.MONOSPACE), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        menu.add(R.id.menu_groupbolditalic, R.id.menu_mono, 8, stringBuilder);
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_mono, order++, stringBuilder);
         if (currentEncryptedChat == null || AndroidUtilities.getPeerLayerVersion(currentEncryptedChat.layer) >= 101) {
             stringBuilder = new SpannableStringBuilder(LocaleController.getString("Strike", R.string.Strike));
             TextStyleSpan.TextStyleRun run = new TextStyleSpan.TextStyleRun();
             run.flags |= TextStyleSpan.FLAG_STYLE_STRIKE;
             stringBuilder.setSpan(new TextStyleSpan(run), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            menu.add(R.id.menu_groupbolditalic, R.id.menu_strike, 9, stringBuilder);
+            menu.add(R.id.menu_groupbolditalic, R.id.menu_strike, order++, stringBuilder);
             stringBuilder = new SpannableStringBuilder(LocaleController.getString("Underline", R.string.Underline));
             run = new TextStyleSpan.TextStyleRun();
             run.flags |= TextStyleSpan.FLAG_STYLE_UNDERLINE;
             stringBuilder.setSpan(new TextStyleSpan(run), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            menu.add(R.id.menu_groupbolditalic, R.id.menu_underline, 10, stringBuilder);
+            menu.add(R.id.menu_groupbolditalic, R.id.menu_underline, order++, stringBuilder);
         }
-        menu.add(R.id.menu_groupbolditalic, R.id.menu_link, 11, LocaleController.getString("CreateLink", R.string.CreateLink));
-        menu.add(R.id.menu_groupbolditalic, R.id.menu_regular, 12, LocaleController.getString("Regular", R.string.Regular));
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_link, order++, LocaleController.getString("CreateLink", R.string.CreateLink));
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_regular, order++, LocaleController.getString("Regular", R.string.Regular));
     }
 
     private void updateScheduledInterface(boolean animated) {
@@ -19104,6 +19114,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                             MediaDataController.addStyleToText(new TextStyleSpan(run), entity.offset, entity.offset + entity.length, stringBuilder, true);
                         } else if (entity instanceof TLRPC.TL_messageEntityTextUrl) {
                             stringBuilder.setSpan(new URLSpanReplacement(entity.url), entity.offset, entity.offset + entity.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        } else if (entity instanceof TLRPC.TL_messageEntitySpoiler) {
+                            TextStyleSpan.TextStyleRun run = new TextStyleSpan.TextStyleRun();
+                            run.flags |= TextStyleSpan.FLAG_STYLE_SPOILER;
+                            MediaDataController.addStyleToText(new TextStyleSpan(run), entity.offset, entity.offset + entity.length, stringBuilder, true);
                         }
                     }
                     message = stringBuilder;

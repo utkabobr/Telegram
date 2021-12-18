@@ -5813,6 +5813,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                                 MediaDataController.addStyleToText(new TextStyleSpan(run), entity.offset, entity.offset + entity.length, stringBuilder, true);
                             } else if (entity instanceof TLRPC.TL_messageEntityTextUrl) {
                                 stringBuilder.setSpan(new URLSpanReplacement(entity.url), entity.offset, entity.offset + entity.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            } else if (entity instanceof TLRPC.TL_messageEntitySpoiler) {
+                                TextStyleSpan.TextStyleRun run = new TextStyleSpan.TextStyleRun();
+                                run.flags |= TextStyleSpan.FLAG_STYLE_SPOILER;
+                                MediaDataController.addStyleToText(new TextStyleSpan(run), entity.offset, entity.offset + entity.length, stringBuilder, true);
                             }
                         }
                     } catch (Exception e) {

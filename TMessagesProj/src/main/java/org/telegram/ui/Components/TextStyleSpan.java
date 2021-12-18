@@ -92,6 +92,7 @@ public class TextStyleSpan extends MetricAffectingSpan {
     public final static int FLAG_STYLE_QUOTE = 32;
     public final static int FLAG_STYLE_MENTION = 64;
     public final static int FLAG_STYLE_URL = 128;
+    public final static int FLAG_STYLE_SPOILER = 256;
 
     public TextStyleSpan(TextStyleRun run) {
         this(run, 0, 0);
