@@ -43,7 +43,6 @@ dependencies {
 
 android {
     compileSdkVersion 31
-    buildToolsVersion '31.0.0'
     ndkVersion "21.4.7075529"
 
     defaultConfig.applicationId = "org.telegram.messenger"
@@ -90,6 +89,12 @@ android {
     }
 
     buildTypes {
+        buildTypes.each {
+            // Please fill your values here
+            // it.buildConfigField("int", "APP_ID", '123456');
+            // it.buildConfigField("String", "APP_HASH", '"fnfefvfefrfgfofnfnfafgfifvfefufp"')
+        }
+
         debug {
             debuggable true
             jniDebuggable true
@@ -299,7 +304,7 @@ android {
         }
     }
 
-    defaultConfig.versionCode = 2481
+    defaultConfig.versionCode = 2493
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
