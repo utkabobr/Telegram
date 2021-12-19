@@ -1998,6 +1998,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             }
         };
         messageEditText.setDelegate(() -> {
+            messageEditText.invalidateEffects();
             if (delegate != null) {
                 delegate.onTextSpansChanged(messageEditText.getText());
             }
