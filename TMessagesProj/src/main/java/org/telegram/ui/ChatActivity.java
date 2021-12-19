@@ -18152,8 +18152,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         pinnedCounterTextView.setNumber(Math.min(total - 1, Math.max(1, total - currentPinnedMessageIndex[0])), animated && pinnedCounterTextView.getTag() == null);
                     }
                 }
+                CharSequence pinnedText = null;
                 if (pinnedMessageObject.type == 14) {
-                    messageTextView.setText(String.format("%s - %s", pinnedMessageObject.getMusicAuthor(), pinnedMessageObject.getMusicTitle()));
+                    pinnedText = String.format("%s - %s", pinnedMessageObject.getMusicAuthor(), pinnedMessageObject.getMusicTitle());
                 } else if (pinnedMessageObject.type == MessageObject.TYPE_POLL) {
                     TLRPC.TL_messageMediaPoll poll = (TLRPC.TL_messageMediaPoll) pinnedMessageObject.messageOwner.media;
                     String mess = poll.poll.question;
@@ -18161,23 +18162,30 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         mess = mess.substring(0, 150);
                     }
                     mess = mess.replace('\n', ' ');
-                    messageTextView.setText(mess);
+                    pinnedText = new SpannableString(mess);
                 } else if (pinnedMessageObject.messageOwner.media instanceof TLRPC.TL_messageMediaGame) {
-                    messageTextView.setText(Emoji.replaceEmoji(pinnedMessageObject.messageOwner.media.game.title, messageTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
+                    pinnedText = Emoji.replaceEmoji(pinnedMessageObject.messageOwner.media.game.title, messageTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false);
                 } else if (!TextUtils.isEmpty(pinnedMessageObject.caption)) {
                     String mess = pinnedMessageObject.caption.toString();
                     if (mess.length() > 150) {
                         mess = mess.substring(0, 150);
                     }
                     mess = mess.replace('\n', ' ');
-                    messageTextView.setText(Emoji.replaceEmoji(mess, messageTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
+                    pinnedText = Emoji.replaceEmoji(mess, messageTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false);
                 } else if (pinnedMessageObject.messageText != null) {
                     String mess = pinnedMessageObject.messageText.toString();
                     if (mess.length() > 150) {
                         mess = mess.substring(0, 150);
                     }
                     mess = mess.replace('\n', ' ');
-                    messageTextView.setText(Emoji.replaceEmoji(mess, messageTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
+                    pinnedText = Emoji.replaceEmoji(mess, messageTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false);
+                }
+                if (pinnedText != null) {
+                    for (TextStyleSpan.TextStyleRun run : MediaDataController.getTextStyleRuns(pinnedMessageObject.messageOwner.entities, pinnedMessageObject.messageText)) {
+                        MediaDataController.addStyleToText(new TextStyleSpan(run), run.start, run.end, (Spannable) pinnedText, true);
+                    }
+
+                    messageTextView.setText(pinnedText);
                 }
                 if (animateToNext != 0) {
                     pinnedNextAnimation[0] = new AnimatorSet();

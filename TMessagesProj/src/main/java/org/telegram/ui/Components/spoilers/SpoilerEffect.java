@@ -32,6 +32,7 @@ import org.telegram.ui.Components.TextStyleSpan;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
@@ -293,8 +294,11 @@ public class SpoilerEffect extends Drawable {
         int w = textLayout.getWidth();
         int h = textLayout.getHeight();
 
-        if (measureBitmap == null || measureBitmap.getWidth() < w || measureBitmap.getHeight() < h) { // Multiple reallocations without the need would be bad for performance
-            if (measureBitmap != null)
+        if (w == 0 || h == 0)
+            return Collections.emptyList();
+
+        if (measureBitmap == null || measureBitmap.isRecycled() || measureBitmap.getWidth() < w || measureBitmap.getHeight() < h) { // Multiple reallocations without the need would be bad for performance
+            if (measureBitmap != null && !measureBitmap.isRecycled())
                 measureBitmap.recycle();
             measureBitmap = Bitmap.createBitmap(Math.round(w), Math.round(h), Bitmap.Config.ARGB_8888);
             measureCanvas = new Canvas(measureBitmap);
@@ -362,7 +366,7 @@ public class SpoilerEffect extends Drawable {
 
                         SpannableStringBuilder vSpan = new SpannableStringBuilder(textLayout.getText(), realStart, realEnd);
                         vSpan.removeSpan(span);
-                        StaticLayout newLayout = new StaticLayout(vSpan, textPaint, v.getWidth(), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+                        StaticLayout newLayout = new StaticLayout(vSpan, textPaint, Math.max(v.getWidth(), textLayout.getWidth()), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
                         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
                         spoilerEffect.setRippleProgress(-1);
                         spoilerEffect.setBounds(tempRect.left + offWidth, tempRect.top, (int) (tempRect.left + offWidth + textPaint.measureText(vSpan, 0, vSpan.length())), tempRect.bottom);
