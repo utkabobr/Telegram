@@ -1662,9 +1662,7 @@ public class DialogCell extends BaseCell {
             } else {
                 messageStringFinal = messageString;
             }
-            for (TextStyleSpan.TextStyleRun run : MediaDataController.getTextStyleRuns(message.messageOwner.entities, message.messageText)) {
-                MediaDataController.addStyleToText(new TextStyleSpan(run), run.start, run.end, (Spannable) messageStringFinal, true);
-            }
+            MediaDataController.addTextStyleRuns(message, (Spannable) messageStringFinal);
 
             if (useForceThreeLines || SharedConfig.useThreeLinesLayout) {
                 if (hasMessageThumb && messageNameString != null) {
