@@ -7,11 +7,8 @@ import android.graphics.Rect;
 import android.graphics.Region;
 import android.text.Layout;
 import android.text.Spannable;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.widget.EditText;
-
-import androidx.core.view.GestureDetectorCompat;
 
 import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.Components.spoilers.SpoilersClickDetector;
@@ -22,7 +19,7 @@ import java.util.Stack;
 
 public class EditTextEffects extends EditText {
     private List<SpoilerEffect> spoilers = new ArrayList<>();
-    private Stack<SpoilerEffect> freeSpoilers = new Stack<>();
+    private Stack<SpoilerEffect> spoilersPool = new Stack<>();
     private boolean isSpoilersRevealed;
     private boolean shouldRevealSpoilersByTouch = true;
     private SpoilersClickDetector clickDetector;
@@ -56,8 +53,11 @@ public class EditTextEffects extends EditText {
 
     @Override
     public void setText(CharSequence text, BufferType type) {
-        if (!suppressOnTextChanged)
+        if (!suppressOnTextChanged) {
             isSpoilersRevealed = false;
+            if (spoilersPool != null) // Constructor check
+                spoilersPool.clear();
+        }
         super.setText(text, type);
     }
 
@@ -137,7 +137,7 @@ public class EditTextEffects extends EditText {
 
     private void invalidateSpoilers() {
         if (spoilers == null) return; // A null-check for super constructor, because it calls onTextChanged
-        freeSpoilers.addAll(spoilers);
+        spoilersPool.addAll(spoilers);
         spoilers.clear();
 
         if (isSpoilersRevealed) {
@@ -147,7 +147,7 @@ public class EditTextEffects extends EditText {
 
         Layout layout = getLayout();
         if (layout != null && getText() != null)
-            SpoilerEffect.addSpoilers(this, freeSpoilers, spoilers);
+            SpoilerEffect.addSpoilers(this, spoilersPool, spoilers);
         invalidate();
     }
 }
