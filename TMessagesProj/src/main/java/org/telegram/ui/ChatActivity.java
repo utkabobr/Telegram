@@ -10599,7 +10599,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 }
                 if (replyObjectText != null) {
                     if (replyObjectText instanceof Spannable)
-                        MediaDataController.addTextStyleRuns(messageObjectToReply, (Spannable) replyObjectText);
+                        MediaDataController.addTextStyleRuns(messageObjectToReply.messageOwner.entities, messageObjectToReply.caption != null ? messageObjectToReply.caption : messageObjectToReply.messageText, (Spannable) replyObjectText);
 
                     replyObjectTextView.setText(replyObjectText);
                 }

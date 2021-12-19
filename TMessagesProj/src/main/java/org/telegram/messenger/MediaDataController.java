@@ -4445,15 +4445,23 @@ public class MediaDataController extends BaseController {
                 }
             }
             if (span != null && start < end && start < editable.length()) {
-                editable.setSpan(span, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                editable.setSpan(span, start, Math.min(editable.length(), end), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         } catch (Exception e) {
             FileLog.e(e);
         }
     }
 
+    public static void addTextStyleRuns(TLRPC.DraftMessage msg, Spannable text) {
+        addTextStyleRuns(msg.entities, msg.message, text);
+    }
+
     public static void addTextStyleRuns(MessageObject msg, Spannable text) {
-        for (TextStyleSpan.TextStyleRun run : MediaDataController.getTextStyleRuns(msg.messageOwner.entities, msg.messageText)) {
+        addTextStyleRuns(msg.messageOwner.entities, msg.messageText, text);
+    }
+
+    public static void addTextStyleRuns(ArrayList<TLRPC.MessageEntity> entities, CharSequence messageText, Spannable text) {
+        for (TextStyleSpan.TextStyleRun run : MediaDataController.getTextStyleRuns(entities, messageText)) {
             MediaDataController.addStyleToText(new TextStyleSpan(run), run.start, run.end, text, true);
         }
     }

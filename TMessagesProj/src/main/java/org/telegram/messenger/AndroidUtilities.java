@@ -2904,6 +2904,42 @@ public class AndroidUtilities {
         return openForView(f, fileName, document.mime_type, activity, null);
     }
 
+    public static SpannableStringBuilder formatSpannable(String format, CharSequence... cs) {
+        SpannableStringBuilder stringBuilder = new SpannableStringBuilder(format);
+        for (int i = 0; i < cs.length; i++) {
+            String key = "%" + (i + 1) + "$s";
+            int j = format.indexOf(key);
+            if (j != -1) {
+                stringBuilder.replace(j, j + key.length(), cs[i]);
+            }
+        }
+        return stringBuilder;
+    }
+
+    public static CharSequence replaceTwoNewLinesToOne(CharSequence original) {
+        char[] buf = new char[2];
+        if (original instanceof StringBuilder) {
+            StringBuilder stringBuilder = (StringBuilder) original;
+            for (int a = 0, N = original.length(); a < N - 1; a++) {
+                stringBuilder.getChars(a, a + 2, buf, 0);
+                if (buf[0] == '\n' && buf[1] == '\n') {
+                    stringBuilder.replace(a, a + 2, "\n");
+                }
+            }
+            return original;
+        } else if (original instanceof SpannableStringBuilder) {
+            SpannableStringBuilder stringBuilder = (SpannableStringBuilder) original;
+            for (int a = 0, N = original.length(); a < N; a++) {
+                stringBuilder.getChars(a, a + 2, buf, 0);
+                if (buf[0] == '\n' && buf[1] == '\n') {
+                    stringBuilder.replace(a, a + 2, "\n");
+                }
+            }
+            return original;
+        }
+        return original.toString().replace("\n\n", "\n");
+    }
+
     public static CharSequence replaceNewLines(CharSequence original) {
         if (original instanceof StringBuilder) {
             StringBuilder stringBuilder = (StringBuilder) original;
@@ -2912,6 +2948,7 @@ public class AndroidUtilities {
                     stringBuilder.setCharAt(a, ' ');
                 }
             }
+            return original;
         } else if (original instanceof SpannableStringBuilder) {
             SpannableStringBuilder stringBuilder = (SpannableStringBuilder) original;
             for (int a = 0, N = original.length(); a < N; a++) {
@@ -2919,6 +2956,7 @@ public class AndroidUtilities {
                     stringBuilder.replace(a, a + 1, " ");
                 }
             }
+            return original;
         }
         return original.toString().replace('\n', ' ');
     }
