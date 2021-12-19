@@ -15,12 +15,16 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Region;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.Layout;
+import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.StaticLayout;
@@ -66,11 +70,15 @@ import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.StaticLayoutEx;
 import org.telegram.ui.Components.StatusDrawable;
+import org.telegram.ui.Components.TextStyleSpan;
 import org.telegram.ui.Components.TypefaceSpan;
+import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.Components.SwipeGestureSettingsView;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
 
 public class DialogCell extends BaseCell {
 
@@ -230,6 +238,10 @@ public class DialogCell extends BaseCell {
     private int messageTop;
     private int messageLeft;
     private StaticLayout messageLayout;
+
+    private Stack<SpoilerEffect> spoilersPool = new Stack<>();
+    private List<SpoilerEffect> spoilers = new ArrayList<>();
+    private Path path = new Path();
 
     private int messageNameTop;
     private int messageNameLeft;
@@ -1650,6 +1662,10 @@ public class DialogCell extends BaseCell {
             } else {
                 messageStringFinal = messageString;
             }
+            for (TextStyleSpan.TextStyleRun run : MediaDataController.getTextStyleRuns(message.messageOwner.entities, message.messageText)) {
+                MediaDataController.addStyleToText(new TextStyleSpan(run), run.start, run.end, (Spannable) messageStringFinal, true);
+            }
+
             if (useForceThreeLines || SharedConfig.useThreeLinesLayout) {
                 if (hasMessageThumb && messageNameString != null) {
                     messageWidth += AndroidUtilities.dp(6);
@@ -1664,6 +1680,9 @@ public class DialogCell extends BaseCell {
                 }
                 messageLayout = new StaticLayout(messageStringFinal, currentMessagePaint, messageWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
             }
+            spoilersPool.addAll(spoilers);
+            spoilers.clear();
+            SpoilerEffect.addSpoilers(this, messageLayout, spoilersPool, spoilers);
         } catch (Exception e) {
             messageLayout = null;
             FileLog.e(e);
@@ -2592,7 +2611,18 @@ public class DialogCell extends BaseCell {
             canvas.save();
             canvas.translate(messageLeft, messageTop);
             try {
+                canvas.save();
+                path.rewind();
+                for (SpoilerEffect eff : spoilers) {
+                    Rect bounds = eff.getBounds();
+                    path.addRect(bounds.left, bounds.top, bounds.right, bounds.bottom, Path.Direction.CW);
+                }
+                canvas.clipPath(path, Region.Op.DIFFERENCE);
                 messageLayout.draw(canvas);
+                canvas.restore();
+
+                for (SpoilerEffect eff : spoilers)
+                    eff.draw(canvas);
             } catch (Exception e) {
                 FileLog.e(e);
             }

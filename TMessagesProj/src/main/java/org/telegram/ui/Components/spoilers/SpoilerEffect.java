@@ -14,6 +14,7 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
@@ -319,9 +320,26 @@ public class SpoilerEffect extends Drawable {
         return keyPoints;
     }
 
+    /**
+     * Alias for it's big bro
+     * @param tv Text view to use as a parent view
+     * @param spoilersPool Cached spoilers pool
+     * @param spoilers Spoilers list to populate
+     */
     public static void addSpoilers(TextView tv, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
-        Layout textLayout = tv.getLayout();
-        Spannable spannable = (Spannable) tv.getText();
+        addSpoilers(tv, tv.getLayout(), spoilersPool, spoilers);
+    }
+
+    /**
+     * Parses spoilers from spannable
+     * @param v View to use as a parent view
+     * @param textLayout Text layout to measure
+     * @param spoilersPool Cached spoilers pool, could be null, but highly recommended
+     * @param spoilers Spoilers list to populate
+     */
+    public static void addSpoilers(View v, Layout textLayout, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
+        Spannable spannable = (Spannable) textLayout.getText();
+        TextPaint textPaint = textLayout.getPaint();
         TextStyleSpan[] spans = spannable.getSpans(0, spannable.length(), TextStyleSpan.class);
         for (int line = 0; line < textLayout.getLineCount(); line++) {
             tempRect.set((int) textLayout.getLineLeft(line), textLayout.getLineTop(line), (int) textLayout.getLineRight(line), textLayout.getLineBottom(line));
@@ -339,20 +357,20 @@ public class SpoilerEffect extends Drawable {
 
                         int offWidth = 0;
                         if (realStart != start) {
-                            offWidth = (int) tv.getPaint().measureText(textLayout.getText(), start, realStart);
+                            offWidth = (int) textPaint.measureText(textLayout.getText(), start, realStart);
                         }
 
                         SpannableStringBuilder vSpan = new SpannableStringBuilder(textLayout.getText(), realStart, realEnd);
                         vSpan.removeSpan(span);
-                        StaticLayout newLayout = new StaticLayout(vSpan, tv.getPaint(), tv.getWidth(), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+                        StaticLayout newLayout = new StaticLayout(vSpan, textPaint, v.getWidth(), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
                         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
                         spoilerEffect.setRippleProgress(-1);
-                        spoilerEffect.setBounds(tempRect.left + offWidth, tempRect.top, (int) (tempRect.left + offWidth + tv.getPaint().measureText(vSpan, 0, vSpan.length())), tempRect.bottom);
-                        spoilerEffect.setColor(tv.getPaint().getColor());
+                        spoilerEffect.setBounds(tempRect.left + offWidth, tempRect.top, (int) (tempRect.left + offWidth + textPaint.measureText(vSpan, 0, vSpan.length())), tempRect.bottom);
+                        spoilerEffect.setColor(textPaint.getColor());
                         spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.EASE_BOTH);
                         spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
                         spoilerEffect.updateMaxParticles(textLayout.getText().subSequence(realStart, realEnd).toString().trim().length()); // To filter out spaces
-                        spoilerEffect.setParentView(tv);
+                        spoilerEffect.setParentView(v);
                         spoilers.add(spoilerEffect);
                     }
                 }
