@@ -10,6 +10,7 @@ import java.util.List;
 
 public class SpoilersClickDetector {
     private GestureDetectorCompat gestureDetector;
+    private boolean trackingTap;
 
     public SpoilersClickDetector(View v, List<SpoilerEffect> spoilers, OnSpoilerClickedListener clickedListener) {
         gestureDetector = new GestureDetectorCompat(v.getContext(), new GestureDetector.SimpleOnGestureListener() {
@@ -20,6 +21,7 @@ public class SpoilersClickDetector {
                 y -= v.getPaddingTop();
                 for (SpoilerEffect eff : spoilers) {
                     if (eff.getBounds().contains(x, y)) {
+                        trackingTap = true;
                         return true;
                     }
                 }
@@ -28,13 +30,16 @@ public class SpoilersClickDetector {
 
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                int x = (int) e.getX(), y = (int) e.getY();
-                y += v.getScrollY();
-                y -= v.getPaddingTop();
-                for (SpoilerEffect eff : spoilers) {
-                    if (eff.getBounds().contains(x, y)) {
-                        clickedListener.onSpoilerClicked(eff, x, y);
-                        return true;
+                if (trackingTap) {
+                    trackingTap = false;
+                    int x = (int) e.getX(), y = (int) e.getY();
+                    y += v.getScrollY();
+                    y -= v.getPaddingTop();
+                    for (SpoilerEffect eff : spoilers) {
+                        if (eff.getBounds().contains(x, y)) {
+                            clickedListener.onSpoilerClicked(eff, x, y);
+                            return true;
+                        }
                     }
                 }
                 return false;
@@ -43,7 +48,7 @@ public class SpoilersClickDetector {
     }
 
     public boolean onTouchEvent(MotionEvent ev) {
-        return gestureDetector.onTouchEvent(ev);
+        return gestureDetector.onTouchEvent(ev) || trackingTap;
     }
 
     public interface OnSpoilerClickedListener {

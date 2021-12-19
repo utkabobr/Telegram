@@ -22,6 +22,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.math.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
@@ -60,6 +61,7 @@ public class SpoilerEffect extends Drawable {
     private float rippleMaxRadius;
     private float rippleProgress = -1;
     private int rippleMaxDelta;
+    private boolean isReverseRipple;
     private Runnable onRippleEndCallback;
 
     private List<Long> keyPoints;
@@ -107,10 +109,22 @@ public class SpoilerEffect extends Drawable {
      * @param radMax Max ripple radius
      */
     public void startRipple(float rX, float rY, float radMax) {
+        startRipple(rX, rY, radMax, false);
+    }
+
+    /**
+     * Starts ripple
+     * @param rX Ripple center x
+     * @param rY Ripple center y
+     * @param radMax Max ripple radius
+     * @param reverse If we should start reverse ripple
+     */
+    public void startRipple(float rX, float rY, float radMax, boolean reverse) {
         rippleX = rX;
         rippleY = rY;
         rippleMaxRadius = radMax;
-        rippleProgress = 0;
+        isReverseRipple = reverse;
+        rippleProgress = reverse ? 1 : 0;
         invalidateSelf();
     }
 
@@ -183,9 +197,9 @@ public class SpoilerEffect extends Drawable {
             particle.draw(canvas);
         }
         if (rippleProgress != -1) {
-            rippleProgress = Math.min(rippleProgress + dt / 500f, 1);
+            rippleProgress = MathUtils.clamp(rippleProgress + (dt / 500f) * (isReverseRipple ? -1 : 1), 0, 1);
 
-            if (rippleProgress == 1) {
+            if (rippleProgress == (isReverseRipple ? 0 : 1)) {
                 it = particles.iterator();
                 while (it.hasNext()) {
                     Particle p = it.next();
@@ -196,6 +210,7 @@ public class SpoilerEffect extends Drawable {
 
                 if (onRippleEndCallback != null) {
                     onRippleEndCallback.run();
+                    onRippleEndCallback = null;
                 }
             }
         }
@@ -375,6 +390,7 @@ public class SpoilerEffect extends Drawable {
                         spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
                         spoilerEffect.updateMaxParticles(textLayout.getText().subSequence(realStart, realEnd).toString().trim().length()); // To filter out spaces
                         spoilerEffect.setParentView(v);
+                        spoilerEffect.isReverseRipple = false;
                         spoilers.add(spoilerEffect);
                     }
                 }

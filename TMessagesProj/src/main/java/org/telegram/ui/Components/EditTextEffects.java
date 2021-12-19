@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.Region;
+import android.text.Editable;
 import android.text.Layout;
 import android.text.Spannable;
 import android.view.MotionEvent;
@@ -18,6 +19,8 @@ import java.util.List;
 import java.util.Stack;
 
 public class EditTextEffects extends EditText {
+    private final static int SPOILER_TIMEOUT = 10000;
+
     private List<SpoilerEffect> spoilers = new ArrayList<>();
     private Stack<SpoilerEffect> spoilersPool = new Stack<>();
     private boolean isSpoilersRevealed;
@@ -25,17 +28,93 @@ public class EditTextEffects extends EditText {
     private SpoilersClickDetector clickDetector;
     private boolean suppressOnTextChanged;
     private Path path = new Path();
+    private int selStart, selEnd;
+    private float lastRippleX, lastRippleY;
+    private boolean postedSpoilerTimeout;
+    private Runnable spoilerTimeout = () -> {
+        postedSpoilerTimeout = false;
+        isSpoilersRevealed = false;
+        invalidateSpoilers();
+        if (spoilers.isEmpty())
+            return;
+
+        spoilers.get(0).setOnRippleEndCallback(() -> post(() -> setSpoilersRevealed(false, true)));
+        for (SpoilerEffect eff : spoilers) {
+            eff.startRipple(lastRippleX, lastRippleY, Math.max(getWidth(), getHeight()), true);
+        }
+    };
 
     public EditTextEffects(Context context) {
         super(context);
 
-        clickDetector = new SpoilersClickDetector(this, spoilers, (eff, x, y) -> {
-            setSpoilersRevealed(true, false);
-            eff.setOnRippleEndCallback(() -> post(this::invalidateSpoilers));
+        clickDetector = new SpoilersClickDetector(this, spoilers, this::onSpoilerClicked);
+    }
 
-            for (SpoilerEffect ef : spoilers)
-                ef.startRipple(x, y, Math.max(getWidth(), getHeight()));
-        });
+    private void onSpoilerClicked(SpoilerEffect eff, float x, float y) {
+        if (isSpoilersRevealed) return;
+
+        lastRippleX = x;
+        lastRippleY = y;
+
+        postedSpoilerTimeout = false;
+        removeCallbacks(spoilerTimeout);
+
+        setSpoilersRevealed(true, false);
+        eff.setOnRippleEndCallback(() -> post(() -> {
+            invalidateSpoilers();
+            checkSpoilerTimeout();
+        }));
+
+        for (SpoilerEffect ef : spoilers)
+            ef.startRipple(x, y, Math.max(getWidth(), getHeight()));
+    }
+
+    @Override
+    protected void onSelectionChanged(int selStart, int selEnd) {
+        super.onSelectionChanged(selStart, selEnd);
+
+        if (suppressOnTextChanged)
+            return;
+
+        this.selStart = selStart;
+        this.selEnd = selEnd;
+
+        checkSpoilerTimeout();
+    }
+
+    /**
+     * Checks for spoiler timeout to be posted
+     */
+    private void checkSpoilerTimeout() {
+        boolean onSpoiler = false;
+        CharSequence cs = getLayout() != null ? getLayout().getText() : null;
+        if (cs instanceof Spannable) {
+            Spannable e = (Spannable) cs;
+            TextStyleSpan[] spans = e.getSpans(0, e.length(), TextStyleSpan.class);
+            for (TextStyleSpan span : spans) {
+                int ss = e.getSpanStart(span), se = e.getSpanEnd(span);
+                if (span.isSpoiler()) {
+                    if (ss > selStart && se < selEnd || selStart > ss && selStart < se || selEnd > ss && selEnd < se) {
+                        onSpoiler = true;
+                        removeCallbacks(spoilerTimeout);
+                        postedSpoilerTimeout = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (isSpoilersRevealed && !onSpoiler && !postedSpoilerTimeout) {
+            postedSpoilerTimeout = true;
+            postDelayed(spoilerTimeout, SPOILER_TIMEOUT);
+        }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+
+        removeCallbacks(spoilerTimeout);
     }
 
     @Override
@@ -57,6 +136,15 @@ public class EditTextEffects extends EditText {
             isSpoilersRevealed = false;
             if (spoilersPool != null) // Constructor check
                 spoilersPool.clear();
+
+            if (text instanceof Spannable) {
+                Spannable spannable = (Spannable) text;
+                for (TextStyleSpan span : spannable.getSpans(0, spannable.length(), TextStyleSpan.class)) {
+                    if (span.isSpoiler()) {
+                        span.setSpoilerRevealed(isSpoilersRevealed);
+                    }
+                }
+            }
         }
         super.setText(text, type);
     }
@@ -96,7 +184,8 @@ public class EditTextEffects extends EditText {
             }
         }
         suppressOnTextChanged = true;
-        setText(text);
+        setText(text, BufferType.EDITABLE);
+        setSelection(selStart, selEnd);
         suppressOnTextChanged = false;
 
         if (notifyEffects) {
@@ -146,7 +235,7 @@ public class EditTextEffects extends EditText {
         }
 
         Layout layout = getLayout();
-        if (layout != null && getText() != null)
+        if (layout != null && layout.getText() instanceof Spannable)
             SpoilerEffect.addSpoilers(this, spoilersPool, spoilers);
         invalidate();
     }
