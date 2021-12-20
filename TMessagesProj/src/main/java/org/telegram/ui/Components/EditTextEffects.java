@@ -139,15 +139,6 @@ public class EditTextEffects extends EditText {
             isSpoilersRevealed = false;
             if (spoilersPool != null) // Constructor check
                 spoilersPool.clear();
-
-            if (text instanceof Spannable) {
-                Spannable spannable = (Spannable) text;
-                for (TextStyleSpan span : spannable.getSpans(0, spannable.length(), TextStyleSpan.class)) {
-                    if (span.isSpoiler()) {
-                        span.setSpoilerRevealed(isSpoilersRevealed);
-                    }
-                }
-            }
         }
         super.setText(text, type);
     }
@@ -224,6 +215,14 @@ public class EditTextEffects extends EditText {
     }
 
     public void invalidateEffects() {
+        Editable text = getText();
+        if (text != null) {
+            for (TextStyleSpan span : text.getSpans(0, text.length(), TextStyleSpan.class)) {
+                if (span.isSpoiler()) {
+                    span.setSpoilerRevealed(isSpoilersRevealed);
+                }
+            }
+        }
         invalidateSpoilers();
     }
 
