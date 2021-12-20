@@ -102,7 +102,7 @@ public class SpoilerEffect extends Drawable {
      * @param charsCount Characters for this spoiler
      */
     public void updateMaxParticles(int charsCount) {
-        maxParticles = MathUtils.clamp(charsCount * 25, 30, 500);
+        maxParticles = MathUtils.clamp(charsCount * 10, 30, 500);
         maxParticlesPool = maxParticles / 2;
         initParticlesPool = maxParticlesPool / 2;
         newParticles = maxParticles / 10;
