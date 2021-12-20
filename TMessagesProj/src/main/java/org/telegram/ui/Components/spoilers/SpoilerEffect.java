@@ -70,7 +70,7 @@ public class SpoilerEffect extends Drawable {
     private ValueAnimator rippleAnimator;
 
     private List<Long> keyPoints;
-    private List<Integer> dropOutIndexes = new ArrayList<>();
+    private List<Boolean> toDropOut = new ArrayList<>();
 
     private TimeInterpolator rippleInterpolator = input -> input;
 
@@ -236,13 +236,12 @@ public class SpoilerEffect extends Drawable {
         int dt = (int) Math.min(curTime - lastDrawTime, 17);
         lastDrawTime = curTime;
 
-        dropOutIndexes.clear();
-        for (int i = 0; i < dropOutPercent * particles.size(); i++) {
-            int r = Utilities.random.nextInt(particles.size());
-            while (dropOutIndexes.contains(r))
-                r = Utilities.random.nextInt(particles.size());
-            dropOutIndexes.add(r);
+        toDropOut.clear();
+        for (int i = 0; i < particles.size(); i++) {
+            toDropOut.add(i <= particles.size() * dropOutPercent);
         }
+        Collections.shuffle(toDropOut);
+
         int i = 0;
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
@@ -256,7 +255,7 @@ public class SpoilerEffect extends Drawable {
                 i++;
                 continue;
             }
-            if (rippleAnimator == null && dropOutIndexes.contains(i)) {
+            if (rippleAnimator == null && toDropOut.get(i)) {
                 particle.draw(canvas);
                 i++;
                 continue;
