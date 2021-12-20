@@ -404,16 +404,6 @@ public class SpoilerEffect extends Drawable {
     }
 
     /**
-     * Alias for it's big bro
-     * @param tv Text view to use as a parent view
-     * @param spoilersPool Cached spoilers pool
-     * @param spoilers Spoilers list to populate
-     */
-    public static void addSpoilers(TextView tv, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
-        addSpoilers(tv, tv.getLayout(), spoilersPool, spoilers);
-    }
-
-    /**
      * @return Max particles count
      */
     public int getMaxParticlesCount() {
@@ -435,14 +425,63 @@ public class SpoilerEffect extends Drawable {
     }
 
     /**
-     * Parses spoilers from spannable
+     * Optimizes spoilers for big messages
+     * @param spoilers A list of spoilers to optimize
+     */
+    public static void optimizeSpoilers(List<SpoilerEffect> spoilers) {
+        int partsTotal = 0;
+        int partsCount = 0;
+        for (SpoilerEffect eff : spoilers) {
+            partsTotal += eff.getMaxParticlesCount();
+            partsCount++;
+        }
+
+        int average = (int) (partsTotal / (float)partsCount);
+        if (partsTotal > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
+            while (average > SpoilerEffect.MIN_AVG_PARTICLES && average * partsCount > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
+                average -= SpoilerEffect.AVG_STEP;
+            }
+            average = Math.max(SpoilerEffect.MIN_AVG_PARTICLES, average);
+
+            for (SpoilerEffect eff : spoilers) {
+                eff.setMaxParticlesCount(average);
+                eff.setNewParticlesCountPerTick(MathUtils.clamp(average / 10, SpoilerEffect.MIN_PARTICLES_PER_TICK_OVER, SpoilerEffect.MAX_PARTICLES_PER_TICK_OVER));
+                eff.setDropOutPercent(0.7f);
+            }
+        }
+    }
+
+
+    /**
+     * Alias for it's big bro
+     * @param tv Text view to use as a parent view
+     * @param spoilersPool Cached spoilers pool
+     * @param spoilers Spoilers list to populate
+     */
+    public static void addSpoilers(TextView tv, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
+        addSpoilers(tv, tv.getLayout(), (Spannable) tv.getText(), spoilersPool, spoilers);
+    }
+
+    /**
+     * Alias for it's big bro
      * @param v View to use as a parent view
      * @param textLayout Text layout to measure
      * @param spoilersPool Cached spoilers pool, could be null, but highly recommended
      * @param spoilers Spoilers list to populate
      */
     public static void addSpoilers(@Nullable View v, Layout textLayout, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
-        Spannable spannable = (Spannable) textLayout.getText();
+        addSpoilers(v, textLayout, (Spannable) textLayout.getText(), spoilersPool, spoilers);
+    }
+
+    /**
+     * Parses spoilers from spannable
+     * @param v View to use as a parent view
+     * @param textLayout Text layout to measure
+     * @param spannable Text to parse
+     * @param spoilersPool Cached spoilers pool, could be null, but highly recommended
+     * @param spoilers Spoilers list to populate
+     */
+    public static void addSpoilers(@Nullable View v, Layout textLayout, Spannable spannable, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
         TextPaint textPaint = textLayout.getPaint();
         TextStyleSpan[] spans = spannable.getSpans(0, spannable.length(), TextStyleSpan.class);
         for (int line = 0; line < textLayout.getLineCount(); line++) {

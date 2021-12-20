@@ -2,6 +2,7 @@ package org.telegram.ui.Components.spoilers;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.SoundEffectConstants;
 import android.view.View;
 
 import androidx.core.view.GestureDetectorCompat;
@@ -13,12 +14,19 @@ public class SpoilersClickDetector {
     private boolean trackingTap;
 
     public SpoilersClickDetector(View v, List<SpoilerEffect> spoilers, OnSpoilerClickedListener clickedListener) {
+        this(v, spoilers, true, clickedListener);
+    }
+
+    public SpoilersClickDetector(View v, List<SpoilerEffect> spoilers, boolean offsetPadding, OnSpoilerClickedListener clickedListener) {
         gestureDetector = new GestureDetectorCompat(v.getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDown(MotionEvent e) {
                 int x = (int) e.getX(), y = (int) e.getY();
                 y += v.getScrollY();
-                y -= v.getPaddingTop();
+                if (offsetPadding) {
+                    x -= v.getPaddingLeft();
+                    y -= v.getPaddingTop();
+                }
                 for (SpoilerEffect eff : spoilers) {
                     if (eff.getBounds().contains(x, y)) {
                         trackingTap = true;
@@ -31,10 +39,15 @@ public class SpoilersClickDetector {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 if (trackingTap) {
+                    v.playSoundEffect(SoundEffectConstants.CLICK);
+
                     trackingTap = false;
                     int x = (int) e.getX(), y = (int) e.getY();
                     y += v.getScrollY();
-                    y -= v.getPaddingTop();
+                    if (offsetPadding) {
+                        x -= v.getPaddingLeft();
+                        y -= v.getPaddingTop();
+                    }
                     for (SpoilerEffect eff : spoilers) {
                         if (eff.getBounds().contains(x, y)) {
                             clickedListener.onSpoilerClicked(eff, x, y);

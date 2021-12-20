@@ -231,6 +231,7 @@ import org.telegram.ui.Components.VideoPlayerSeekBar;
 import org.telegram.ui.Components.VideoSeekPreviewImage;
 import org.telegram.ui.Components.VideoTimelinePlayView;
 import org.telegram.ui.Components.ViewHelper;
+import org.telegram.ui.Components.spoilers.SpoilersTextView;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -6113,7 +6114,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     private TextView createCaptionTextView(LinkMovementMethod linkMovementMethod) {
-        TextView textView = new TextView(activityContext) {
+        TextView textView = new SpoilersTextView(activityContext) {
 
             private boolean handleClicks;
 
@@ -11096,7 +11097,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             Theme.createChatResources(null, true);
             CharSequence str;
             if (messageObject != null && !messageObject.messageOwner.entities.isEmpty()) {
-                Spannable spannableString = SpannableString.valueOf(caption.toString());
+                Spannable spannableString = SpannableString.valueOf(caption);
                 messageObject.addEntitiesToText(spannableString, true, false);
                 if (messageObject.isVideo()) {
                     MessageObject.addUrlsByPattern(messageObject.isOutOwner(), spannableString, false, 3, messageObject.getDuration(), false);

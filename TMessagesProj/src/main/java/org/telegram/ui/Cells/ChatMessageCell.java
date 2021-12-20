@@ -2934,8 +2934,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         captionSpoilersPool.addAll(captionSpoilers);
         captionSpoilers.clear();
 
-        if (captionLayout != null && !getMessageObject().isSpoilersRevealed)
+        if (captionLayout != null && !getMessageObject().isSpoilersRevealed) {
             SpoilerEffect.addSpoilers(this, captionLayout, captionSpoilersPool, captionSpoilers);
+            SpoilerEffect.optimizeSpoilers(captionSpoilers);
+        }
     }
 
     private boolean isUserDataChanged() {
