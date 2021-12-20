@@ -146,6 +146,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Stack;
 
 public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate, ImageReceiver.ImageReceiverDelegate, DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView {
 
@@ -594,6 +595,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private int pressedBotButton;
 
     private SpoilerEffect spoilerPressed;
+    private boolean isCaptionSpoilerPressed;
 
     private MessageObject currentMessageObject;
     private MessageObject messageObjectToSet;
@@ -840,6 +842,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     private Path sPath = new Path();
     private List<SpoilerEffect> replySpoilers = new ArrayList<>();
+    private List<SpoilerEffect> captionSpoilers = new ArrayList<>();
+    private Stack<SpoilerEffect> captionSpoilersPool = new Stack<>();
 
     public ChatMessageCell(Context context) {
         this(context, false, null);
@@ -2029,8 +2033,19 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     for (SpoilerEffect eff : block.spoilers) {
                         if (eff.getBounds().contains(x - textX, y - textY)) {
                             spoilerPressed = eff;
+                            isCaptionSpoilerPressed = false;
                             return true;
                         }
+                    }
+                }
+            }
+
+            if (captionLayout != null && x >= captionX && y >= captionY && x <= captionX + captionLayout.getWidth() && y <= captionY + captionLayout.getHeight()) {
+                for (SpoilerEffect eff : captionSpoilers) {
+                    if (eff.getBounds().contains((int)(x - captionX), (int)(y - captionY))) {
+                        spoilerPressed = eff;
+                        isCaptionSpoilerPressed = true;
+                        return true;
                     }
                 }
             }
@@ -2038,10 +2053,17 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             playSoundEffect(SoundEffectConstants.CLICK);
 
             sPath.rewind();
-            for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
-                for (SpoilerEffect eff : block.spoilers) {
+            if (isCaptionSpoilerPressed) {
+                for (SpoilerEffect eff : captionSpoilers) {
                     Rect b = eff.getBounds();
-                    sPath.addRect(b.left, b.top + block.textYOffset, b.right, b.bottom + block.textYOffset, Path.Direction.CW);
+                    sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+                }
+            } else {
+                for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                    for (SpoilerEffect eff : block.spoilers) {
+                        Rect b = eff.getBounds();
+                        sPath.addRect(b.left, b.top + block.textYOffset, b.right, b.bottom + block.textYOffset, Path.Direction.CW);
+                    }
                 }
             }
             sPath.computeBounds(rect, false);
@@ -2050,14 +2072,24 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
             spoilerPressed.setOnRippleEndCallback(()->post(()->{
                 getMessageObject().isSpoilersRevealed = true;
-                for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
-                    block.spoilers.clear();
+                if (isCaptionSpoilerPressed) {
+                    captionSpoilers.clear();
+                } else {
+                    for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                        block.spoilers.clear();
+                    }
                 }
                 invalidate();
             }));
-            for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
-                for (SpoilerEffect eff : block.spoilers) {
-                    eff.startRipple(x - textX, y - block.textYOffset - textY, rad);
+            if (isCaptionSpoilerPressed) {
+                for (SpoilerEffect eff : captionSpoilers) {
+                    eff.startRipple(x - captionX, y - captionY, rad);
+                }
+            } else {
+                for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                    for (SpoilerEffect eff : block.spoilers) {
+                        eff.startRipple(x - textX, y - block.textYOffset - textY, rad);
+                    }
                 }
             }
 
@@ -2191,6 +2223,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
         if (event.getAction() == MotionEvent.ACTION_CANCEL) {
             spoilerPressed = null;
+            isCaptionSpoilerPressed = false;
             buttonPressed = 0;
             miniButtonPressed = 0;
             pressedBotButton = -1;
@@ -2891,6 +2924,14 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         return null;
     }
 
+    private void updateCaptionSpoilers() {
+        captionSpoilersPool.addAll(captionSpoilers);
+        captionSpoilers.clear();
+
+        if (captionLayout != null && !getMessageObject().isSpoilersRevealed)
+            SpoilerEffect.addSpoilers(this, captionLayout, captionSpoilersPool, captionSpoilers);
+    }
+
     private boolean isUserDataChanged() {
         if (currentMessageObject != null && (!hasLinkPreview && currentMessageObject.messageOwner.media != null && currentMessageObject.messageOwner.media.webpage instanceof TLRPC.TL_webPage)) {
             return true;
@@ -3285,6 +3326,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     }
                 }
             }
+            spoilerPressed = null;
+            isCaptionSpoilerPressed = false;
             linkPreviewPressed = false;
             buttonPressed = 0;
             additionalTimeOffsetY = 0;
@@ -4926,6 +4969,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                             } else {
                                 captionLayout = new StaticLayout(messageObject.caption, Theme.chat_msgTextPaint, widthForCaption, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
                             }
+                            updateCaptionSpoilers();
                         } catch (Exception e) {
                             FileLog.e(e);
                         }
@@ -5539,6 +5583,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                             } else {
                                 captionLayout = new StaticLayout(currentCaption, Theme.chat_msgTextPaint, widthForCaption, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
                             }
+                            updateCaptionSpoilers();
                             int lineCount = captionLayout.getLineCount();
                             if (lineCount > 0) {
                                 if (fixPhotoWidth) {
@@ -5569,6 +5614,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                                     }
                                 } else {
                                     captionLayout = null;
+                                    updateCaptionSpoilers();
                                 }
                             }
                         } catch (Exception e) {
@@ -5814,6 +5860,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                         } else {
                             captionLayout = new StaticLayout(messageObject.caption, Theme.chat_msgTextPaint, widthForCaption, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
                         }
+                        updateCaptionSpoilers();
                     } catch (Exception e) {
                         FileLog.e(e);
                     }
@@ -11955,7 +12002,31 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     getDelegate().getTextSelectionHelper().drawCaption(currentMessageObject.isOutOwner(), captionLayout, canvas);
                 }
                 Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
+                canvas.save();
+                sPath.rewind();
+                for (SpoilerEffect eff : captionSpoilers) {
+                    Rect b = eff.getBounds();
+                    sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+                }
+                canvas.clipPath(sPath, Region.Op.DIFFERENCE);
                 captionLayout.draw(canvas);
+                canvas.restore();
+
+                canvas.save();
+                canvas.clipPath(sPath);
+                sPath.rewind();
+                if (!captionSpoilers.isEmpty())
+                    captionSpoilers.get(0).getRipplePath(sPath);
+                canvas.clipPath(sPath);
+                canvas.translate(0, -getPaddingTop());
+                captionLayout.draw(canvas);
+                canvas.restore();
+
+                for (SpoilerEffect eff : captionSpoilers) {
+                    eff.setColor(captionLayout.getPaint().getColor());
+                    eff.draw(canvas);
+                }
+
                 Emoji.emojiDrawingYOffset = 0;
             } catch (Exception e) {
                 FileLog.e(e);
