@@ -10740,13 +10740,14 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 } else {
                     if ((type == -1 || type == 0 || type == 10 || type == 11) && (messageObjectsToForward.size() == 1 && messageObjectsToForward.get(0).messageText != null)) {
                         MessageObject messageObject = messageObjectsToForward.get(0);
-                        String mess = messageObject.messageText.toString();
+                        CharSequence mess = SpannableStringBuilder.valueOf(messageObject.messageText);
+                        MediaDataController.addTextStyleRuns(messageObjectsToForward.get(0), (Spannable) mess);
                         if (mess.length() > 150) {
-                            mess = mess.substring(0, 150);
+                            mess = mess.subSequence(0, 150);
                         }
-                        mess = mess.replace('\n', ' ');
-                        String finalString = LocaleController.formatString("ForwardingFromNameAndMessage", R.string.ForwardingFromNameAndMessage, userNames, mess);
-                        replyObjectTextView.setText(Emoji.replaceEmoji(finalString, replyObjectTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
+                        mess = AndroidUtilities.replaceNewLines(mess);
+                        Spannable formatted = AndroidUtilities.formatSpannableSimple(LocaleController.getString("ForwardingFromNameAndMessage", R.string.ForwardingFromNameAndMessage), userNames, mess);
+                        replyObjectTextView.setText(Emoji.replaceEmoji(formatted, replyObjectTextView.getPaint().getFontMetricsInt(), AndroidUtilities.dp(14), false));
                     } else {
                         replyObjectTextView.setText(LocaleController.formatString("ForwardingFromNames", R.string.ForwardingFromNames, userNames));
                     }

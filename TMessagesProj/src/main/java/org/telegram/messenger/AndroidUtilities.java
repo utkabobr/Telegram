@@ -2904,6 +2904,19 @@ public class AndroidUtilities {
         return openForView(f, fileName, document.mime_type, activity, null);
     }
 
+    public static SpannableStringBuilder formatSpannableSimple(String format, CharSequence... cs) {
+        SpannableStringBuilder stringBuilder = new SpannableStringBuilder(format);
+        String key = "%s";
+        for (int i = 0; i < cs.length; i++) {
+            int j = format.indexOf(key);
+            if (j != -1) {
+                stringBuilder.replace(j, j + key.length(), cs[i]);
+                format = format.substring(0, j) + cs[i].toString() + format.substring(j + key.length());
+            }
+        }
+        return stringBuilder;
+    }
+
     public static SpannableStringBuilder formatSpannable(String format, CharSequence... cs) {
         SpannableStringBuilder stringBuilder = new SpannableStringBuilder(format);
         for (int i = 0; i < cs.length; i++) {
@@ -2911,6 +2924,7 @@ public class AndroidUtilities {
             int j = format.indexOf(key);
             if (j != -1) {
                 stringBuilder.replace(j, j + key.length(), cs[i]);
+                format = format.substring(0, j) + cs[i].toString() + format.substring(j + key.length());
             }
         }
         return stringBuilder;
