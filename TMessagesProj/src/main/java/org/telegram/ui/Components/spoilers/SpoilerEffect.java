@@ -64,6 +64,7 @@ public class SpoilerEffect extends Drawable {
     private float rippleX, rippleY;
     private float rippleMaxRadius;
     private float rippleProgress = -1;
+    private boolean shouldInvalidateColor;
     private int rippleMaxDelta;
     private Runnable onRippleEndCallback;
     private ValueAnimator rippleAnimator;
@@ -150,6 +151,7 @@ public class SpoilerEffect extends Drawable {
         rippleAnimator.setInterpolator(rippleInterpolator);
         rippleAnimator.addUpdateListener(animation -> {
             rippleProgress = (float) animation.getAnimatedValue();
+            shouldInvalidateColor = true;
             invalidateSelf();
         });
         rippleAnimator.addListener(new AnimatorListenerAdapter() {
@@ -202,12 +204,29 @@ public class SpoilerEffect extends Drawable {
     }
 
     /**
+     * @return Current ripple progress
+     */
+    public float getRippleProgress() {
+        return rippleProgress;
+    }
+
+    /**
+     * @return If we should invalidate color
+     */
+    public boolean shouldInvalidateColor() {
+        boolean b = shouldInvalidateColor;
+        shouldInvalidateColor = false;
+        return b;
+    }
+
+    /**
      * Sets new ripple progress
      */
     public void setRippleProgress(float rippleProgress) {
         this.rippleProgress = rippleProgress;
         if (rippleProgress == -1 && rippleAnimator != null)
             rippleAnimator.cancel();
+        shouldInvalidateColor = true;
     }
 
 

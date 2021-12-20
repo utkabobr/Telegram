@@ -8523,6 +8523,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     restore = canvas.saveLayerAlpha(rect, (int) (alpha * 255), Canvas.ALL_SAVE_FLAG);
                 }
             }
+            int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : Theme.chat_msgTextPaint.getColor();
             for (int a = firstVisibleBlockNum; a <= lastVisibleBlockNum; a++) {
                 if (a >= textLayoutBlocks.size()) {
                     break;
@@ -8570,7 +8571,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     canvas.translate(0, AndroidUtilities.dp(2));
                     for (SpoilerEffect eff : block.spoilers) {
                         if (eff.getParentView() != this) eff.setParentView(this);
-                        eff.setColor(Theme.chat_msgTextPaint.getColor());
+                        if (eff.shouldInvalidateColor())
+                            eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
+                        else eff.setColor(spoilersColor);
                         eff.draw(canvas);
                     }
                     canvas.restore();
@@ -12031,8 +12034,11 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 captionLayout.draw(canvas);
                 canvas.restore();
 
+                int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : captionLayout.getPaint().getColor();
                 for (SpoilerEffect eff : captionSpoilers) {
-                    eff.setColor(captionLayout.getPaint().getColor());
+                    if (eff.shouldInvalidateColor())
+                        eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
+                    else eff.setColor(spoilersColor);
                     eff.draw(canvas);
                 }
 

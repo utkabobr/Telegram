@@ -4461,6 +4461,8 @@ public class MediaDataController extends BaseController {
     }
 
     public static void addTextStyleRuns(ArrayList<TLRPC.MessageEntity> entities, CharSequence messageText, Spannable text) {
+        for (TextStyleSpan prevSpan : text.getSpans(0, text.length(), TextStyleSpan.class))
+            text.removeSpan(prevSpan);
         for (TextStyleSpan.TextStyleRun run : MediaDataController.getTextStyleRuns(entities, messageText)) {
             MediaDataController.addStyleToText(new TextStyleSpan(run), run.start, run.end, text, true);
         }
