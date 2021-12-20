@@ -39,7 +39,7 @@ import java.util.Stack;
 
 public class SpoilerEffect extends Drawable {
     public final static int MAX_PARTICLES_PER_MESSAGE = 600;
-    public final static int MIN_AVG_PARTICLES = 100, AVG_STEP = 15;
+    public final static int MIN_AVG_PARTICLES = 60, AVG_STEP = 15;
     public final static int MIN_PARTICLES_PER_TICK_OVER = 5, MAX_PARTICLES_PER_TICK_OVER = 25;
 
     private int maxParticles, maxParticlesPool, initParticlesPool, newParticles;
@@ -101,10 +101,10 @@ public class SpoilerEffect extends Drawable {
      * @param charsCount Characters for this spoiler
      */
     public void updateMaxParticles(int charsCount) {
-        maxParticles = MathUtils.clamp(charsCount * 30, 100, 500);
+        maxParticles = MathUtils.clamp(charsCount * 25, 30, 500);
         maxParticlesPool = maxParticles / 2;
         initParticlesPool = maxParticlesPool / 2;
-        newParticles = charsCount > 15 ? 80 : 20;
+        newParticles = maxParticles / 10;
     }
 
     /**
@@ -146,7 +146,7 @@ public class SpoilerEffect extends Drawable {
 
         if (rippleAnimator != null)
             rippleAnimator.cancel();
-        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) Math.max(rippleMaxRadius * 0.7f, 300));
+        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.5f, 300, 550));
         rippleAnimator.setInterpolator(rippleInterpolator);
         rippleAnimator.addUpdateListener(animation -> {
             rippleProgress = (float) animation.getAnimatedValue();
