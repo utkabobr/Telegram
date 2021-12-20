@@ -349,8 +349,10 @@ public class SpoilerEffect extends Drawable {
      * @param color New color
      */
     public void setColor(int color) {
-        particlePaint.setColor(color);
-        invalidateSelf();
+        if (particlePaint.getColor() != color) {
+            particlePaint.setColor(color);
+            invalidateSelf();
+        }
     }
 
     /**

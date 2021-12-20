@@ -210,6 +210,7 @@ public class EditTextEffects extends EditText {
         canvas.restore();
 
         for (SpoilerEffect eff : spoilers) {
+            eff.setColor(getPaint().getColor());
             eff.draw(canvas);
         }
     }
