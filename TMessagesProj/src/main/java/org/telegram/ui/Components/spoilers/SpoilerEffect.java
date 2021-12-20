@@ -1,6 +1,9 @@
 package org.telegram.ui.Components.spoilers;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.TimeInterpolator;
+import android.animation.ValueAnimator;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -15,9 +18,7 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
 import android.text.TextPaint;
-import android.util.Log;
 import android.view.View;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,11 +28,9 @@ import androidx.core.math.MathUtils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.Utilities;
-import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.TextStyleSpan;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -39,7 +38,12 @@ import java.util.List;
 import java.util.Stack;
 
 public class SpoilerEffect extends Drawable {
+    public final static int MAX_PARTICLES_PER_MESSAGE = 600;
+    public final static int MIN_AVG_PARTICLES = 100, AVG_STEP = 15;
+    public final static int MIN_PARTICLES_PER_TICK_OVER = 5, MAX_PARTICLES_PER_TICK_OVER = 25;
+
     private int maxParticles, maxParticlesPool, initParticlesPool, newParticles;
+    private float dropOutPercent = 0.3f;
 
     private final static int KEYPOINT_DELTA = 4;
 
@@ -53,7 +57,7 @@ public class SpoilerEffect extends Drawable {
     private ArrayList<Particle> particles = new ArrayList<>();
     private Stack<Particle> freeParticles = new Stack<>();
     private float mAlpha = 1f;
-    private WeakReference<View> mParent;
+    private View mParent;
 
     private long lastDrawTime;
 
@@ -61,10 +65,11 @@ public class SpoilerEffect extends Drawable {
     private float rippleMaxRadius;
     private float rippleProgress = -1;
     private int rippleMaxDelta;
-    private boolean isReverseRipple;
     private Runnable onRippleEndCallback;
+    private ValueAnimator rippleAnimator;
 
     private List<Long> keyPoints;
+    private List<Integer> dropOutIndexes = new ArrayList<>();
 
     private TimeInterpolator rippleInterpolator = input -> input;
 
@@ -76,7 +81,7 @@ public class SpoilerEffect extends Drawable {
 
         rippleMaxDelta = AndroidUtilities.dp(24);
 
-        setColor(Theme.getColor(Theme.key_actionBarDefaultTitle) & 0xffe6e6e6);
+        setColor(Color.TRANSPARENT);
 
         updateMaxParticles(30);
         for (int i = 0; i < initParticlesPool; i++) {
@@ -85,11 +90,18 @@ public class SpoilerEffect extends Drawable {
     }
 
     /**
+     * Sets dropout percent to optimize resources
+     */
+    public void setDropOutPercent(float dropOutPercent) {
+        this.dropOutPercent = dropOutPercent;
+    }
+
+    /**
      * Updates max particles count
      * @param charsCount Characters for this spoiler
      */
     public void updateMaxParticles(int charsCount) {
-        maxParticles = Math.min(Math.max(100, charsCount * 30), 600);
+        maxParticles = MathUtils.clamp(charsCount * 30, 100, 500);
         maxParticlesPool = maxParticles / 2;
         initParticlesPool = maxParticlesPool / 2;
         newParticles = charsCount > 15 ? 80 : 20;
@@ -123,8 +135,45 @@ public class SpoilerEffect extends Drawable {
         rippleX = rX;
         rippleY = rY;
         rippleMaxRadius = radMax;
-        isReverseRipple = reverse;
         rippleProgress = reverse ? 1 : 0;
+
+        if (!reverse) {
+            for (Particle p : particles) {
+                p.startX = p.x;
+                p.startY = p.y;
+            }
+        }
+
+        if (rippleAnimator != null)
+            rippleAnimator.cancel();
+        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) Math.max(rippleMaxRadius * 0.7f, 300));
+        rippleAnimator.setInterpolator(rippleInterpolator);
+        rippleAnimator.addUpdateListener(animation -> {
+            rippleProgress = (float) animation.getAnimatedValue();
+            invalidateSelf();
+        });
+        rippleAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                Iterator<Particle> it = particles.iterator();
+                while (it.hasNext()) {
+                    Particle p = it.next();
+                    if (freeParticles.size() < maxParticlesPool)
+                        freeParticles.push(p);
+                    it.remove();
+                }
+
+                if (onRippleEndCallback != null) {
+                    onRippleEndCallback.run();
+                    onRippleEndCallback = null;
+                }
+
+                rippleAnimator = null;
+                invalidateSelf();
+            }
+        });
+        rippleAnimator.start();
+
         invalidateSelf();
     }
 
@@ -149,7 +198,7 @@ public class SpoilerEffect extends Drawable {
      * Gets ripple path
      */
     public void getRipplePath(Path path) {
-        path.addCircle(rippleX, rippleY, rippleMaxRadius * rippleInterpolator.getInterpolation(Math.max(0, rippleProgress)), Path.Direction.CW);
+        path.addCircle(rippleX, rippleY, rippleMaxRadius * MathUtils.clamp(rippleProgress, 0, 1), Path.Direction.CW);
     }
 
     /**
@@ -157,7 +206,10 @@ public class SpoilerEffect extends Drawable {
      */
     public void setRippleProgress(float rippleProgress) {
         this.rippleProgress = rippleProgress;
+        if (rippleProgress == -1 && rippleAnimator != null)
+            rippleAnimator.cancel();
     }
+
 
     @Override
     public void draw(@NonNull Canvas canvas) {
@@ -165,6 +217,14 @@ public class SpoilerEffect extends Drawable {
         int dt = (int) Math.min(curTime - lastDrawTime, 17);
         lastDrawTime = curTime;
 
+        dropOutIndexes.clear();
+        for (int i = 0; i < dropOutPercent * particles.size(); i++) {
+            int r = Utilities.random.nextInt(particles.size());
+            while (dropOutIndexes.contains(r))
+                r = Utilities.random.nextInt(particles.size());
+            dropOutIndexes.add(r);
+        }
+        int i = 0;
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
             Particle particle = it.next();
@@ -173,75 +233,67 @@ public class SpoilerEffect extends Drawable {
                     freeParticles.push(particle);
                 }
                 it.remove();
+                i++;
                 continue;
             }
-            particle.x += particle.vx * particle.velocity * dt / 500f;
-            particle.y += particle.vy * particle.velocity * dt / 500f;
+            if (rippleAnimator == null && dropOutIndexes.contains(i)) {
+                particle.draw(canvas);
+                i++;
+                continue;
+            }
+
+            if (rippleAnimator != null) {
+                particle.x = particle.startX + (particle.keyX - particle.startX) * rippleProgress;
+                particle.y = particle.startY + (particle.keyY - particle.startY) * rippleProgress;
+            } else {
+                float hdt = particle.velocity * dt / 500f;
+                particle.x += particle.vecX * hdt;
+                particle.y += particle.vecY * hdt;
+            }
             particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
 
-            if (rippleProgress != -1) {
-                float rr = rippleMaxRadius * rippleInterpolator.getInterpolation(rippleProgress);
+            if (rippleAnimator != null) {
+                float rr = rippleMaxRadius * rippleProgress;
                 if (Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2)) {
                     particle.alpha = 0;
                 } else {
                     float rd = (float) Math.min(rippleMaxDelta, Math.sqrt(Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2)) - rr);
                     particle.alpha = rd / rippleMaxDelta;
-
-                    particle.vx += dt / 90f * (particle.x > rippleX ? 1 : -1);
-                    particle.vy += dt / 90f * (particle.y > rippleY ? 1 : -1);
                 }
             } else {
                 particle.alpha = 1f - (Math.max(0.75f, particle.currentTime / particle.lifeTime) - 0.75f) / 0.25f;
             }
 
             particle.draw(canvas);
-        }
-        if (rippleProgress != -1) {
-            rippleProgress = MathUtils.clamp(rippleProgress + (dt / 500f) * (isReverseRipple ? -1 : 1), 0, 1);
-
-            if (rippleProgress == (isReverseRipple ? 0 : 1)) {
-                it = particles.iterator();
-                while (it.hasNext()) {
-                    Particle p = it.next();
-                    if (freeParticles.size() < maxParticlesPool)
-                        freeParticles.push(p);
-                    it.remove();
-                }
-
-                if (onRippleEndCallback != null) {
-                    onRippleEndCallback.run();
-                    onRippleEndCallback = null;
-                }
-            }
+            i++;
         }
 
-        if (particles.size() + newParticles < maxParticles) {
+        if (rippleAnimator == null && particles.size() + newParticles < maxParticles) {
             for (int a = 0; a < newParticles; a++) {
-                float cx, cy;
-                if (keyPoints != null && !keyPoints.isEmpty()) {
-                    long kp = keyPoints.get(Utilities.random.nextInt(keyPoints.size()));
-                    cx = getBounds().left + (kp >> 16) + Utilities.random.nextFloat() * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
-                    cy = getBounds().top + (kp & 0xFFFF) + Utilities.random.nextFloat() * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
-                } else {
-                    cx = getBounds().left + Utilities.random.nextFloat() * getBounds().width();
-                    cy = getBounds().top + Utilities.random.nextFloat() * getBounds().height();
-                }
-
-                double angleRad = Utilities.random.nextFloat() * Math.PI * 2 - Math.PI;
-                float vx = (float) Math.cos(angleRad);
-                float vy = (float) Math.sin(angleRad);
-
                 Particle newParticle;
                 if (!freeParticles.isEmpty()) {
                     newParticle = freeParticles.pop();
                 } else {
                     newParticle = new Particle();
                 }
-                newParticle.x = cx;
-                newParticle.y = cy;
 
-                newParticle.vx = vx;
-                newParticle.vy = vy;
+                if (keyPoints != null && !keyPoints.isEmpty()) {
+                    long kp = keyPoints.get(Utilities.random.nextInt(keyPoints.size()));
+                    newParticle.keyX = getBounds().left + (kp >> 16);
+                    newParticle.keyY = getBounds().top + (kp & 0xFFFF);
+                    newParticle.x = newParticle.keyX + Utilities.random.nextFloat() * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
+                    newParticle.y = newParticle.keyY + Utilities.random.nextFloat() * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
+                } else {
+                    newParticle.x = getBounds().left + Utilities.random.nextFloat() * getBounds().width();
+                    newParticle.y = getBounds().top + Utilities.random.nextFloat() * getBounds().height();
+                }
+
+                double angleRad = Utilities.random.nextFloat() * Math.PI * 2 - Math.PI;
+                float vx = (float) Math.cos(angleRad);
+                float vy = (float) Math.sin(angleRad);
+
+                newParticle.vecX = vx;
+                newParticle.vecY = vy;
 
                 newParticle.alpha = 1f;
                 newParticle.currentTime = 0;
@@ -262,10 +314,8 @@ public class SpoilerEffect extends Drawable {
         super.invalidateSelf();
 
         if (mParent != null) {
-            View v = mParent.get();
-            if (v != null)
-                v.invalidate();
-            else mParent = null;
+            View v = mParent;
+            v.invalidate();
         }
     }
 
@@ -274,7 +324,14 @@ public class SpoilerEffect extends Drawable {
      * @param parentView Parent view
      */
     public void setParentView(View parentView) {
-        this.mParent = new WeakReference<>(parentView);
+        this.mParent = parentView;
+    }
+
+    /**
+     * @return Currently used parent view
+     */
+    public View getParentView() {
+        return mParent;
     }
 
     @Override
@@ -294,6 +351,13 @@ public class SpoilerEffect extends Drawable {
     public void setColor(int color) {
         particlePaint.setColor(color);
         invalidateSelf();
+    }
+
+    /**
+     * @return If effect has color
+     */
+    public boolean hasColor() {
+        return particlePaint.getColor() != Color.TRANSPARENT;
     }
 
     @Override
@@ -350,13 +414,34 @@ public class SpoilerEffect extends Drawable {
     }
 
     /**
+     * @return Max particles count
+     */
+    public int getMaxParticlesCount() {
+        return maxParticles;
+    }
+
+    /**
+     * Sets new max particles count
+     */
+    public void setMaxParticlesCount(int maxParticles) {
+        this.maxParticles = maxParticles;
+    }
+
+    /**
+     * Sets how many new particles to spawn per tick
+     */
+    public void setNewParticlesCountPerTick(int newParticles) {
+        this.newParticles = newParticles;
+    }
+
+    /**
      * Parses spoilers from spannable
      * @param v View to use as a parent view
      * @param textLayout Text layout to measure
      * @param spoilersPool Cached spoilers pool, could be null, but highly recommended
      * @param spoilers Spoilers list to populate
      */
-    public static void addSpoilers(View v, Layout textLayout, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
+    public static void addSpoilers(@Nullable View v, Layout textLayout, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
         Spannable spannable = (Spannable) textLayout.getText();
         TextPaint textPaint = textLayout.getPaint();
         TextStyleSpan[] spans = spannable.getSpans(0, spannable.length(), TextStyleSpan.class);
@@ -381,16 +466,19 @@ public class SpoilerEffect extends Drawable {
 
                         SpannableStringBuilder vSpan = new SpannableStringBuilder(textLayout.getText(), realStart, realEnd);
                         vSpan.removeSpan(span);
-                        StaticLayout newLayout = new StaticLayout(vSpan, textPaint, Math.max(v.getWidth(), textLayout.getWidth()), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+                        int tLen = textLayout.getText().subSequence(realStart, realEnd).toString().trim().length();
+                        if (tLen == 0)
+                            continue;
+                        StaticLayout newLayout = new StaticLayout(vSpan, textPaint, Math.max(v != null ? v.getWidth() : 0, textLayout.getWidth()), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
                         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
                         spoilerEffect.setRippleProgress(-1);
                         spoilerEffect.setBounds(tempRect.left + offWidth, tempRect.top, (int) (tempRect.left + offWidth + textPaint.measureText(vSpan, 0, vSpan.length())), tempRect.bottom);
                         spoilerEffect.setColor(textPaint.getColor());
-                        spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.EASE_BOTH);
+                        spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.DEFAULT);
                         spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
-                        spoilerEffect.updateMaxParticles(textLayout.getText().subSequence(realStart, realEnd).toString().trim().length()); // To filter out spaces
-                        spoilerEffect.setParentView(v);
-                        spoilerEffect.isReverseRipple = false;
+                        spoilerEffect.updateMaxParticles(tLen); // To filter out spaces
+                        if (v != null)
+                            spoilerEffect.setParentView(v);
                         spoilers.add(spoilerEffect);
                     }
                 }
@@ -400,7 +488,9 @@ public class SpoilerEffect extends Drawable {
 
     private class Particle {
         private float x, y;
-        private float vx, vy;
+        private float vecX, vecY;
+        private float keyX, keyY;
+        private float startX, startY;
         private float velocity;
         private float alpha;
         private float lifeTime, currentTime;

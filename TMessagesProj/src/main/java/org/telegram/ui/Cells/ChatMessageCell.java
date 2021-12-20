@@ -31,6 +31,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Region;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
@@ -67,8 +68,6 @@ import android.view.animation.Interpolator;
 import android.widget.Toast;
 
 import androidx.core.graphics.ColorUtils;
-
-import com.google.android.exoplayer2.util.Log;
 
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;
@@ -126,6 +125,7 @@ import org.telegram.ui.Components.SeekBar;
 import org.telegram.ui.Components.SeekBarAccessibilityDelegate;
 import org.telegram.ui.Components.SeekBarWaveform;
 import org.telegram.ui.Components.SlotsDrawable;
+import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.Components.StaticLayoutEx;
 import org.telegram.ui.Components.TextStyleSpan;
 import org.telegram.ui.Components.TimerParticles;
@@ -144,6 +144,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 
 public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate, ImageReceiver.ImageReceiverDelegate, DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView {
@@ -592,6 +593,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private int widthForButtons;
     private int pressedBotButton;
 
+    private SpoilerEffect spoilerPressed;
+
     private MessageObject currentMessageObject;
     private MessageObject messageObjectToSet;
     private MessageObject.GroupedMessages groupedMessagesToSet;
@@ -834,6 +837,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     private final Theme.ResourcesProvider resourcesProvider;
     private final boolean canDrawBackgroundInParent;
+
+    private Path sPath = new Path();
+    private List<SpoilerEffect> replySpoilers = new ArrayList<>();
 
     public ChatMessageCell(Context context) {
         this(context, false, null);
@@ -2008,6 +2014,59 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         return result;
     }
 
+    private boolean checkSpoilersMotionEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        int act = event.getActionMasked();
+        if (act == MotionEvent.ACTION_DOWN) {
+            if (x >= textX && y >= textY && x <= textX + currentMessageObject.textWidth && y <= textY + currentMessageObject.textHeight) {
+                List<MessageObject.TextLayoutBlock> blocks = currentMessageObject.textLayoutBlocks;
+                for (int i = 0; i < blocks.size(); i++) {
+                    if (blocks.get(i).textYOffset > y) {
+                        break;
+                    }
+                    MessageObject.TextLayoutBlock block = blocks.get(i);
+                    for (SpoilerEffect eff : block.spoilers) {
+                        if (eff.getBounds().contains(x - textX, y - textY)) {
+                            spoilerPressed = eff;
+                            return true;
+                        }
+                    }
+                }
+            }
+        } else if (act == MotionEvent.ACTION_UP && spoilerPressed != null) {
+            playSoundEffect(SoundEffectConstants.CLICK);
+
+            sPath.rewind();
+            for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                for (SpoilerEffect eff : block.spoilers) {
+                    Rect b = eff.getBounds();
+                    sPath.addRect(b.left, b.top + block.textYOffset, b.right, b.bottom + block.textYOffset, Path.Direction.CW);
+                }
+            }
+            sPath.computeBounds(rect, false);
+            float width = rect.width(), height = rect.height();
+            float rad = Math.max(width, height);
+
+            spoilerPressed.setOnRippleEndCallback(()->post(()->{
+                getMessageObject().isSpoilersRevealed = true;
+                for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                    block.spoilers.clear();
+                }
+                invalidate();
+            }));
+            for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                for (SpoilerEffect eff : block.spoilers) {
+                    eff.startRipple(x - textX, y - block.textYOffset - textY, rad);
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     private boolean checkBotButtonMotionEvent(MotionEvent event) {
         if (botButtons.isEmpty() || currentMessageObject.eventId != 0) {
             return false;
@@ -2085,8 +2144,11 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         lastTouchY = event.getY();
         backgroundDrawable.setTouchCoords(lastTouchX, lastTouchY);
 
-        boolean result = checkTextBlockMotionEvent(event);
+        boolean result = checkSpoilersMotionEvent(event);
 
+        if (!result) {
+            result = checkTextBlockMotionEvent(event);
+        }
         if (!result) {
             result = checkPinchToZoom(event);
         }
@@ -2128,6 +2190,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         }
 
         if (event.getAction() == MotionEvent.ACTION_CANCEL) {
+            spoilerPressed = null;
             buttonPressed = 0;
             miniButtonPressed = 0;
             pressedBotButton = -1;
@@ -8427,7 +8490,34 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 }
                 try {
                     Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
+                    canvas.save();
+                    sPath.rewind();
+                    for (SpoilerEffect eff : block.spoilers) {
+                        Rect b = eff.getBounds();
+                        sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+                    }
+                    canvas.clipPath(sPath, Region.Op.DIFFERENCE);
                     block.textLayout.draw(canvas);
+                    canvas.restore();
+
+                    canvas.save();
+                    canvas.clipPath(sPath);
+                    sPath.rewind();
+                    if (!block.spoilers.isEmpty())
+                        block.spoilers.get(0).getRipplePath(sPath);
+                    canvas.clipPath(sPath);
+                    canvas.translate(0, -getPaddingTop());
+                    block.textLayout.draw(canvas);
+                    canvas.restore();
+
+                    canvas.save();
+                    canvas.translate(0, AndroidUtilities.dp(2));
+                    for (SpoilerEffect eff : block.spoilers) {
+                        if (eff.getParentView() != this) eff.setParentView(this);
+                        eff.setColor(Theme.chat_msgTextPaint.getColor());
+                        eff.draw(canvas);
+                    }
+                    canvas.restore();
                     Emoji.emojiDrawingYOffset = 0;
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -10006,6 +10096,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                         mess = mess.replace('\n', ' ');
                         stringFinalText = Emoji.replaceEmoji(mess, Theme.chat_replyTextPaint.getFontMetricsInt(), AndroidUtilities.dp(14), false);
                         stringFinalText = TextUtils.ellipsize(stringFinalText, Theme.chat_replyTextPaint, maxWidth, TextUtils.TruncateAt.END);
+                        MediaDataController.addTextStyleRuns(messageObject.replyMessageObject.messageOwner.entities, messageObject.replyMessageObject.caption, (Spannable) stringFinalText);
                     } else if (messageObject.replyMessageObject.messageText != null && messageObject.replyMessageObject.messageText.length() > 0) {
                         String mess = messageObject.replyMessageObject.messageText.toString();
                         if (mess.length() > 150) {
@@ -10014,6 +10105,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                         mess = mess.replace('\n', ' ');
                         stringFinalText = Emoji.replaceEmoji(mess, Theme.chat_replyTextPaint.getFontMetricsInt(), AndroidUtilities.dp(14), false);
                         stringFinalText = TextUtils.ellipsize(stringFinalText, Theme.chat_replyTextPaint, maxWidth, TextUtils.TruncateAt.END);
+                        MediaDataController.addTextStyleRuns(messageObject.replyMessageObject, (Spannable) stringFinalText);
                     }
                 } else {
                     replyImageReceiver.setImageBitmap((Drawable) null);
@@ -10078,6 +10170,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                             replyTextWidth += (int) Math.ceil(replyTextLayout.getLineWidth(0)) + AndroidUtilities.dp(8);
                             replyTextOffset = (int) replyTextLayout.getLineLeft(0);
                         }
+                        SpoilerEffect.addSpoilers(this, replyTextLayout, null, replySpoilers);
                     }
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -11427,7 +11520,21 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 if (replyTextLayout != null) {
                     canvas.save();
                     canvas.translate(forwardNameX, replyStartY + AndroidUtilities.dp(19));
+
+                    canvas.save();
+                    sPath.rewind();
+                    for (SpoilerEffect eff : replySpoilers) {
+                        Rect b = eff.getBounds();
+                        sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+                    }
+                    canvas.clipPath(sPath, Region.Op.DIFFERENCE);
                     replyTextLayout.draw(canvas);
+                    canvas.restore();
+
+                    for (SpoilerEffect eff : replySpoilers) {
+                        eff.setColor(replyTextLayout.getPaint().getColor());
+                        eff.draw(canvas);
+                    }
                     canvas.restore();
                 }
             }

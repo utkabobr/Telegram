@@ -48,7 +48,7 @@ public class SpoilersClickDetector {
     }
 
     public boolean onTouchEvent(MotionEvent ev) {
-        return gestureDetector.onTouchEvent(ev) || trackingTap;
+        return gestureDetector.onTouchEvent(ev);
     }
 
     public interface OnSpoilerClickedListener {

@@ -11,6 +11,9 @@ import android.text.Spannable;
 import android.view.MotionEvent;
 import android.widget.EditText;
 
+import androidx.core.math.MathUtils;
+
+import org.telegram.messenger.MessageObject;
 import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.Components.spoilers.SpoilersClickDetector;
 
@@ -235,8 +238,30 @@ public class EditTextEffects extends EditText {
         }
 
         Layout layout = getLayout();
-        if (layout != null && layout.getText() instanceof Spannable)
+        if (layout != null && layout.getText() instanceof Spannable) {
             SpoilerEffect.addSpoilers(this, spoilersPool, spoilers);
+
+            int partsTotal = 0;
+            int partsCount = 0;
+            for (SpoilerEffect eff : spoilers) {
+                partsTotal += eff.getMaxParticlesCount();
+                partsCount++;
+            }
+
+            int average = (int) (partsTotal / (float)partsCount);
+            if (partsTotal > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
+                while (average > SpoilerEffect.MIN_AVG_PARTICLES && average * partsCount > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
+                    average -= SpoilerEffect.AVG_STEP;
+                }
+                average = Math.max(SpoilerEffect.MIN_AVG_PARTICLES, average);
+
+                for (SpoilerEffect eff : spoilers) {
+                    eff.setMaxParticlesCount(average);
+                    eff.setNewParticlesCountPerTick(MathUtils.clamp(average / 10, SpoilerEffect.MIN_PARTICLES_PER_TICK_OVER, SpoilerEffect.MAX_PARTICLES_PER_TICK_OVER));
+                    eff.setDropOutPercent(0.7f);
+                }
+            }
+        }
         invalidate();
     }
 }

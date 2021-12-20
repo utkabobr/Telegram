@@ -33,6 +33,7 @@ import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.ChatMessageCell;
+import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.Components.TextStyleSpan;
 import org.telegram.ui.Components.TypefaceSpan;
 import org.telegram.ui.Components.URLSpanBotCommand;
@@ -54,10 +55,13 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import androidx.collection.LongSparseArray;
+import androidx.core.math.MathUtils;
 
 public class MessageObject {
 
@@ -122,6 +126,8 @@ public class MessageObject {
     public StringBuilder botButtonsLayout;
     public boolean isRestrictedMessage;
     public long loadedFileSize;
+
+    public boolean isSpoilersRevealed;
 
     public byte[] sponsoredId;
     public int sponsoredChannelPost;
@@ -347,6 +353,8 @@ public class MessageObject {
     }
 
     public static class TextLayoutBlock {
+        public final static int FLAG_RTL = 1, FLAG_NOT_RTL = 2;
+
         public StaticLayout textLayout;
         public float textYOffset;
         public int charactersOffset;
@@ -354,9 +362,10 @@ public class MessageObject {
         public int height;
         public int heightByOffset;
         public byte directionFlags;
+        public List<SpoilerEffect> spoilers = new ArrayList<>();
 
         public boolean isRtl() {
-            return (directionFlags & 1) != 0 && (directionFlags & 2) == 0;
+            return (directionFlags & FLAG_RTL) != 0 && (directionFlags & FLAG_NOT_RTL) == 0;
         }
     }
 
@@ -4373,6 +4382,12 @@ public class MessageObject {
                 block.textYOffset = 0;
                 block.charactersOffset = 0;
                 block.charactersEnd = textLayout.getText().length();
+
+                block.spoilers.clear();
+                if (!isSpoilersRevealed) {
+                    SpoilerEffect.addSpoilers(null, textLayout, null, block.spoilers);
+                }
+
                 if (emojiOnlyCount != 0) {
                     switch (emojiOnlyCount) {
                         case 1:
@@ -4409,6 +4424,11 @@ public class MessageObject {
                     } else {
                         block.textLayout = new StaticLayout(messageText, startCharacter, endCharacter, paint, maxWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
                     }
+                    block.spoilers.clear();
+                    if (!isSpoilersRevealed) {
+                        SpoilerEffect.addSpoilers(null, textLayout, null, block.spoilers);
+                    }
+
                     block.textYOffset = textLayout.getLineTop(linesOffset);
                     if (a != 0) {
                         block.height = (int) (block.textYOffset - prevOffset);
@@ -4491,10 +4511,10 @@ public class MessageObject {
 
                     if (lineLeft > 0) {
                         textXOffset = Math.min(textXOffset, lineLeft);
-                        block.directionFlags |= 1;
+                        block.directionFlags |= TextLayoutBlock.FLAG_RTL;
                         hasRtl = true;
                     } else {
-                        block.directionFlags |= 2;
+                        block.directionFlags |= TextLayoutBlock.FLAG_NOT_RTL;
                     }
 
                     try {
@@ -4526,15 +4546,39 @@ public class MessageObject {
                         linesMaxWidth += lastLeft;
                     }
                     hasRtl = blocksCount != 1;
-                    block.directionFlags |= 1;
+                    block.directionFlags |= TextLayoutBlock.FLAG_RTL;
                 } else {
-                    block.directionFlags |= 2;
+                    block.directionFlags |= TextLayoutBlock.FLAG_NOT_RTL;
                 }
 
                 textWidth = Math.max(textWidth, Math.min(maxWidth, linesMaxWidth));
             }
 
             linesOffset += currentBlockLinesCount;
+        }
+
+        int partsTotal = 0;
+        int partsCount = 0;
+        for (TextLayoutBlock block : textLayoutBlocks) {
+            for (SpoilerEffect eff : block.spoilers) {
+                partsTotal += eff.getMaxParticlesCount();
+                partsCount++;
+            }
+        }
+
+        if (partsTotal > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
+            int average = (int) (partsTotal / (float) partsCount);
+            while (average > SpoilerEffect.MIN_AVG_PARTICLES && average * partsCount > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
+                average -= SpoilerEffect.AVG_STEP;
+            }
+            average = Math.max(SpoilerEffect.MIN_AVG_PARTICLES, average);
+            for (TextLayoutBlock block : textLayoutBlocks) {
+                for (SpoilerEffect eff : block.spoilers) {
+                    eff.setMaxParticlesCount(average);
+                    eff.setNewParticlesCountPerTick(MathUtils.clamp(average / 10, SpoilerEffect.MIN_PARTICLES_PER_TICK_OVER, SpoilerEffect.MAX_PARTICLES_PER_TICK_OVER));
+                    eff.setDropOutPercent(0.7f);
+                }
+            }
         }
     }
 
