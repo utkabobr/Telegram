@@ -596,6 +596,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     private SpoilerEffect spoilerPressed;
     private boolean isCaptionSpoilerPressed;
+    private boolean isSpoilerRevealing;
 
     private MessageObject currentMessageObject;
     private MessageObject messageObjectToSet;
@@ -2019,6 +2020,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     private boolean checkSpoilersMotionEvent(MotionEvent event) {
+        if (isSpoilerRevealing)
+            return false;
+
         int x = (int) event.getX();
         int y = (int) event.getY();
         int act = event.getActionMasked();
@@ -2070,7 +2074,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             float width = rect.width(), height = rect.height();
             float rad = Math.max(width, height);
 
+            isSpoilerRevealing = true;
             spoilerPressed.setOnRippleEndCallback(()->post(()->{
+                isSpoilerRevealing = false;
                 getMessageObject().isSpoilersRevealed = true;
                 if (isCaptionSpoilerPressed) {
                     captionSpoilers.clear();
@@ -3328,6 +3334,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             }
             spoilerPressed = null;
             isCaptionSpoilerPressed = false;
+            isSpoilerRevealing = false;
             linkPreviewPressed = false;
             buttonPressed = 0;
             additionalTimeOffsetY = 0;
