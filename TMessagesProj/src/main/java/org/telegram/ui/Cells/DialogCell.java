@@ -2620,8 +2620,7 @@ public class DialogCell extends BaseCell {
             try {
                 canvas.save();
                 path.rewind();
-                // A dirty hack for thumbs
-                int offX = thumbImage.getImageLocation() == null ? 0 : AndroidUtilities.dp(2 + (useForceThreeLines || SharedConfig.useThreeLinesLayout ? 18 : 19));
+                int offX = hasMessageThumb ? (int) (thumbImage.getImageWidth() + AndroidUtilities.dp(2)) : 0;
                 for (SpoilerEffect eff : spoilers) {
                     Rect bounds = eff.getBounds();
                     path.addRect(bounds.left + offX, bounds.top, bounds.right + offX, bounds.bottom, Path.Direction.CW);
