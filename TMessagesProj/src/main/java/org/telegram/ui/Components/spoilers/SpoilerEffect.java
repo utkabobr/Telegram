@@ -228,6 +228,7 @@ public class SpoilerEffect extends Drawable {
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
             Particle particle = it.next();
+            particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
             if (particle.currentTime >= particle.lifeTime) {
                 if (freeParticles.size() < maxParticlesPool) {
                     freeParticles.push(particle);
@@ -250,7 +251,6 @@ public class SpoilerEffect extends Drawable {
                 particle.x += particle.vecX * hdt;
                 particle.y += particle.vecY * hdt;
             }
-            particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
 
             if (rippleAnimator != null) {
                 float rr = rippleMaxRadius * rippleProgress;
