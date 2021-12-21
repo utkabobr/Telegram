@@ -109,7 +109,6 @@ public class SpoilersTextView extends TextView {
         Layout layout = getLayout();
         if (layout != null && getText() instanceof Spannable) {
             SpoilerEffect.addSpoilers(this, spoilersPool, spoilers);
-            SpoilerEffect.optimizeSpoilers(spoilers);
         }
         invalidate();
     }

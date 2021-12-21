@@ -4559,30 +4559,6 @@ public class MessageObject {
 
             linesOffset += currentBlockLinesCount;
         }
-
-        int partsTotal = 0;
-        int partsCount = 0;
-        for (TextLayoutBlock block : textLayoutBlocks) {
-            for (SpoilerEffect eff : block.spoilers) {
-                partsTotal += eff.getMaxParticlesCount();
-                partsCount++;
-            }
-        }
-
-        if (partsTotal > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
-            int average = (int) (partsTotal / (float) partsCount);
-            while (average > SpoilerEffect.MIN_AVG_PARTICLES && average * partsCount > SpoilerEffect.MAX_PARTICLES_PER_MESSAGE) {
-                average -= SpoilerEffect.AVG_STEP;
-            }
-            average = Math.max(SpoilerEffect.MIN_AVG_PARTICLES, average);
-            for (TextLayoutBlock block : textLayoutBlocks) {
-                for (SpoilerEffect eff : block.spoilers) {
-                    eff.setMaxParticlesCount(average);
-                    eff.setNewParticlesCountPerTick(MathUtils.clamp(average / 10, SpoilerEffect.MIN_PARTICLES_PER_TICK_OVER, SpoilerEffect.MAX_PARTICLES_PER_TICK_OVER));
-                    eff.setMaxMovingParticles(3);
-                }
-            }
-        }
     }
 
     public boolean isOut() {

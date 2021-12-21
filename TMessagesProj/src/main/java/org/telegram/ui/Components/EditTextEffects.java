@@ -240,7 +240,6 @@ public class EditTextEffects extends EditText {
         Layout layout = getLayout();
         if (layout != null && layout.getText() instanceof Spannable) {
             SpoilerEffect.addSpoilers(this, spoilersPool, spoilers);
-            SpoilerEffect.optimizeSpoilers(spoilers);
         }
         invalidate();
     }

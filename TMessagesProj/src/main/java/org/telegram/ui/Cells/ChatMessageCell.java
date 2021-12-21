@@ -2940,7 +2940,6 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
         if (captionLayout != null && !getMessageObject().isSpoilersRevealed) {
             SpoilerEffect.addSpoilers(this, captionLayout, captionSpoilersPool, captionSpoilers);
-            SpoilerEffect.optimizeSpoilers(captionSpoilers);
         }
     }
 
