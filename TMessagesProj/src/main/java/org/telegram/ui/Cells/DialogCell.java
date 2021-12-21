@@ -238,7 +238,6 @@ public class DialogCell extends BaseCell {
     private int messageLeft;
     private StaticLayout messageLayout;
 
-    private Stack<SpoilerEffect> spoilersPool = new Stack<>();
     private List<SpoilerEffect> spoilers = new ArrayList<>();
     private Path path = new Path();
 
@@ -1687,9 +1686,8 @@ public class DialogCell extends BaseCell {
                 }
                 messageLayout = new StaticLayout(messageStringFinal, currentMessagePaint, messageWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
             }
-            spoilersPool.addAll(spoilers);
             spoilers.clear();
-            SpoilerEffect.addSpoilers(this, messageLayout, spoilersPool, spoilers);
+            SpoilerEffect.addSpoilers(this, messageLayout, null, spoilers);
         } catch (Exception e) {
             messageLayout = null;
             FileLog.e(e);
