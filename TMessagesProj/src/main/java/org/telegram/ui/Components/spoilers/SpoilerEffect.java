@@ -273,8 +273,18 @@ public class SpoilerEffect extends Drawable {
             }
 
             if (rippleAnimator != null) {
-                particle.x = particle.startX + (particle.keyX - particle.startX) * rippleProgress;
-                particle.y = particle.startY + (particle.keyY - particle.startY) * rippleProgress;
+                if (particle.keyX != -1 && particle.keyY != -1) {
+                    particle.x = particle.startX + (particle.keyX - particle.startX) * rippleProgress;
+                    particle.y = particle.startY + (particle.keyY - particle.startY) * rippleProgress;
+                } else {
+                    float adt = dt / 100f;
+                    particle.vecX += (particle.x > rippleX ? 1 : -1) * adt;
+                    particle.vecY += (particle.y > rippleY ? 1 : -1) * adt;
+
+                    float hdt = particle.velocity * dt / 500f;
+                    particle.x += particle.vecX * hdt;
+                    particle.y += particle.vecY * hdt;
+                }
             } else {
                 float hdt = particle.velocity * dt / 500f;
                 particle.x += particle.vecX * hdt;
@@ -566,7 +576,7 @@ public class SpoilerEffect extends Drawable {
     private class Particle {
         private float x, y;
         private float vecX, vecY;
-        private float keyX, keyY;
+        private float keyX = -1, keyY = -1;
         private float startX, startY;
         private float velocity;
         private float alpha;

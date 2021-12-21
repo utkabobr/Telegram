@@ -10240,6 +10240,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                             replyTextWidth += (int) Math.ceil(replyTextLayout.getLineWidth(0)) + AndroidUtilities.dp(8);
                             replyTextOffset = (int) replyTextLayout.getLineLeft(0);
                         }
+                        replySpoilers.clear();
                         SpoilerEffect.addSpoilers(this, replyTextLayout, null, replySpoilers);
                     }
                 } catch (Exception e) {
