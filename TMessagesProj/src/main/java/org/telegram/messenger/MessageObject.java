@@ -4579,7 +4579,6 @@ public class MessageObject {
                 for (SpoilerEffect eff : block.spoilers) {
                     eff.setMaxParticlesCount(average);
                     eff.setNewParticlesCountPerTick(MathUtils.clamp(average / 10, SpoilerEffect.MIN_PARTICLES_PER_TICK_OVER, SpoilerEffect.MAX_PARTICLES_PER_TICK_OVER));
-                    eff.setDropOutPercent(0.7f);
                 }
             }
         }

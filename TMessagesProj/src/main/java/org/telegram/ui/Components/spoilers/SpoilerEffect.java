@@ -40,12 +40,12 @@ import java.util.List;
 import java.util.Stack;
 
 public class SpoilerEffect extends Drawable {
-    public final static int MAX_PARTICLES_PER_MESSAGE = 600;
-    public final static int MIN_AVG_PARTICLES = 60, AVG_STEP = 15;
+    public final static int MAX_PARTICLES_PER_MESSAGE = 1000, MAX_PARTICLES_PER_ENTITY = 600;
+    public final static int MIN_AVG_PARTICLES = 100, AVG_STEP = 15;
     public final static int MIN_PARTICLES_PER_TICK_OVER = 5, MAX_PARTICLES_PER_TICK_OVER = 25;
 
     private int maxParticles, maxParticlesPool, initParticlesPool, newParticles;
-    private float dropOutPercent = 0.3f;
+    private float dropOutPercent = 0.8f;
 
     private final static int KEYPOINT_DELTA = 4;
 
@@ -113,7 +113,7 @@ public class SpoilerEffect extends Drawable {
      * @param charsCount Characters for this spoiler
      */
     public void updateMaxParticles(int charsCount) {
-        maxParticles = MathUtils.clamp(charsCount * 15, 30, 500);
+        maxParticles = MathUtils.clamp(charsCount * 15, 30, MAX_PARTICLES_PER_ENTITY);
         maxParticlesPool = maxParticles / 2;
         initParticlesPool = maxParticlesPool / 2;
         newParticles = maxParticles / 10;
@@ -494,7 +494,6 @@ public class SpoilerEffect extends Drawable {
             for (SpoilerEffect eff : spoilers) {
                 eff.setMaxParticlesCount(average);
                 eff.setNewParticlesCountPerTick(MathUtils.clamp(average / 10, SpoilerEffect.MIN_PARTICLES_PER_TICK_OVER, SpoilerEffect.MAX_PARTICLES_PER_TICK_OVER));
-                eff.setDropOutPercent(0.7f);
             }
         }
     }
