@@ -333,6 +333,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private MessageObject.GroupedMessagePosition currentPosition;
     private boolean groupPhotoInvisible;
 
+    private boolean invalidateSpoilersParent;
+
     private int textX;
     private int unmovedTextX;
     private int textY;
@@ -6435,6 +6437,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         invalidate();
     }
 
+    public void setInvalidateSpoilersParent(boolean invalidateSpoilersParent) {
+        this.invalidateSpoilersParent = invalidateSpoilersParent;
+    }
+
     public void setInvalidatesParent(boolean value) {
         invalidatesParent = value;
     }
@@ -8570,6 +8576,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     canvas.save();
                     canvas.translate(0, AndroidUtilities.dp(2));
                     for (SpoilerEffect eff : block.spoilers) {
+                        eff.setInvalidateParent(invalidateSpoilersParent);
                         if (eff.getParentView() != this) eff.setParentView(this);
                         if (eff.shouldInvalidateColor())
                             eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
@@ -11592,6 +11599,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
                     int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : replyTextLayout.getPaint().getColor();
                     for (SpoilerEffect eff : replySpoilers) {
+                        eff.setInvalidateParent(invalidateSpoilersParent);
                         if (eff.shouldInvalidateColor())
                             eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
                         else eff.setColor(spoilersColor);
@@ -12039,6 +12047,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
                 int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : captionLayout.getPaint().getColor();
                 for (SpoilerEffect eff : captionSpoilers) {
+                    eff.setInvalidateParent(invalidateSpoilersParent || getCurrentMessagesGroup() != null);
                     if (eff.getParentView() != this) eff.setParentView(this);
                     if (eff.shouldInvalidateColor())
                         eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));

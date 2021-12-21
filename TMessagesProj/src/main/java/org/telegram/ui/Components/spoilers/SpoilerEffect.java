@@ -29,6 +29,8 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.ForwardingPreviewView;
+import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.TextStyleSpan;
 
 import java.util.ArrayList;
@@ -74,6 +76,8 @@ public class SpoilerEffect extends Drawable {
 
     private TimeInterpolator rippleInterpolator = input -> input;
 
+    private boolean invalidateParent;
+
     public SpoilerEffect() {
         particlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         particlePaint.setStrokeWidth(AndroidUtilities.dp(1f));
@@ -88,6 +92,13 @@ public class SpoilerEffect extends Drawable {
         for (int i = 0; i < initParticlesPool; i++) {
             freeParticles.push(new Particle());
         }
+    }
+
+    /**
+     * Sets if we should invalidate parent instead
+     */
+    public void setInvalidateParent(boolean invalidateParent) {
+        this.invalidateParent = invalidateParent;
     }
 
     /**
@@ -333,7 +344,11 @@ public class SpoilerEffect extends Drawable {
 
         if (mParent != null) {
             View v = mParent;
-            v.invalidate();
+            if (v.getParent() != null && invalidateParent) {
+                ((View) v.getParent()).invalidate();
+            } else {
+                v.invalidate();
+            }
         }
     }
 
