@@ -2036,8 +2036,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                         break;
                     }
                     MessageObject.TextLayoutBlock block = blocks.get(i);
+                    int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
                     for (SpoilerEffect eff : block.spoilers) {
-                        if (eff.getBounds().contains(x - textX, y - textY)) {
+                        if (eff.getBounds().contains(x - textX + offX, y - textY)) {
                             spoilerPressed = eff;
                             isCaptionSpoilerPressed = false;
                             return true;
@@ -2095,8 +2096,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 }
             } else {
                 for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
+                    int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
                     for (SpoilerEffect eff : block.spoilers) {
-                        eff.startRipple(x - textX, y - block.textYOffset - textY, rad);
+                        eff.startRipple(x - textX + offX, y - block.textYOffset - textY, rad);
                     }
                 }
             }
@@ -8553,6 +8555,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 }
                 try {
                     Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
+
+                    int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
                     canvas.save();
                     sPath.rewind();
                     for (SpoilerEffect eff : block.spoilers) {
@@ -8574,7 +8578,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     canvas.restore();
 
                     canvas.save();
-                    canvas.translate(0, AndroidUtilities.dp(2));
+                    canvas.translate(-offX, AndroidUtilities.dp(2));
                     for (SpoilerEffect eff : block.spoilers) {
                         eff.setInvalidateParent(invalidateSpoilersParent);
                         if (eff.getParentView() != this) eff.setParentView(this);
