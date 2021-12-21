@@ -452,11 +452,6 @@ public class SpoilerEffect extends Drawable {
                         int len = realEnd - realStart;
                         if (len == 0) continue;
 
-                        int offWidth = 0;
-                        if (realStart != start) {
-                            offWidth = (int) textPaint.measureText(textLayout.getText(), start, realStart);
-                        }
-
                         SpannableStringBuilder vSpan = new SpannableStringBuilder(textLayout.getText(), realStart, realEnd);
                         vSpan.removeSpan(span);
                         int tLen = vSpan.toString().trim().length();
@@ -464,7 +459,7 @@ public class SpoilerEffect extends Drawable {
                             continue;
                         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
                         spoilerEffect.setRippleProgress(-1);
-                        spoilerEffect.setBounds(tempRect.left + offWidth, tempRect.top, (int) (tempRect.left + offWidth + textPaint.measureText(vSpan, 0, vSpan.length())), tempRect.bottom);
+                        spoilerEffect.setBounds((int)(tempRect.left + textPaint.measureText(textLayout.getText(), start, realStart)), tempRect.top, (int)(tempRect.right - textPaint.measureText(textLayout.getText(), realEnd, end)), tempRect.bottom);
                         spoilerEffect.setColor(textPaint.getColor());
                         spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.DEFAULT);
                         if (v != null)

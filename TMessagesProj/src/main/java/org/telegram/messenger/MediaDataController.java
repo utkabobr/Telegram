@@ -10,6 +10,7 @@ package org.telegram.messenger;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Entity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ShortcutManager;
@@ -71,9 +72,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @SuppressWarnings("unchecked")
 public class MediaDataController extends BaseController {
+    private static Pattern BOLD_PATTERN = Pattern.compile("\\*\\*(.+?)\\*\\*"),
+            ITALIC_PATTERN = Pattern.compile("__(.+?)__"),
+            SPOILER_PATTERN = Pattern.compile("\\|\\|(.+?)\\|\\|"),
+            STRIKE_PATTERN = Pattern.compile("~~(.+?)~~");
 
     public static String SHORTCUT_CATEGORY = "org.telegram.messenger.SHORTCUT_SHARE";
 
@@ -4319,7 +4326,7 @@ public class MediaDataController extends BaseController {
         Collections.sort(entities, entityComparator);
     }
 
-    private static boolean checkInclusion(int index, ArrayList<TLRPC.MessageEntity> entities, boolean end) {
+    private static boolean checkInclusion(int index, List<TLRPC.MessageEntity> entities, boolean end) {
         if (entities == null || entities.isEmpty()) {
             return false;
         }
@@ -4333,7 +4340,7 @@ public class MediaDataController extends BaseController {
         return false;
     }
 
-    private static boolean checkIntersection(int start, int end, ArrayList<TLRPC.MessageEntity> entities) {
+    private static boolean checkIntersection(int start, int end, List<TLRPC.MessageEntity> entities) {
         if (entities == null || entities.isEmpty()) {
             return false;
         }
@@ -4345,16 +4352,6 @@ public class MediaDataController extends BaseController {
             }
         }
         return false;
-    }
-
-    private static void removeOffsetAfter(int start, int countToRemove, ArrayList<TLRPC.MessageEntity> entities) {
-        int count = entities.size();
-        for (int a = 0; a < count; a++) {
-            TLRPC.MessageEntity entity = entities.get(a);
-            if (entity.offset > start) {
-                entity.offset -= countToRemove;
-            }
-        }
     }
 
     public CharSequence substring(CharSequence source, int start, int end) {
@@ -4744,83 +4741,38 @@ public class MediaDataController extends BaseController {
             }
         }
 
-        int count = allowStrike ? 4 : 3;
-        for (int c = 0; c < count; c++) {
-            lastIndex = 0;
-            start = -1;
-            String checkString;
-            char checkChar;
-            switch (c) {
-                case 0:
-                    checkString = bold;
-                    checkChar = '*';
-                    break;
-                case 1:
-                    checkString = italic;
-                    checkChar = '_';
-                    break;
-                case 2:
-                    checkString = spoiler;
-                    checkChar = '|';
-                    break;
-                case 3:
-                default:
-                    checkString = strike;
-                    checkChar = '~';
-                    break;
-            }
-            while ((index = TextUtils.indexOf(message[0], checkString, lastIndex)) != -1) {
-                if (start == -1) {
-                    char prevChar = index == 0 ? ' ' : message[0].charAt(index - 1);
-                    if (!checkInclusion(index, entities, false) && (prevChar == ' ' || prevChar == '\n')) {
-                        start = index;
-                    }
-                    lastIndex = index + 2;
-                } else {
-                    for (int a = index + 2; a < message[0].length(); a++) {
-                        if (message[0].charAt(a) == checkChar) {
-                            index++;
-                        } else {
-                            break;
-                        }
-                    }
-                    lastIndex = index + 2;
-                    if (checkInclusion(index, entities, false) || checkIntersection(start, index, entities)) {
-                        start = -1;
-                        continue;
-                    }
-                    if (start + 2 != index) {
-                        if (entities == null) {
-                            entities = new ArrayList<>();
-                        }
-                        try {
-                            message[0] = AndroidUtilities.concat(substring(message[0], 0, start), substring(message[0], start + 2, index), substring(message[0], index + 2, message[0].length()));
-                        } catch (Exception e) {
-                            message[0] = substring(message[0], 0, start).toString() + substring(message[0], start + 2, index).toString() + substring(message[0], index + 2, message[0].length()).toString();
-                        }
-
-                        TLRPC.MessageEntity entity;
-                        if (c == 0) {
-                            entity = new TLRPC.TL_messageEntityBold();
-                        } else if (c == 1) {
-                            entity = new TLRPC.TL_messageEntityItalic();
-                        } else if (c == 2) {
-                            entity = new TLRPC.TL_messageEntitySpoiler();
-                        } else {
-                            entity = new TLRPC.TL_messageEntityStrike();
-                        }
-                        entity.offset = start;
-                        entity.length = index - start - 2;
-                        removeOffsetAfter(entity.offset + entity.length, 4, entities);
-                        entities.add(entity);
-                        lastIndex -= 4;
-                    }
-                    start = -1;
-                }
-            }
+        CharSequence cs = message[0];
+        if (entities == null) entities = new ArrayList<>();
+        cs = parsePattern(cs, BOLD_PATTERN, entities, obj -> new TLRPC.TL_messageEntityBold());
+        cs = parsePattern(cs, ITALIC_PATTERN, entities, obj -> new TLRPC.TL_messageEntityItalic());
+        cs = parsePattern(cs, SPOILER_PATTERN, entities, obj -> new TLRPC.TL_messageEntitySpoiler());
+        if (allowStrike) {
+            cs = parsePattern(cs, STRIKE_PATTERN, entities, obj -> new TLRPC.TL_messageEntityStrike());
         }
+        message[0] = cs;
 
         return entities;
+    }
+
+    private CharSequence parsePattern(CharSequence cs, Pattern pattern, List<TLRPC.MessageEntity> entities, GenericProvider<Void, TLRPC.MessageEntity> entityProvider) {
+        Matcher m = pattern.matcher(cs);
+        int offset = 0;
+        while (m.find()) {
+            if (checkInclusion(m.start(), entities, false) || checkIntersection(m.start(), m.end(), entities)) {
+
+            }
+
+            String gr = m.group(1);
+            cs = cs.subSequence(0, m.start() - offset) + gr + cs.subSequence(m.end() - offset, cs.length());
+
+            TLRPC.MessageEntity entity = entityProvider.provide(null);
+            entity.offset = m.start() + offset;
+            entity.length = gr.length();
+            entities.add(entity);
+
+            offset += m.end() - m.start() - gr.length();
+        }
+        return cs;
     }
 
     //---------------- MESSAGES END ----------------
