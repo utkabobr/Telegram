@@ -20,6 +20,7 @@ import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
+import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
@@ -41,7 +42,10 @@ import java.util.Stack;
 
 public class SpoilerEffect extends Drawable {
     private final static int TILE_SIZE = 16, FPS = 30, PARTICLE_COUNT_PER_TILE = 40, FRAME_VARIANTS = 3;
+    private final static int KEY_DEVIATE = 8;
+    private final static int ROTATION_RANGE = 90;
     private final static float SIMULATION_SECONDS = 1.5f;
+    private final static String RAND_SYMBOLS = "ABCDEF";
 
     private static SparseArray<List<Bitmap>> framesMap = new SparseArray<>();
     private static int lastRenderedTileSize;
@@ -98,7 +102,45 @@ public class SpoilerEffect extends Drawable {
     private void checkBitmaps() {
         int tSize = AndroidUtilities.dp(TILE_SIZE);
         if (lastRenderedTileSize != tSize) {
+            TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+            textPaint.setColor(Color.BLACK);
+            textPaint.setTextSize(tSize);
+
             for (int k = 0; k < framesMap.size(); k++) {
+                StaticLayout textLayout = new StaticLayout(Character.toString(RAND_SYMBOLS.charAt(Utilities.random.nextInt(RAND_SYMBOLS.length()))), textPaint, tSize, Layout.Alignment.ALIGN_NORMAL, 1f, 0, false);
+                int w = textLayout.getWidth();
+                int h = textLayout.getHeight();
+
+                Bitmap measureBitmap = Bitmap.createBitmap(Math.round(w), Math.round(h), Bitmap.Config.ARGB_8888);
+                Canvas measureCanvas = new Canvas(measureBitmap);
+
+                measureBitmap.eraseColor(Color.TRANSPARENT);
+                measureCanvas.save();
+                textLayout.draw(measureCanvas);
+                measureCanvas.restore();
+
+                int[] pixels = new int[measureBitmap.getWidth() * measureBitmap.getHeight()];
+                measureBitmap.getPixels(pixels, 0, measureBitmap.getWidth(), 0, 0, w, h);
+
+                int sX = -1;
+                ArrayList<Integer> keysX = new ArrayList<>(pixels.length);
+                ArrayList<Integer> keysY = new ArrayList<>(pixels.length);
+                for (int x = 0; x < w; x++) {
+                    for (int y = 0; y < h; y++) {
+                        int clr = pixels[y * measureBitmap.getWidth() + x];
+                        if (Color.alpha(clr) >= 0x80) {
+                            if (sX == -1)
+                                sX = x;
+                            keysX.add(x - sX);
+                            keysY.add(y);
+                        }
+                    }
+                }
+                keysX.trimToSize();
+                keysY.trimToSize();
+
+                measureBitmap.recycle();
+
                 List<Bitmap> frames = framesMap.valueAt(k);
                 for (Bitmap b : frames) b.recycle();
                 frames.clear();
@@ -106,8 +148,9 @@ public class SpoilerEffect extends Drawable {
                 List<Particle> particles = new ArrayList<>();
                 for (int i = 0; i < PARTICLE_COUNT_PER_TILE; i++) {
                     Particle newParticle = new Particle();
-                    newParticle.x = getBounds().left + Utilities.random.nextFloat() * tSize;
-                    newParticle.y = getBounds().top + Utilities.random.nextFloat() * tSize;
+                    int j = Utilities.random.nextInt(keysX.size());
+                    newParticle.x = getBounds().left + keysX.get(j) + Utilities.random.nextFloat() * AndroidUtilities.dp(KEY_DEVIATE) - AndroidUtilities.dp(KEY_DEVIATE / 2f);
+                    newParticle.y = getBounds().top + keysY.get(j) + Utilities.random.nextFloat() * AndroidUtilities.dp(KEY_DEVIATE) - AndroidUtilities.dp(KEY_DEVIATE / 2f);
 
                     double angleRad = Utilities.random.nextFloat() * Math.PI * 2 - Math.PI;
                     float vx = (float) Math.cos(angleRad);
@@ -279,16 +322,16 @@ public class SpoilerEffect extends Drawable {
         canvas.translate(getBounds().left, getBounds().top);
         while (x < getBounds().right) {
             Float rot = rotations.get(i, null);
-            if (rot == null) rotations.put(i, rot = Utilities.random.nextFloat() * 360f);
+            if (rot == null) rotations.put(i, rot = Utilities.random.nextFloat() * ROTATION_RANGE - ROTATION_RANGE / 2f);
             int var = frameVariants.get(i, -1);
             if (var == -1) frameVariants.put(i, var = Utilities.random.nextInt(FRAME_VARIANTS));
 
+            float pivot = lastRenderedTileSize / 2f;
             canvas.save();
-            canvas.rotate(rot, lastRenderedTileSize / 2f, lastRenderedTileSize / 2f);
-
+            canvas.rotate(rot, pivot, pivot);
             Bitmap bm = framesMap.get(var).get(reverseFrames ? (int) (SIMULATION_SECONDS * FPS - frameNum - 1) : frameNum);
             float sc = h / lastRenderedTileSize + 0.3f;
-            canvas.scale(sc, sc, lastRenderedTileSize / 2f, lastRenderedTileSize / 2f);
+            canvas.scale(sc, sc, pivot, pivot);
             canvas.drawBitmap(bm, 0, 0, bitmapPaint);
             canvas.restore();
 
