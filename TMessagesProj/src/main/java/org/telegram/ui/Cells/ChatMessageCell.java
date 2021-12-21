@@ -8556,7 +8556,6 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 try {
                     Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
 
-                    int offX = block.isRtl() && !LocaleController.isRTL ? (int) currentMessageObject.textXOffset : 0;
                     canvas.save();
                     sPath.rewind();
                     for (SpoilerEffect eff : block.spoilers) {
@@ -8578,7 +8577,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     canvas.restore();
 
                     canvas.save();
-                    canvas.translate(-offX, AndroidUtilities.dp(2));
+                    canvas.translate(0, AndroidUtilities.dp(2));
                     for (SpoilerEffect eff : block.spoilers) {
                         eff.setInvalidateParent(invalidateSpoilersParent);
                         if (eff.getParentView() != this) eff.setParentView(this);
