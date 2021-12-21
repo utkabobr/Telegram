@@ -264,7 +264,7 @@ public class SpoilerEffect extends Drawable {
 
         canvas.save();
         path.rewind();
-        float rad = AndroidUtilities.dp(32);
+        float rad = AndroidUtilities.dp(8);
         tempRectF.set(getBounds().left, getBounds().top, getBounds().right, getBounds().bottom);
         path.addRoundRect(tempRectF, rad, rad, Path.Direction.CW);
         canvas.clipPath(path);

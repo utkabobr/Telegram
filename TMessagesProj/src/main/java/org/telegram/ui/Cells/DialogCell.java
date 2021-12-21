@@ -2621,18 +2621,28 @@ public class DialogCell extends BaseCell {
                 canvas.save();
                 path.rewind();
                 int offX = hasMessageThumb ? (int) (thumbImage.getImageWidth() + AndroidUtilities.dp(2)) : 0;
+                if (LocaleController.isRTL) {
+                    offX -= AndroidUtilities.dp(24);
+                    if (hasMessageThumb)
+                        offX -= AndroidUtilities.dp(4);
+                }
                 for (SpoilerEffect eff : spoilers) {
                     Rect bounds = eff.getBounds();
-                    path.addRect(bounds.left + offX, bounds.top, bounds.right + offX, bounds.bottom, Path.Direction.CW);
+                    if (LocaleController.isRTL) {
+                        path.addRect(bounds.left - offX - messageLeft, bounds.top, bounds.right - offX - messageLeft, bounds.bottom, Path.Direction.CW);
+                    } else {
+                        path.addRect(bounds.left + offX, bounds.top, bounds.right + offX, bounds.bottom, Path.Direction.CW);
+                    }
                 }
                 canvas.clipPath(path, Region.Op.DIFFERENCE);
                 messageLayout.draw(canvas);
                 canvas.restore();
 
                 canvas.save();
-                canvas.translate(offX, 0);
-                for (SpoilerEffect eff : spoilers)
+                canvas.translate(LocaleController.isRTL ? -offX - messageLeft : offX, 0);
+                for (SpoilerEffect eff : spoilers) {
                     eff.draw(canvas);
+                }
                 canvas.restore();
             } catch (Exception e) {
                 FileLog.e(e);
