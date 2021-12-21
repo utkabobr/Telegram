@@ -116,7 +116,7 @@ public class SpoilerEffect extends Drawable {
         maxParticles = MathUtils.clamp(charsCount * 15, 30, MAX_PARTICLES_PER_ENTITY);
         maxParticlesPool = maxParticles / 2;
         initParticlesPool = maxParticlesPool / 2;
-        newParticles = maxParticles / 10;
+        newParticles = Math.max(8, maxParticles / 10);
     }
 
     /**
