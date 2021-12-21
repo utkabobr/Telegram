@@ -425,12 +425,15 @@ public class SpoilerEffect extends Drawable {
         int[] pixels = new int[measureBitmap.getWidth() * measureBitmap.getHeight()];
         measureBitmap.getPixels(pixels, 0, measureBitmap.getWidth(), 0, 0, w, h);
 
+        int sX = -1;
         ArrayList<Long> keyPoints = new ArrayList<>(pixels.length);
         for (int x = 0; x < w; x++) {
             for (int y = 0; y < h; y++) {
                 int clr = pixels[y * measureBitmap.getWidth() + x];
                 if (Color.alpha(clr) >= 0x80) {
-                    keyPoints.add(((long) x << 16) + y);
+                    if (sX == -1)
+                        sX = x;
+                    keyPoints.add(((long) (x - sX) << 16) + y);
                 }
             }
         }

@@ -2047,7 +2047,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 }
             }
 
-            if (captionLayout != null && x >= captionX && y >= captionY && x <= captionX + captionLayout.getWidth() && y <= captionY + captionLayout.getHeight()) {
+            if (hasCaptionLayout() && x >= captionX && y >= captionY && x <= captionX + captionLayout.getWidth() && y <= captionY + captionLayout.getHeight()) {
                 for (SpoilerEffect eff : captionSpoilers) {
                     if (eff.getBounds().contains((int)(x - captionX), (int)(y - captionY))) {
                         spoilerPressed = eff;
@@ -8556,7 +8556,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 try {
                     Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
 
-                    int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
+                    int offX = block.isRtl() && !LocaleController.isRTL ? (int) currentMessageObject.textXOffset : 0;
                     canvas.save();
                     sPath.rewind();
                     for (SpoilerEffect eff : block.spoilers) {
