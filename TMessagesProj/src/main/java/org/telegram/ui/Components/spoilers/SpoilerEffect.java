@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Stack;
 
 public class SpoilerEffect extends Drawable {
-    private final static int TILE_SIZE = 16, FPS = 25, PARTICLE_COUNT_PER_TILE = 54, FRAME_VARIANTS = 3;
+    private final static int TILE_SIZE = 16, FPS = 30, PARTICLE_COUNT_PER_TILE = 40, FRAME_VARIANTS = 3;
     private final static float SIMULATION_SECONDS = 1.5f;
 
     private static SparseArray<List<Bitmap>> framesMap = new SparseArray<>();
@@ -53,7 +53,6 @@ public class SpoilerEffect extends Drawable {
     private Paint bitmapPaint;
     private int bitmapColor;
 
-    private float mAlpha = 1f;
     private View mParent;
 
     private long lastDrawTime;
@@ -256,6 +255,7 @@ public class SpoilerEffect extends Drawable {
 
         if (lastDt == 1000 / FPS + 1) {
             frameNum++;
+            lastDt = 0;
             if (frameNum >= SIMULATION_SECONDS * FPS) {
                 reverseFrames = !reverseFrames;
                 frameNum = 0;
@@ -332,7 +332,7 @@ public class SpoilerEffect extends Drawable {
 
     @Override
     public void setAlpha(int alpha) {
-        mAlpha = (float) alpha / 0xFF;
+        bitmapPaint.setAlpha(alpha);
     }
 
     @Override

@@ -2083,7 +2083,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 getMessageObject().isSpoilersRevealed = true;
                 if (isCaptionSpoilerPressed) {
                     captionSpoilers.clear();
-                } else {
+                } else if (currentMessageObject.textLayoutBlocks != null) {
                     for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
                         block.spoilers.clear();
                     }
@@ -2094,7 +2094,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 for (SpoilerEffect eff : captionSpoilers) {
                     eff.startRipple(x - captionX, y - captionY, rad);
                 }
-            } else {
+            } else if (currentMessageObject.textLayoutBlocks != null) {
                 for (MessageObject.TextLayoutBlock block : currentMessageObject.textLayoutBlocks) {
                     int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
                     for (SpoilerEffect eff : block.spoilers) {
