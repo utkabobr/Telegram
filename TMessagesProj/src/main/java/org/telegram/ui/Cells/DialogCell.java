@@ -72,6 +72,8 @@ import org.telegram.ui.Components.StaticLayoutEx;
 import org.telegram.ui.Components.StatusDrawable;
 import org.telegram.ui.Components.SwipeGestureSettingsView;
 import org.telegram.ui.Components.TypefaceSpan;
+import org.telegram.ui.Components.URLSpanNoUnderline;
+import org.telegram.ui.Components.URLSpanNoUnderlineBold;
 import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.DialogsActivity;
 
@@ -658,7 +660,18 @@ public class DialogCell extends BaseCell {
             }
         }
 
-        lastMessageString = message != null ? message.messageText : null;
+        CharSequence msgText = message != null ? message.messageText : null;
+        if (msgText instanceof Spannable) {
+            Spannable sp = new SpannableStringBuilder(msgText);
+            for (Object span : sp.getSpans(0, sp.length(), URLSpanNoUnderlineBold.class))
+                sp.removeSpan(span);
+            for (Object span : sp.getSpans(0, sp.length(), URLSpanNoUnderline.class))
+                sp.removeSpan(span);
+            for (Object span : sp.getSpans(0, sp.length(), String.class))
+                sp.removeSpan(span);
+            msgText = sp;
+        }
+        lastMessageString = msgText;
 
         if (customDialog != null) {
             if (customDialog.type == 2) {
@@ -728,7 +741,7 @@ public class DialogCell extends BaseCell {
                 SpannableStringBuilder stringBuilder;
                 if (customDialog.isMedia) {
                     currentMessagePaint = Theme.dialogs_messagePrintingPaint[paintIndex];
-                    stringBuilder = SpannableStringBuilder.valueOf(String.format(messageFormat, message.messageText));
+                    stringBuilder = SpannableStringBuilder.valueOf(String.format(messageFormat, msgText));
                     stringBuilder.setSpan(new ForegroundColorSpanThemable(Theme.key_chats_attachMessage, resourcesProvider), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 } else {
                     String mess = customDialog.message;
@@ -1007,7 +1020,7 @@ public class DialogCell extends BaseCell {
                                 messageString = "";
                                 showChecks = false;
                             } else {
-                                messageString = message.messageText;
+                                messageString = msgText;
                             }
                             currentMessagePaint = Theme.dialogs_messagePrintingPaint[paintIndex];
                         } else {
@@ -1108,7 +1121,7 @@ public class DialogCell extends BaseCell {
                                             innerMessage = String.format("\uD83C\uDFA7 %s - %s", message.getMusicAuthor(), message.getMusicTitle());
                                         }
                                     } else {
-                                        innerMessage = message.messageText.toString(); // Here
+                                        innerMessage = msgText.toString();
                                     }
                                     innerMessage = innerMessage.replace('\n', ' ');
                                     stringBuilder = AndroidUtilities.formatSpannable(messageFormat, innerMessage, messageNameString);
@@ -1232,7 +1245,7 @@ public class DialogCell extends BaseCell {
                                             int w = getMeasuredWidth() - AndroidUtilities.dp(72 + 23 );
                                             messageString = AndroidUtilities.ellipsizeCenterEnd(messageString, message.highlightedWords.get(0), w, currentMessagePaint, 130).toString();
                                         } else {
-                                            SpannableStringBuilder stringBuilder = new SpannableStringBuilder(message.messageText);
+                                            SpannableStringBuilder stringBuilder = new SpannableStringBuilder(msgText);
                                             MediaDataController.addTextStyleRuns(message, stringBuilder);
                                             messageString = stringBuilder;
                                         }

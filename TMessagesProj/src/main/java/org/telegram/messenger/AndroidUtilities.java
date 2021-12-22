@@ -2905,22 +2905,17 @@ public class AndroidUtilities {
     }
 
     public static SpannableStringBuilder formatSpannableSimple(String format, CharSequence... cs) {
-        SpannableStringBuilder stringBuilder = new SpannableStringBuilder(format);
-        String key = "%s";
-        for (int i = 0; i < cs.length; i++) {
-            int j = format.indexOf(key);
-            if (j != -1) {
-                stringBuilder.replace(j, j + key.length(), cs[i]);
-                format = format.substring(0, j) + cs[i].toString() + format.substring(j + key.length());
-            }
-        }
-        return stringBuilder;
+        return formatSpannable(format, i -> "%s", cs);
     }
 
     public static SpannableStringBuilder formatSpannable(String format, CharSequence... cs) {
+        return formatSpannable(format, i -> "%" + (i + 1) + "$s", cs);
+    }
+
+    public static SpannableStringBuilder formatSpannable(String format, GenericProvider<Integer, String> keysProvider, CharSequence... cs) {
         SpannableStringBuilder stringBuilder = new SpannableStringBuilder(format);
         for (int i = 0; i < cs.length; i++) {
-            String key = "%" + (i + 1) + "$s";
+            String key = keysProvider.provide(i);
             int j = format.indexOf(key);
             if (j != -1) {
                 stringBuilder.replace(j, j + key.length(), cs[i]);
