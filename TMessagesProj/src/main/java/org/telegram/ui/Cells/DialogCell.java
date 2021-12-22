@@ -667,8 +667,6 @@ public class DialogCell extends BaseCell {
                 sp.removeSpan(span);
             for (Object span : sp.getSpans(0, sp.length(), URLSpanNoUnderline.class))
                 sp.removeSpan(span);
-            for (Object span : sp.getSpans(0, sp.length(), String.class))
-                sp.removeSpan(span);
             msgText = sp;
         }
         lastMessageString = msgText;

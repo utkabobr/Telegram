@@ -519,8 +519,10 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             textLayout.draw(canvas);
             canvas.restore();
 
-            for (SpoilerEffect eff : spoilers)
+            for (SpoilerEffect eff : spoilers) {
+                eff.setColor(textLayout.getPaint().getColor());
                 eff.draw(canvas);
+            }
 
             canvas.restore();
         }
