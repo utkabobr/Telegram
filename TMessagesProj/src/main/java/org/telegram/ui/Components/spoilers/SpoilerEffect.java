@@ -459,7 +459,8 @@ public class SpoilerEffect extends Drawable {
                             continue;
                         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
                         spoilerEffect.setRippleProgress(-1);
-                        spoilerEffect.setBounds((int)(tempRect.left + textPaint.measureText(textLayout.getText(), start, realStart)), tempRect.top, (int)(tempRect.right - textPaint.measureText(textLayout.getText(), realEnd, end)), tempRect.bottom);
+                        float ps = realStart == start ? tempRect.left : textLayout.getPrimaryHorizontal(realStart), pe = realEnd == end ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
+                        spoilerEffect.setBounds((int)Math.min(ps, pe), tempRect.top, (int)Math.max(ps, pe), tempRect.bottom);
                         spoilerEffect.setColor(textPaint.getColor());
                         spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.DEFAULT);
                         if (v != null)
