@@ -244,7 +244,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
 
         }
 
-        void applyCaption(String text) {
+        void applyCaption(CharSequence text) {
 
         }
 
@@ -1769,7 +1769,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
         if (commentTextView.length() <= 0) {
             return;
         }
-        currentAttachLayout.applyCaption(commentTextView.getText().toString());
+        currentAttachLayout.applyCaption(commentTextView.getText());
     }
 
     private void sendPressed(boolean notify, int scheduleDate) {
