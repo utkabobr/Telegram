@@ -8532,7 +8532,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     restore = canvas.saveLayerAlpha(rect, (int) (alpha * 255), Canvas.ALL_SAVE_FLAG);
                 }
             }
-            int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : Theme.chat_msgTextPaint.getColor();
+            int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? getThemedColor(Theme.key_chat_outTimeText) : Theme.chat_msgTextPaint.getColor();
             for (int a = firstVisibleBlockNum; a <= lastVisibleBlockNum; a++) {
                 if (a >= textLayoutBlocks.size()) {
                     break;
@@ -11602,7 +11602,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     replyTextLayout.draw(canvas);
                     canvas.restore();
 
-                    int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : replyTextLayout.getPaint().getColor();
+                    int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? getThemedColor(Theme.key_chat_outTimeText) : replyTextLayout.getPaint().getColor();
                     for (SpoilerEffect eff : replySpoilers) {
                         eff.setInvalidateParent(invalidateSpoilersParent);
                         if (eff.shouldInvalidateColor())
@@ -12050,7 +12050,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 captionLayout.draw(canvas);
                 canvas.restore();
 
-                int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? Theme.getColor(Theme.key_chat_outTimeText) : captionLayout.getPaint().getColor();
+                int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? getThemedColor(Theme.key_chat_outTimeText) : captionLayout.getPaint().getColor();
                 for (SpoilerEffect eff : captionSpoilers) {
                     eff.setInvalidateParent(invalidateSpoilersParent || getCurrentMessagesGroup() != null);
                     if (eff.getParentView() != this) eff.setParentView(this);
