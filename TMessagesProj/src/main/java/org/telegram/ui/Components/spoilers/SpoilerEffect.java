@@ -53,6 +53,8 @@ public class SpoilerEffect extends Drawable {
     private static Rect tempRect = new Rect();
     private static RectF tempRectF = new RectF();
 
+    private static Path clipOutPath = new Path();
+
     private Paint particlePaint;
     private Paint bitmapPaint;
     private int bitmapColor;
@@ -470,6 +472,18 @@ public class SpoilerEffect extends Drawable {
                 }
             }
         }
+    }
+
+    /**
+     * Clips out spoilers from canvas
+     */
+    public static void clipOutCanvas(Canvas canvas, List<SpoilerEffect> spoilers) {
+        clipOutPath.rewind();
+        for (SpoilerEffect eff : spoilers) {
+            Rect b = eff.getBounds();
+            clipOutPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+        }
+        canvas.clipPath(clipOutPath, Region.Op.DIFFERENCE);
     }
 
     private class Particle {

@@ -843,10 +843,12 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private final Theme.ResourcesProvider resourcesProvider;
     private final boolean canDrawBackgroundInParent;
 
-    private Path sPath = new Path();
-    private List<SpoilerEffect> replySpoilers = new ArrayList<>();
+    // Public for enter transition
+    public List<SpoilerEffect> replySpoilers = new ArrayList<>();
+    private Stack<SpoilerEffect> replySpoilersPool = new Stack<>();
     private List<SpoilerEffect> captionSpoilers = new ArrayList<>();
     private Stack<SpoilerEffect> captionSpoilersPool = new Stack<>();
+    private Path sPath = new Path();
 
     public ChatMessageCell(Context context) {
         this(context, false, null);
@@ -10239,7 +10241,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                             replyTextOffset = (int) replyTextLayout.getLineLeft(0);
                         }
                         replySpoilers.clear();
-                        SpoilerEffect.addSpoilers(this, replyTextLayout, null, replySpoilers);
+                        SpoilerEffect.addSpoilers(this, replyTextLayout, replySpoilersPool, replySpoilers);
                     }
                 } catch (Exception e) {
                     FileLog.e(e);

@@ -15,10 +15,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Path;
-import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -242,7 +239,6 @@ public class DialogCell extends BaseCell {
 
     private Stack<SpoilerEffect> spoilersPool = new Stack<>();
     private List<SpoilerEffect> spoilers = new ArrayList<>();
-    private Path path = new Path();
 
     private int messageNameTop;
     private int messageNameLeft;
@@ -2630,12 +2626,7 @@ public class DialogCell extends BaseCell {
             canvas.translate(messageLeft, messageTop);
             try {
                 canvas.save();
-                path.rewind();
-                for (SpoilerEffect eff : spoilers) {
-                    Rect bounds = eff.getBounds();
-                    path.addRect(bounds.left, bounds.top, bounds.right, bounds.bottom, Path.Direction.CW);
-                }
-                canvas.clipPath(path, Region.Op.DIFFERENCE);
+                SpoilerEffect.clipOutCanvas(canvas, spoilers);
                 messageLayout.draw(canvas);
                 canvas.restore();
 

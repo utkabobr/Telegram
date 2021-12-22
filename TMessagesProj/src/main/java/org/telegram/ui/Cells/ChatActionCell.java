@@ -13,9 +13,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.StaticLayout;
@@ -97,8 +95,7 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
     private int previousWidth;
     private boolean imagePressed;
 
-    private Path spoilersPath = new Path();
-    private List<SpoilerEffect> spoilers = new ArrayList<>();
+    public List<SpoilerEffect> spoilers = new ArrayList<>();
     private Stack<SpoilerEffect> spoilersPool = new Stack<>();
 
     TextPaint textPaint;
@@ -509,13 +506,8 @@ public class ChatActionCell extends BaseCell implements DownloadController.FileD
             if (textLayout.getPaint() != textPaint) {
                 buildLayout();
             }
-            spoilersPath.rewind();
-            for (SpoilerEffect eff : spoilers) {
-                Rect b = eff.getBounds();
-                spoilersPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
-            }
             canvas.save();
-            canvas.clipPath(spoilersPath, Region.Op.DIFFERENCE);
+            SpoilerEffect.clipOutCanvas(canvas, spoilers);
             textLayout.draw(canvas);
             canvas.restore();
 
