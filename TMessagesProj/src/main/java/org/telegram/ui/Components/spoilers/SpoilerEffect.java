@@ -38,6 +38,7 @@ import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.TextStyleSpan;
+import org.telegram.ui.Components.URLSpanReplacement;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class SpoilerEffect extends Drawable {
     public final static int MAX_PARTICLES_PER_ENTITY = measureMaxParticlesCount();
+    public final static int PARTICLES_PER_CHARACTER = measureParticlesPerCharacter();
     private final static float KEYPOINT_DELTA = 12f;
     private final static int FPS = 30;
     private final static int renderDelayMs = 1000 / FPS + 1;
@@ -83,15 +85,27 @@ public class SpoilerEffect extends Drawable {
 
     private boolean invalidateParent;
 
+    private static int measureParticlesPerCharacter() {
+        switch (SharedConfig.getDevicePerformanceClass()) {
+            case SharedConfig.PERFORMANCE_CLASS_LOW:
+                return 10;
+            default:
+            case SharedConfig.PERFORMANCE_CLASS_AVERAGE:
+                return 14;
+            case SharedConfig.PERFORMANCE_CLASS_HIGH:
+                return 18;
+        }
+    }
+
     private static int measureMaxParticlesCount() {
         switch (SharedConfig.getDevicePerformanceClass()) {
             case SharedConfig.PERFORMANCE_CLASS_LOW:
-                return 200;
+                return 300;
             default:
             case SharedConfig.PERFORMANCE_CLASS_AVERAGE:
-                return 400;
+                return 500;
             case SharedConfig.PERFORMANCE_CLASS_HIGH:
-                return 600;
+                return 800;
         }
     }
 
@@ -115,7 +129,7 @@ public class SpoilerEffect extends Drawable {
      * @param charsCount Characters for this spoiler
      */
     public void updateMaxParticles(int charsCount) {
-        setMaxParticlesCount(MathUtils.clamp(charsCount * 12, 50, MAX_PARTICLES_PER_ENTITY));
+        setMaxParticlesCount(MathUtils.clamp(charsCount * PARTICLES_PER_CHARACTER, 50, MAX_PARTICLES_PER_ENTITY));
     }
 
     /**
@@ -501,7 +515,10 @@ public class SpoilerEffect extends Drawable {
                         if (len == 0) continue;
 
                         SpannableStringBuilder vSpan = new SpannableStringBuilder(textLayout.getText(), realStart, realEnd);
-                        vSpan.removeSpan(span);
+                        for (TextStyleSpan styleSpan : vSpan.getSpans(0, vSpan.length(), TextStyleSpan.class))
+                            vSpan.removeSpan(styleSpan);
+                        for (URLSpanReplacement urlSpan : vSpan.getSpans(0, vSpan.length(), URLSpanReplacement.class))
+                            vSpan.removeSpan(urlSpan);
                         int tLen = vSpan.toString().trim().length();
                         if (tLen == 0)
                             continue;
