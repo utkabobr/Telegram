@@ -147,6 +147,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate, ImageReceiver.ImageReceiverDelegate, DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView {
 
@@ -848,6 +849,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private Stack<SpoilerEffect> replySpoilersPool = new Stack<>();
     private List<SpoilerEffect> captionSpoilers = new ArrayList<>();
     private Stack<SpoilerEffect> captionSpoilersPool = new Stack<>();
+    private AtomicReference<Layout> captionPatchedSpoilersLayout = new AtomicReference<>();
     private Path sPath = new Path();
 
     public ChatMessageCell(Context context) {
@@ -8557,37 +8559,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 try {
                     Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
 
-                    canvas.save();
-                    sPath.rewind();
-                    for (SpoilerEffect eff : block.spoilers) {
-                        Rect b = eff.getBounds();
-                        sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
-                    }
-                    canvas.clipPath(sPath, Region.Op.DIFFERENCE);
-                    block.textLayout.draw(canvas);
-                    canvas.restore();
-
-                    canvas.save();
-                    canvas.clipPath(sPath);
-                    sPath.rewind();
-                    if (!block.spoilers.isEmpty())
-                        block.spoilers.get(0).getRipplePath(sPath);
-                    canvas.clipPath(sPath);
-                    canvas.translate(0, -getPaddingTop());
-                    block.textLayout.draw(canvas);
-                    canvas.restore();
-
-                    canvas.save();
-                    canvas.translate(0, AndroidUtilities.dp(2));
-                    for (SpoilerEffect eff : block.spoilers) {
-                        eff.setInvalidateParent(invalidateSpoilersParent);
-                        if (eff.getParentView() != this) eff.setParentView(this);
-                        if (eff.shouldInvalidateColor())
-                            eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
-                        else eff.setColor(spoilersColor);
-                        eff.draw(canvas);
-                    }
-                    canvas.restore();
+                    SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, canvas, block.spoilersPatchedTextLayout, block.textLayout, block.spoilers);
                     Emoji.emojiDrawingYOffset = 0;
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -12030,35 +12002,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     getDelegate().getTextSelectionHelper().drawCaption(currentMessageObject.isOutOwner(), captionLayout, canvas);
                 }
                 Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
-                canvas.save();
-                sPath.rewind();
-                for (SpoilerEffect eff : captionSpoilers) {
-                    Rect b = eff.getBounds();
-                    sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
-                }
-                canvas.clipPath(sPath, Region.Op.DIFFERENCE);
-                captionLayout.draw(canvas);
-                canvas.restore();
-
-                canvas.save();
-                canvas.clipPath(sPath);
-                sPath.rewind();
-                if (!captionSpoilers.isEmpty())
-                    captionSpoilers.get(0).getRipplePath(sPath);
-                canvas.clipPath(sPath);
-                canvas.translate(0, -getPaddingTop());
-                captionLayout.draw(canvas);
-                canvas.restore();
 
                 int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? getThemedColor(Theme.key_chat_outTimeText) : captionLayout.getPaint().getColor();
-                for (SpoilerEffect eff : captionSpoilers) {
-                    eff.setInvalidateParent(invalidateSpoilersParent || getCurrentMessagesGroup() != null);
-                    if (eff.getParentView() != this) eff.setParentView(this);
-                    if (eff.shouldInvalidateColor())
-                        eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
-                    else eff.setColor(spoilersColor);
-                    eff.draw(canvas);
-                }
+                SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, canvas, captionPatchedSpoilersLayout, captionLayout, captionSpoilers);
 
                 Emoji.emojiDrawingYOffset = 0;
             } catch (Exception e) {
