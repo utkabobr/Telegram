@@ -4615,10 +4615,6 @@ public class MediaDataController extends BaseController {
         boolean isPre = false;
         final String mono = "`";
         final String pre = "```";
-        final String bold = "**";
-        final String italic = "__";
-        final String strike = "~~";
-        final String spoiler = "||";
         while ((index = TextUtils.indexOf(message[0], !isPre ? mono : pre, lastIndex)) != -1) {
             if (start == -1) {
                 isPre = message[0].length() - index > 2 && message[0].charAt(index + 1) == '`' && message[0].charAt(index + 2) == '`';
