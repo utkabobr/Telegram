@@ -42,8 +42,9 @@ public class EditTextEffects extends EditText {
             return;
 
         spoilers.get(0).setOnRippleEndCallback(() -> post(() -> setSpoilersRevealed(false, true)));
+        float rad = (float) Math.sqrt(Math.pow(getWidth(), 2) + Math.pow(getHeight(), 2));
         for (SpoilerEffect eff : spoilers) {
-            eff.startRipple(lastRippleX, lastRippleY, Math.max(getWidth(), getHeight()), true);
+            eff.startRipple(lastRippleX, lastRippleY, rad, true);
         }
     };
 
@@ -68,8 +69,9 @@ public class EditTextEffects extends EditText {
             checkSpoilerTimeout();
         }));
 
+        float rad = (float) Math.sqrt(Math.pow(getWidth(), 2) + Math.pow(getHeight(), 2));
         for (SpoilerEffect ef : spoilers)
-            ef.startRipple(x, y, Math.max(getWidth(), getHeight()));
+            ef.startRipple(x, y, rad);
     }
 
     @Override

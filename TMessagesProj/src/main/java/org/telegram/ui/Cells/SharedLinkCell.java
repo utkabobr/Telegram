@@ -583,8 +583,9 @@ public class SharedLinkCell extends FrameLayout {
                                 for (int i = 0; i < linkLayout.size(); i++) {
                                     Layout lt = linkLayout.get(i);
                                     offY += lt.getLineBottom(lt.getLineCount() - 1);
+                                    float rad = (float) Math.sqrt(Math.pow(getWidth(), 2) + Math.pow(getHeight(), 2));
                                     for (SpoilerEffect e : linkSpoilers.get(i)) {
-                                        e.startRipple(x - linkPosX, y - linkY - offset + offY, Math.max(getWidth(), getHeight()));
+                                        e.startRipple(x - linkPosX, y - linkY - offset + offY, rad);
                                     }
                                 }
 

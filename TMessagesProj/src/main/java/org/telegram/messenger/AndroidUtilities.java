@@ -1970,12 +1970,27 @@ public class AndroidUtilities {
         }
     }
 
-    public static boolean charSequenceContains(CharSequence cs, CharSequence needle) {
-        for (int i = 0; i < cs.length() - needle.length(); i++) {
-            if (cs.subSequence(i, i + needle.length()).equals(needle))
-                return true;
+    public static int charSequenceIndexOf(CharSequence cs, CharSequence needle, int fromIndex) {
+        for (int i = fromIndex; i < cs.length() - needle.length(); i++) {
+            boolean eq = true;
+            for (int j = 0; j < needle.length(); j++) {
+                if (needle.charAt(j) != cs.charAt(i + j)) {
+                    eq = false;
+                    break;
+                }
+            }
+            if (eq)
+                return i;
         }
-        return false;
+        return -1;
+    }
+
+    public static int charSequenceIndexOf(CharSequence cs, CharSequence needle) {
+        return charSequenceIndexOf(cs, needle, 0);
+    }
+
+    public static boolean charSequenceContains(CharSequence cs, CharSequence needle) {
+        return charSequenceIndexOf(cs, needle) != -1;
     }
 
     public static CharSequence getTrimmedString(CharSequence src) {

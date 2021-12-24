@@ -34,8 +34,9 @@ public class SpoilersTextView extends TextView {
                 invalidateSpoilers();
             }));
 
+            float rad = (float) Math.sqrt(Math.pow(getWidth(), 2) + Math.pow(getHeight(), 2));
             for (SpoilerEffect ef : spoilers)
-                ef.startRipple(x, y, Math.max(getWidth(), getHeight()));
+                ef.startRipple(x, y, rad);
         });
     }
 

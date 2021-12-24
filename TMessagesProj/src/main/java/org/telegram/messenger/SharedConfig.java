@@ -20,20 +20,22 @@ import android.text.TextUtils;
 import android.util.Base64;
 import android.util.SparseArray;
 
+import androidx.annotation.IntDef;
+import androidx.core.content.pm.ShortcutManagerCompat;
+
 import org.json.JSONObject;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.SerializedData;
-import org.telegram.ui.Components.SharedMediaLayout;
-import org.telegram.ui.Components.SwipeGestureSettingsView;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.Components.SwipeGestureSettingsView;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-
-import androidx.core.content.pm.ShortcutManagerCompat;
 
 public class SharedConfig {
 
@@ -1117,6 +1119,15 @@ public class SharedConfig {
     public final static int PERFORMANCE_CLASS_AVERAGE = 1;
     public final static int PERFORMANCE_CLASS_HIGH = 2;
 
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+            PERFORMANCE_CLASS_LOW,
+            PERFORMANCE_CLASS_AVERAGE,
+            PERFORMANCE_CLASS_HIGH
+    })
+    public @interface PerformanceClass {}
+
+    @PerformanceClass
     public static int getDevicePerformanceClass() {
         if (devicePerformanceClass == -1) {
             int maxCpuFreq = -1;

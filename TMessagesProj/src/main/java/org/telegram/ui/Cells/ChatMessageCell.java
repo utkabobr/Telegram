@@ -2079,7 +2079,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             }
             sPath.computeBounds(rect, false);
             float width = rect.width(), height = rect.height();
-            float rad = Math.max(width, height);
+            float rad = (float) Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
 
             isSpoilerRevealing = true;
             spoilerPressed.setOnRippleEndCallback(()->post(()->{
