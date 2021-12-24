@@ -41,6 +41,7 @@ import org.telegram.ui.Components.TextStyleSpan;
 import org.telegram.ui.Components.URLSpanReplacement;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -50,13 +51,15 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SpoilerEffect extends Drawable {
     public final static int MAX_PARTICLES_PER_ENTITY = measureMaxParticlesCount();
     public final static int PARTICLES_PER_CHARACTER = measureParticlesPerCharacter();
-    private final static float KEYPOINT_DELTA = 12f;
+    private final static int RAND_REPEAT = 14;
+    private final static float KEYPOINT_DELTA = 1f;
     private final static int FPS = 30;
     private final static int renderDelayMs = 1000 / FPS + 1;
 
     private Stack<Particle> particlesPool = new Stack<>();
     private int maxParticles, newParticles;
     private float[] particlePoints = new float[MAX_PARTICLES_PER_ENTITY * 2];
+    private float[] particleRands = new float[RAND_REPEAT];
 
     private static Bitmap measureBitmap;
     private static Canvas measureCanvas;
@@ -91,9 +94,9 @@ public class SpoilerEffect extends Drawable {
                 return 10;
             default:
             case SharedConfig.PERFORMANCE_CLASS_AVERAGE:
-                return 14;
+                return 21;
             case SharedConfig.PERFORMANCE_CLASS_HIGH:
-                return 18;
+                return 27;
         }
     }
 
@@ -296,9 +299,14 @@ public class SpoilerEffect extends Drawable {
 
             if (rippleAnimator == null && particles.size() < maxParticles) {
                 int np = Math.min(newParticles, maxParticles - particles.size());
-                for (int a = 0; a < np; a++) {
+                Arrays.fill(particleRands, -1);
+                for (int i = 0; i < np; i++) {
+                    float rf = particleRands[i % RAND_REPEAT];
+                    if (rf == -1) {
+                        particleRands[i % RAND_REPEAT] = rf = Utilities.fastRandom.nextFloat();
+                    }
+
                     Particle newParticle = !particlesPool.isEmpty() ? particlesPool.pop() : new Particle();
-                    float rf = Utilities.fastRandom.nextFloat();
                     if (keyPoints != null && !keyPoints.isEmpty()) {
                         long kp = keyPoints.get(Utilities.fastRandom.nextInt(keyPoints.size()));
                         newParticle.keyX = getBounds().left + (kp >> 16);
@@ -322,7 +330,7 @@ public class SpoilerEffect extends Drawable {
                     newParticle.currentTime = 0;
 
                     newParticle.lifeTime = 1000 + Utilities.fastRandom.nextInt(2000); // [1000;3000]
-                    newParticle.velocity = 2 + rf * 3f;
+                    newParticle.velocity = 4 + rf * 6;
                     particles.add(newParticle);
                 }
             }
@@ -513,31 +521,33 @@ public class SpoilerEffect extends Drawable {
 
                         int len = realEnd - realStart;
                         if (len == 0) continue;
-
-                        SpannableStringBuilder vSpan = new SpannableStringBuilder(textLayout.getText(), realStart, realEnd);
-                        for (TextStyleSpan styleSpan : vSpan.getSpans(0, vSpan.length(), TextStyleSpan.class))
-                            vSpan.removeSpan(styleSpan);
-                        for (URLSpanReplacement urlSpan : vSpan.getSpans(0, vSpan.length(), URLSpanReplacement.class))
-                            vSpan.removeSpan(urlSpan);
-                        int tLen = vSpan.toString().trim().length();
-                        if (tLen == 0)
-                            continue;
-                        StaticLayout newLayout = new StaticLayout(vSpan, textPaint, Math.max(v != null ? v.getWidth() : 0, textLayout.getWidth()), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
-                        SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
-                        spoilerEffect.setRippleProgress(-1);
-                        float ps = realStart == start ? tempRect.left : textLayout.getPrimaryHorizontal(realStart), pe = realEnd == end ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
-                        spoilerEffect.setBounds((int)Math.min(ps, pe), tempRect.top, (int)Math.max(ps, pe), tempRect.bottom);
-                        spoilerEffect.setColor(textPaint.getColor());
-                        spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.DEFAULT);
-                        spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
-                        spoilerEffect.updateMaxParticles(tLen); // To filter out spaces
-                        if (v != null)
-                            spoilerEffect.setParentView(v);
-                        spoilers.add(spoilerEffect);
+                        addSpoilersInternal(v, spannable, textLayout, start, end, realStart, realEnd, spoilersPool, spoilers);
                     }
                 }
             }
         }
+    }
+
+    private static void addSpoilersInternal(View v, Spannable spannable, Layout textLayout, int lineStart, int lineEnd, int realStart, int realEnd, Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
+        SpannableStringBuilder vSpan = new SpannableStringBuilder(spannable, realStart, realEnd);
+        for (TextStyleSpan styleSpan : vSpan.getSpans(0, vSpan.length(), TextStyleSpan.class))
+            vSpan.removeSpan(styleSpan);
+        for (URLSpanReplacement urlSpan : vSpan.getSpans(0, vSpan.length(), URLSpanReplacement.class))
+            vSpan.removeSpan(urlSpan);
+        int tLen = vSpan.toString().trim().length();
+        if (tLen == 0) return;
+        StaticLayout newLayout = new StaticLayout(vSpan, textLayout.getPaint(), Math.max(v != null ? v.getWidth() : 0, textLayout.getWidth()), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+        SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
+        spoilerEffect.setRippleProgress(-1);
+        float ps = realStart == lineStart ? tempRect.left : textLayout.getPrimaryHorizontal(realStart), pe = realEnd == lineEnd ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
+        spoilerEffect.setBounds((int)Math.min(ps, pe), tempRect.top, (int)Math.max(ps, pe), tempRect.bottom);
+        spoilerEffect.setColor(textLayout.getPaint().getColor());
+        spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.DEFAULT);
+        spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
+        spoilerEffect.updateMaxParticles(tLen); // To filter out spaces
+        if (v != null)
+            spoilerEffect.setParentView(v);
+        spoilers.add(spoilerEffect);
     }
 
     /**
