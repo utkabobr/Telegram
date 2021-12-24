@@ -1970,6 +1970,14 @@ public class AndroidUtilities {
         }
     }
 
+    public static boolean charSequenceContains(CharSequence cs, CharSequence needle) {
+        for (int i = 0; i < cs.length() - needle.length(); i++) {
+            if (cs.subSequence(i, i + needle.length()).equals(needle))
+                return true;
+        }
+        return false;
+    }
+
     public static CharSequence getTrimmedString(CharSequence src) {
         if (src == null || src.length() == 0) {
             return src;

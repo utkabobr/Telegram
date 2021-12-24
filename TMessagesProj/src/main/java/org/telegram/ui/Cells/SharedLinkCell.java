@@ -12,11 +12,18 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
+import android.graphics.Region;
 import android.net.Uri;
 import android.text.Layout;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
@@ -38,10 +45,14 @@ import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LetterDrawable;
 import org.telegram.ui.Components.LinkPath;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.TextStyleSpan;
+import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.FilteredSearchView;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Stack;
 
 public class SharedLinkCell extends FrameLayout {
 
@@ -74,7 +85,7 @@ public class SharedLinkCell extends FrameLayout {
                 checkingForLongPress = false;
                 performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                 if (pressedLink >= 0) {
-                    delegate.onLinkPress(links.get(pressedLink), true);
+                    delegate.onLinkPress(links.get(pressedLink).toString(), true);
                 }
                 MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
                 onTouchEvent(event);
@@ -117,9 +128,13 @@ public class SharedLinkCell extends FrameLayout {
 
     private boolean needDivider;
 
-    ArrayList<String> links = new ArrayList<>();
+    ArrayList<CharSequence> links = new ArrayList<>();
     private int linkY;
     private ArrayList<StaticLayout> linkLayout = new ArrayList<>();
+    private SparseArray<List<SpoilerEffect>> linkSpoilers = new SparseArray<>();
+    private Stack<SpoilerEffect> spoilersPool = new Stack<>();
+    private Path path = new Path();
+    private SpoilerEffect linkSpoilerPressed;
 
     private int titleY = AndroidUtilities.dp(10);
     private StaticLayout titleLayout;
@@ -241,7 +256,7 @@ public class SharedLinkCell extends FrameLayout {
                     }
                 }
                 try {
-                    String link = null;
+                    CharSequence link = null;
                     if (entity instanceof TLRPC.TL_messageEntityTextUrl || entity instanceof TLRPC.TL_messageEntityUrl) {
                         if (entity instanceof TLRPC.TL_messageEntityUrl) {
                             link = message.messageOwner.message.substring(entity.offset, entity.offset + entity.length);
@@ -249,11 +264,11 @@ public class SharedLinkCell extends FrameLayout {
                             link = entity.url;
                         }
                         if (title == null || title.length() == 0) {
-                            title = link;
+                            title = link.toString();
                             Uri uri = Uri.parse(title);
                             title = uri.getHost();
                             if (title == null) {
-                                title = link;
+                                title = link.toString();
                             }
                             int index;
                             if (title != null && (index = title.lastIndexOf('.')) >= 0) {
@@ -277,11 +292,26 @@ public class SharedLinkCell extends FrameLayout {
                         }
                     }
                     if (link != null) {
-                        if (!link.contains("://") && link.toLowerCase().indexOf("http") != 0 && link.toLowerCase().indexOf("mailto") != 0) {
-                            links.add("http://" + link);
+                        CharSequence lobj;
+                        int offset = 0;
+                        if (!AndroidUtilities.charSequenceContains(link, "://") && link.toString().toLowerCase().indexOf("http") != 0 && link.toString().toLowerCase().indexOf("mailto") != 0) {
+                            String prefix = "http://";
+                            lobj = prefix + link;
+                            offset += prefix.length();
                         } else {
-                            links.add(link);
+                            lobj = link;
                         }
+                        SpannableString sb = SpannableString.valueOf(lobj);
+                        int start = entity.offset, end = entity.offset + entity.length;
+                        for (TLRPC.MessageEntity e : message.messageOwner.entities) {
+                            int ss = e.offset, se = e.offset + e.length;
+                            if (e instanceof TLRPC.TL_messageEntitySpoiler && start <= se && end >= ss) {
+                                TextStyleSpan.TextStyleRun run = new TextStyleSpan.TextStyleRun();
+                                run.flags |= TextStyleSpan.FLAG_STYLE_SPOILER;
+                                sb.setSpan(new TextStyleSpan(run), Math.max(start, ss), Math.min(end, se) + offset, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            }
+                        }
+                        links.add(sb);
                     }
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -364,15 +394,24 @@ public class SharedLinkCell extends FrameLayout {
         }
 
         if (!links.isEmpty()) {
+            for (int i = 0; i < linkSpoilers.size(); i++)
+                spoilersPool.addAll(linkSpoilers.get(i));
+            linkSpoilers.clear();
             for (int a = 0; a < links.size(); a++) {
                 try {
-                    String link = links.get(a);
-                    int width = (int) Math.ceil(descriptionTextPaint.measureText(link));
-                    CharSequence linkFinal = TextUtils.ellipsize(link.replace('\n', ' '), descriptionTextPaint, Math.min(width, maxWidth), TextUtils.TruncateAt.MIDDLE);
+                    CharSequence link = links.get(a);
+                    int width = (int) Math.ceil(descriptionTextPaint.measureText(link, 0, link.length()));
+                    CharSequence linkFinal = TextUtils.ellipsize(AndroidUtilities.replaceNewLines(SpannableStringBuilder.valueOf(link)), descriptionTextPaint, Math.min(width, maxWidth), TextUtils.TruncateAt.MIDDLE);
                     StaticLayout layout = new StaticLayout(linkFinal, descriptionTextPaint, maxWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
                     linkY = description2Y;
                     if (descriptionLayout2 != null && descriptionLayout2.getLineCount() != 0) {
                         linkY += descriptionLayout2.getLineBottom(descriptionLayout2.getLineCount() - 1) + AndroidUtilities.dp(5);
+                    }
+                    if (!message.isSpoilersRevealed) {
+                        List<SpoilerEffect> l = new ArrayList<>();
+                        if (linkFinal instanceof Spannable)
+                            SpoilerEffect.addSpoilers(this, layout, (Spannable) linkFinal, spoilersPool, l);
+                        linkSpoilers.put(a, l);
                     }
                     linkLayout.add(layout);
                 } catch (Exception e) {
@@ -480,7 +519,7 @@ public class SharedLinkCell extends FrameLayout {
     public boolean onTouchEvent(MotionEvent event) {
         boolean result = false;
         if (message != null && !linkLayout.isEmpty() && delegate != null && delegate.canPerformActions()) {
-            if (event.getAction() == MotionEvent.ACTION_DOWN || linkPreviewPressed && event.getAction() == MotionEvent.ACTION_UP) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN || (linkPreviewPressed || linkSpoilerPressed != null) && event.getAction() == MotionEvent.ACTION_UP) {
                 int x = (int) event.getX();
                 int y = (int) event.getY();
                 int offset = 0;
@@ -494,28 +533,62 @@ public class SharedLinkCell extends FrameLayout {
                             ok = true;
                             if (event.getAction() == MotionEvent.ACTION_DOWN) {
                                 resetPressedLink();
-                                pressedLink = a;
-                                linkPreviewPressed = true;
-                                startCheckLongPress();
-                                try {
-                                    urlPath.setCurrentLayout(layout, 0, 0);
-                                    layout.getSelectionPath(0, layout.getText().length(), urlPath);
-                                } catch (Exception e) {
-                                    FileLog.e(e);
+
+                                linkSpoilerPressed = null;
+                                if (linkSpoilers.get(a, null) != null) {
+                                    for (SpoilerEffect eff : linkSpoilers.get(a)) {
+                                        if (eff.getBounds().contains(x - linkPosX, y - linkY - offset)) {
+                                            linkSpoilerPressed = eff;
+                                            break;
+                                        }
+                                    }
                                 }
-                                result = true;
+                                if (linkSpoilerPressed != null) {
+                                    result = true;
+                                } else {
+                                    pressedLink = a;
+                                    linkPreviewPressed = true;
+                                    startCheckLongPress();
+                                    try {
+                                        urlPath.setCurrentLayout(layout, 0, 0);
+                                        layout.getSelectionPath(0, layout.getText().length(), urlPath);
+                                    } catch (Exception e) {
+                                        FileLog.e(e);
+                                    }
+                                    result = true;
+                                }
                             } else if (linkPreviewPressed) {
                                 try {
                                     TLRPC.WebPage webPage = pressedLink == 0 && message.messageOwner.media != null ? message.messageOwner.media.webpage : null;
                                     if (webPage != null && webPage.embed_url != null && webPage.embed_url.length() != 0) {
                                         delegate.needOpenWebView(webPage, message);
                                     } else {
-                                        delegate.onLinkPress(links.get(pressedLink), false);
+                                        delegate.onLinkPress(links.get(pressedLink).toString(), false);
                                     }
                                 } catch (Exception e) {
                                     FileLog.e(e);
                                 }
                                 resetPressedLink();
+                                result = true;
+                            } else if (linkSpoilerPressed != null) {
+                                resetPressedLink();
+                                SpoilerEffect eff = linkSpoilerPressed;
+                                eff.setOnRippleEndCallback(() -> post(() -> {
+                                    message.isSpoilersRevealed = true;
+                                    linkSpoilers.clear();
+                                    invalidate();
+                                }));
+
+                                float offY = 0;
+                                for (int i = 0; i < linkLayout.size(); i++) {
+                                    Layout lt = linkLayout.get(i);
+                                    offY += lt.getLineBottom(lt.getLineCount() - 1);
+                                    for (SpoilerEffect e : linkSpoilers.get(i)) {
+                                        e.startRipple(x - linkPosX, y - linkY - offset + offY, Math.max(getWidth(), getHeight()));
+                                    }
+                                }
+
+                                linkSpoilerPressed = null;
                                 result = true;
                             }
                             break;
@@ -539,7 +612,7 @@ public class SharedLinkCell extends FrameLayout {
         if (num < 0 || num >= links.size()) {
             return null;
         }
-        return links.get(num);
+        return links.get(num).toString();
     }
 
     protected void resetPressedLink() {
@@ -606,13 +679,38 @@ public class SharedLinkCell extends FrameLayout {
             int offset = 0;
             for (int a = 0; a < linkLayout.size(); a++) {
                 StaticLayout layout = linkLayout.get(a);
+                List<SpoilerEffect> spoilers = linkSpoilers.get(a);
                 if (layout.getLineCount() > 0) {
                     canvas.save();
                     canvas.translate(AndroidUtilities.dp(LocaleController.isRTL ? 8 : AndroidUtilities.leftBaseline), linkY + offset);
-                    if (pressedLink == a) {
-                        canvas.drawPath(urlPath, Theme.linkSelectionPaint);
+
+                    path.rewind();
+                    if (spoilers != null) {
+                        for (SpoilerEffect eff : spoilers) {
+                            Rect b = eff.getBounds();
+                            path.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+                        }
                     }
+                    canvas.save();
+                    canvas.clipPath(path, Region.Op.DIFFERENCE);
+                    if (pressedLink == a) canvas.drawPath(urlPath, Theme.linkSelectionPaint);
                     layout.draw(canvas);
+                    canvas.restore();
+
+                    canvas.save();
+                    canvas.clipPath(path);
+                    path.rewind();
+                    if (spoilers != null && !spoilers.isEmpty())
+                        spoilers.get(0).getRipplePath(path);
+                    canvas.clipPath(path);
+
+                    if (pressedLink == a) canvas.drawPath(urlPath, Theme.linkSelectionPaint);
+                    layout.draw(canvas);
+                    canvas.restore();
+
+                    if (spoilers != null)
+                        for (SpoilerEffect eff : spoilers) eff.draw(canvas);
+
                     canvas.restore();
                     offset += layout.getLineBottom(layout.getLineCount() - 1);
                 }
