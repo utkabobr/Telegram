@@ -13,6 +13,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
@@ -50,6 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SpoilerEffect extends Drawable {
     public final static int MAX_PARTICLES_PER_ENTITY = measureMaxParticlesCount();
     public final static int PARTICLES_PER_CHARACTER = measureParticlesPerCharacter();
+    private final static int SPACE_OFFSET_DP = 2;
     private final static int RAND_REPEAT = 14;
     private final static float KEYPOINT_DELTA = 1f;
     private final static int FPS = 30;
@@ -80,6 +82,7 @@ public class SpoilerEffect extends Drawable {
     private Runnable onRippleEndCallback;
     private ValueAnimator rippleAnimator;
 
+    private List<RectF> spaces = new ArrayList<>();
     private List<Long> keyPoints;
     private int mAlpha = 0xFF;
 
@@ -168,7 +171,7 @@ public class SpoilerEffect extends Drawable {
         if (rippleAnimator != null)
             rippleAnimator.cancel();
         int startAlpha = particlePaint.getAlpha();
-        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.3f, 175, 550));
+        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.3f, 250, 550));
         rippleAnimator.setInterpolator(rippleInterpolator);
         rippleAnimator.addUpdateListener(animation -> {
             rippleProgress = (float) animation.getAnimatedValue();
@@ -277,8 +280,14 @@ public class SpoilerEffect extends Drawable {
             while (it.hasNext()) {
                 Particle particle = it.next();
                 particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
-                if (particle.currentTime >= particle.lifeTime || particle.x < getBounds().left || particle.x > getBounds().right ||
-                        particle.y > getBounds().bottom || particle.y < getBounds().top || (hasAnimator &&
+                boolean rem = false;
+                for (RectF r : spaces) {
+                    if (r.contains(particle.x, particle.y)) {
+                        rem = true;
+                        break;
+                    }
+                }
+                if (rem || particle.currentTime >= particle.lifeTime || !getBounds().contains((int) particle.x, (int) particle.y) || (hasAnimator &&
                             Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
                     if (particlesPool.size() < maxParticles) {
                         particlesPool.push(particle);
@@ -547,6 +556,21 @@ public class SpoilerEffect extends Drawable {
         spoilerEffect.updateMaxParticles(tLen); // To filter out spaces
         if (v != null)
             spoilerEffect.setParentView(v);
+        spoilerEffect.spaces.clear();
+        for (int i = 0; i < vSpan.length(); i++) {
+            if (vSpan.charAt(i) == ' ') {
+                RectF r = new RectF();
+                int off = realStart + i;
+                int line = textLayout.getLineForOffset(off);
+                r.top = textLayout.getLineTop(line);
+                r.bottom = textLayout.getLineBottom(line);
+                float lh = textLayout.getPrimaryHorizontal(off), rh = textLayout.getPrimaryHorizontal(off + 1);
+                r.left = (int) (Math.min(lh, rh) - AndroidUtilities.dp(SPACE_OFFSET_DP)); // RTL
+                r.right = (int) (Math.max(lh, rh) + AndroidUtilities.dp(SPACE_OFFSET_DP));
+                if (Math.abs(lh - rh) <= AndroidUtilities.dp(20))
+                    spoilerEffect.spaces.add(r);
+            }
+        }
         spoilers.add(spoilerEffect);
     }
 
