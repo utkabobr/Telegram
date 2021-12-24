@@ -20,7 +20,6 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
-import android.text.TextPaint;
 import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.TextView;
@@ -36,7 +35,7 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.Easings;
 import org.telegram.ui.Components.TextStyleSpan;
 import org.telegram.ui.Components.URLSpanReplacement;
 
@@ -63,7 +62,7 @@ public class SpoilerEffect extends Drawable {
 
     private static Bitmap measureBitmap;
     private static Canvas measureCanvas;
-    private static Path clipOutPath = new Path();
+    private static Path tempPath = new Path();
 
     private static Rect tempRect = new Rect();
 
@@ -116,6 +115,7 @@ public class SpoilerEffect extends Drawable {
         particlePaint = new Paint();
         particlePaint.setStrokeWidth(AndroidUtilities.dp(1.1f));
         particlePaint.setStyle(Paint.Style.STROKE);
+        particlePaint.setStrokeCap(Paint.Cap.ROUND);
 
         setColor(Color.TRANSPARENT);
     }
@@ -168,7 +168,7 @@ public class SpoilerEffect extends Drawable {
         if (rippleAnimator != null)
             rippleAnimator.cancel();
         int startAlpha = particlePaint.getAlpha();
-        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.5f, 300, 550));
+        rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.3f, 175, 550));
         rippleAnimator.setInterpolator(rippleInterpolator);
         rippleAnimator.addUpdateListener(animation -> {
             rippleProgress = (float) animation.getAnimatedValue();
@@ -288,9 +288,10 @@ public class SpoilerEffect extends Drawable {
                 }
 
                 if (hasAnimator) {
-                    float adt = dt / 60f;
-                    particle.vecX += (particle.x > rippleX ? 1 : -1) * adt;
-                    particle.vecY += (particle.y > rippleY ? 1 : -1) * adt;
+                    float adt = dt / 300f;
+
+                    particle.vecX += ((particle.x - rippleX) / getBounds().width()) * adt;
+                    particle.vecY += ((particle.y - rippleY) / getBounds().height()) * adt;
                 }
                 float hdt = particle.velocity * dt / 500f;
                 particle.x += particle.vecX * hdt;
@@ -506,7 +507,6 @@ public class SpoilerEffect extends Drawable {
      * @param spoilers Spoilers list to populate
      */
     public static void addSpoilers(@Nullable View v, Layout textLayout, Spannable spannable, @Nullable Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
-        TextPaint textPaint = textLayout.getPaint();
         TextStyleSpan[] spans = spannable.getSpans(0, spannable.length(), TextStyleSpan.class);
         for (int line = 0; line < textLayout.getLineCount(); line++) {
             tempRect.set((int) textLayout.getLineLeft(line), textLayout.getLineTop(line), (int) textLayout.getLineRight(line), textLayout.getLineBottom(line));
@@ -542,7 +542,7 @@ public class SpoilerEffect extends Drawable {
         float ps = realStart == lineStart ? tempRect.left : textLayout.getPrimaryHorizontal(realStart), pe = realEnd == lineEnd ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
         spoilerEffect.setBounds((int)Math.min(ps, pe), tempRect.top, (int)Math.max(ps, pe), tempRect.bottom);
         spoilerEffect.setColor(textLayout.getPaint().getColor());
-        spoilerEffect.setRippleInterpolator(CubicBezierInterpolator.DEFAULT);
+        spoilerEffect.setRippleInterpolator(Easings.easeInQuad);
         spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
         spoilerEffect.updateMaxParticles(tLen); // To filter out spaces
         if (v != null)
@@ -554,12 +554,12 @@ public class SpoilerEffect extends Drawable {
      * Clips out spoilers from canvas
      */
     public static void clipOutCanvas(Canvas canvas, List<SpoilerEffect> spoilers) {
-        clipOutPath.rewind();
+        tempPath.rewind();
         for (SpoilerEffect eff : spoilers) {
             Rect b = eff.getBounds();
-            clipOutPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+            tempPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
         }
-        canvas.clipPath(clipOutPath, Region.Op.DIFFERENCE);
+        canvas.clipPath(tempPath, Region.Op.DIFFERENCE);
     }
 
     /**
@@ -603,18 +603,18 @@ public class SpoilerEffect extends Drawable {
             textLayout.draw(canvas);
         }
 
-        clipOutPath.rewind();
+        tempPath.rewind();
         for (SpoilerEffect eff : spoilers) {
             Rect b = eff.getBounds();
-            clipOutPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
+            tempPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
         }
         if (!spoilers.isEmpty() && spoilers.get(0).rippleProgress != -1) {
             canvas.save();
-            canvas.clipPath(clipOutPath);
-            clipOutPath.rewind();
+            canvas.clipPath(tempPath);
+            tempPath.rewind();
             if (!spoilers.isEmpty())
-                spoilers.get(0).getRipplePath(clipOutPath);
-            canvas.clipPath(clipOutPath);
+                spoilers.get(0).getRipplePath(tempPath);
+            canvas.clipPath(tempPath);
             canvas.translate(0, -v.getPaddingTop());
             textLayout.draw(canvas);
             canvas.restore();
