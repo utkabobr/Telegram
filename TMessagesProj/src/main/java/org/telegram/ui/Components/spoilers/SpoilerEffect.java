@@ -53,8 +53,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SpoilerEffect extends Drawable {
     public final static int MAX_PARTICLES_PER_ENTITY = measureMaxParticlesCount();
     public final static int PARTICLES_PER_CHARACTER = measureParticlesPerCharacter();
+    private final static float VERTICAL_PADDING_DP = 2.5f;
     private final static int RAND_REPEAT = 14;
-    private final static float KEYPOINT_DELTA = 1f;
+    private final static float KEYPOINT_DELTA = 5f;
     private final static int FPS = 30;
     private final static int renderDelayMs = 1000 / FPS + 1;
 
@@ -290,6 +291,7 @@ public class SpoilerEffect extends Drawable {
 
             if (!suppressUpdates) {
                 Iterator<Particle> it = particles.iterator();
+                int top = getBounds().top, bottom = getBounds().bottom;
                 while (it.hasNext()) {
                     Particle particle = it.next();
                     particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
@@ -300,8 +302,9 @@ public class SpoilerEffect extends Drawable {
                             break;
                         }
                     }
-                    if (rem || particle.currentTime >= particle.lifeTime || !getBounds().contains((int) particle.x, (int) particle.y) || (hasAnimator &&
-                            Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
+                    if (rem || particle.currentTime >= particle.lifeTime || !getBounds().contains((int) particle.x, (int) particle.y) ||
+                            particle.y < top + AndroidUtilities.dp(VERTICAL_PADDING_DP) || particle.y > bottom - AndroidUtilities.dp(VERTICAL_PADDING_DP) ||
+                                (hasAnimator && Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
                         if (particlesPool.size() < maxParticles) {
                             particlesPool.push(particle);
                         }
