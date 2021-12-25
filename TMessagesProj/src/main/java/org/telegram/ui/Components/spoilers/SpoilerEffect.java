@@ -97,12 +97,12 @@ public class SpoilerEffect extends Drawable {
     private static int measureParticlesPerCharacter() {
         switch (SharedConfig.getDevicePerformanceClass()) {
             case SharedConfig.PERFORMANCE_CLASS_LOW:
-                return 13;
+                return 15;
             default:
             case SharedConfig.PERFORMANCE_CLASS_AVERAGE:
-                return 27;
+                return 25;
             case SharedConfig.PERFORMANCE_CLASS_HIGH:
-                return 35;
+                return 30;
         }
     }
 
@@ -144,10 +144,9 @@ public class SpoilerEffect extends Drawable {
 
     /**
      * Updates max particles count
-     * @param charsCount Characters for this spoiler
      */
-    public void updateMaxParticles(int charsCount) {
-        setMaxParticlesCount(MathUtils.clamp(charsCount * PARTICLES_PER_CHARACTER, 50, MAX_PARTICLES_PER_ENTITY));
+    public void updateMaxParticles() {
+        setMaxParticlesCount(MathUtils.clamp((getBounds().width() / AndroidUtilities.dp(6)) * PARTICLES_PER_CHARACTER, 50, MAX_PARTICLES_PER_ENTITY));
     }
 
     /**
@@ -587,7 +586,7 @@ public class SpoilerEffect extends Drawable {
         spoilerEffect.setColor(textLayout.getPaint().getColor());
         spoilerEffect.setRippleInterpolator(Easings.easeInQuad);
         spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
-        spoilerEffect.updateMaxParticles(tLen); // To filter out spaces
+        spoilerEffect.updateMaxParticles();
         if (v != null)
             spoilerEffect.setParentView(v);
         spoilerEffect.spaces.clear();
