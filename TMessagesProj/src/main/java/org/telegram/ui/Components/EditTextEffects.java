@@ -129,8 +129,23 @@ public class EditTextEffects extends EditText {
     @Override
     protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
         super.onTextChanged(text, start, lengthBefore, lengthAfter);
-        if (!suppressOnTextChanged)
+        if (!suppressOnTextChanged) {
             invalidateEffects();
+
+            Layout layout = getLayout();
+            if (text instanceof Spannable && layout != null) {
+                int line = layout.getLineForOffset(start);
+                int x = (int) layout.getPrimaryHorizontal(start);
+                int y = (int) ((layout.getLineTop(line) + layout.getLineBottom(line)) / 2f);
+
+                for (SpoilerEffect eff : spoilers) {
+                    if (eff.getBounds().contains(x, y)) {
+                        onSpoilerClicked(eff, x, y);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     @Override
