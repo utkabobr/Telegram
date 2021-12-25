@@ -70,6 +70,8 @@ public class SpoilerEffect extends Drawable {
 
     private static Rect tempRect = new Rect();
 
+    private RectF visibleRect;
+
     private Paint particlePaint;
 
     private ArrayList<Particle> particles = new ArrayList<>();
@@ -293,6 +295,9 @@ public class SpoilerEffect extends Drawable {
                 Iterator<Particle> it = particles.iterator();
                 while (it.hasNext()) {
                     Particle particle = it.next();
+                    if (visibleRect != null && !visibleRect.contains(particle.x, particle.y))
+                        continue;
+
                     particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
                     if (particle.currentTime >= particle.lifeTime || isOutOfBounds(left, top, right, bottom, particle.x, particle.y) ||
                             (hasAnimator && Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
@@ -351,12 +356,28 @@ public class SpoilerEffect extends Drawable {
         for (int i = 0; i < particles.size(); i++) {
             Particle p = particles.get(i);
 
+            if (visibleRect != null && !visibleRect.contains(p.x, p.y))
+                continue;
+
             particlePoints[i * 2] = p.x;
             particlePoints[i * 2 + 1] = p.y;
             renderCount++;
         }
         canvas.drawPoints(particlePoints, 0, renderCount, particlePaint);
 
+        invalidateSelf();
+    }
+
+    /**
+     * Updates visible bounds to update particles
+     */
+    public void setVisibleBounds(float left, float top, float right, float bottom) {
+        if (visibleRect == null)
+            visibleRect = new RectF();
+        visibleRect.left = left;
+        visibleRect.top = top;
+        visibleRect.right = right;
+        visibleRect.bottom = bottom;
         invalidateSelf();
     }
 

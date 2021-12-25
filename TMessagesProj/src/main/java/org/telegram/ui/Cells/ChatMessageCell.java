@@ -182,6 +182,23 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     eff.setSuppressUpdates(s);
     }
 
+    private void updateSpoilersVisiblePart(int top, int bottom) {
+        if (hasCaptionLayout()) {
+            float off = -captionY;
+            for (SpoilerEffect eff : captionSpoilers)
+                eff.setVisibleBounds(0, top + off, getWidth(), bottom + off);
+        }
+        if (replyTextLayout != null) {
+            float off = -replyStartY - replyTextLayout.getHeight();
+            for (SpoilerEffect eff : replySpoilers)
+                eff.setVisibleBounds(0, top + off, getWidth(), bottom + off);
+        }
+        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null)
+            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks)
+                for (SpoilerEffect eff : bl.spoilers)
+                    eff.setVisibleBounds(0, top - bl.textYOffset - textY, getWidth(), bottom - bl.textYOffset - textY);
+    }
+
     public interface ChatMessageCellDelegate {
         default void didPressUserAvatar(ChatMessageCell cell, TLRPC.User user, float touchX, float touchY) {
         }
@@ -2743,6 +2760,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         parentHeight = parentH;
         backgroundHeight = parentH;
         viewTop = visibleTop;
+        updateSpoilersVisiblePart(position - AndroidUtilities.dp(8), position + height + parent);
+
         if (parent != parentHeight || parentOffset != this.parentViewTopOffset) {
             this.parentViewTopOffset = parentOffset;
             parentHeight = parent;
