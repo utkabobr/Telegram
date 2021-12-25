@@ -227,7 +227,9 @@ public class EditTextEffects extends EditText {
         super.onDraw(canvas);
         canvas.restore();
 
-        rect.set(0, (int) (getScrollY() - getPaint().getTextSize()), getWidth(), getScrollY() + getHeight());
+        rect.set(0, getScrollY(), getWidth(), getScrollY() + getHeight() - getPaddingBottom());
+        canvas.save();
+        canvas.clipRect(rect);
         for (SpoilerEffect eff : spoilers) {
             Rect b = eff.getBounds();
             if (rect.top <= b.bottom && rect.bottom >= b.top || b.top <= rect.bottom && b.bottom >= rect.top) {
@@ -235,6 +237,7 @@ public class EditTextEffects extends EditText {
                 eff.draw(canvas);
             }
         }
+        canvas.restore();
     }
 
     public void invalidateEffects() {
