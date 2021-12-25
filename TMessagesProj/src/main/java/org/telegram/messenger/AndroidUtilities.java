@@ -2932,6 +2932,8 @@ public class AndroidUtilities {
     }
 
     public static SpannableStringBuilder formatSpannable(String format, CharSequence... cs) {
+        if (format.contains("%s"))
+            return formatSpannableSimple(format, cs);
         return formatSpannable(format, i -> "%" + (i + 1) + "$s", cs);
     }
 
@@ -2952,19 +2954,23 @@ public class AndroidUtilities {
         char[] buf = new char[2];
         if (original instanceof StringBuilder) {
             StringBuilder stringBuilder = (StringBuilder) original;
-            for (int a = 0, N = original.length(); a < N - 1; a++) {
+            for (int a = 0, N = original.length(); a < N - 2; a++) {
                 stringBuilder.getChars(a, a + 2, buf, 0);
                 if (buf[0] == '\n' && buf[1] == '\n') {
-                    stringBuilder.replace(a, a + 2, "\n");
+                    stringBuilder = stringBuilder.replace(a, a + 2, "\n");
+                    a--;
+                    N--;
                 }
             }
             return original;
         } else if (original instanceof SpannableStringBuilder) {
             SpannableStringBuilder stringBuilder = (SpannableStringBuilder) original;
-            for (int a = 0, N = original.length(); a < N; a++) {
+            for (int a = 0, N = original.length(); a < N - 2; a++) {
                 stringBuilder.getChars(a, a + 2, buf, 0);
                 if (buf[0] == '\n' && buf[1] == '\n') {
-                    stringBuilder.replace(a, a + 2, "\n");
+                    stringBuilder = stringBuilder.replace(a, a + 2, "\n");
+                    a--;
+                    N--;
                 }
             }
             return original;
