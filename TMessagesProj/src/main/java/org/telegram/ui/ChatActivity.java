@@ -21509,6 +21509,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             } else if (view instanceof ChatActionCell) {
                 ChatActionCell cell = (ChatActionCell) view;
                 cell.setMessageObject(cell.getMessageObject());
+                cell.setSpoilersSuppressed(chatListView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE);
             }
         }
         if (lastVisibleItem != RecyclerView.NO_POSITION) {
@@ -23545,6 +23546,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
 
                     messageCell.setMessageObject(message, groupedMessages, pinnedBottom, pinnedTop);
+                    messageCell.setSpoilersSuppressed(chatListView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE);
                     messageCell.setHighlighted(highlightMessageId != Integer.MAX_VALUE && message.getId() == highlightMessageId);
                     if (highlightMessageId != Integer.MAX_VALUE) {
                         startMessageUnselect();
@@ -23773,6 +23775,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     ChatActionCell actionCell = (ChatActionCell) view;
                     actionCell.setMessageObject(message);
                     actionCell.setAlpha(1.0f);
+                    actionCell.setSpoilersSuppressed(chatListView.getScrollState() != RecyclerView.SCROLL_STATE_IDLE);
                 } else if (view instanceof ChatUnreadCell) {
                     ChatUnreadCell unreadCell = (ChatUnreadCell) view;
                     unreadCell.setText(LocaleController.getString("UnreadMessages", R.string.UnreadMessages));

@@ -34,6 +34,7 @@ import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
@@ -50,7 +51,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-public class ChatActionCell extends BaseCell implements DownloadController.FileDownloadProgressListener {
+public class ChatActionCell extends BaseCell implements DownloadController.FileDownloadProgressListener, NotificationCenter.NotificationCenterDelegate {
+
+    @Override
+    public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.startSpoilers) {
+            setSpoilersSuppressed(false);
+        } else if (id == NotificationCenter.stopSpoilers) {
+            setSpoilersSuppressed(true);
+        }
+    }
+
+    public void setSpoilersSuppressed(boolean s) {
+        for (SpoilerEffect eff : spoilers)
+            eff.setSuppressUpdates(s);
+    }
 
     private boolean canDrawInParent;
 
