@@ -80,6 +80,7 @@ public class SpoilerEffect extends Drawable {
     private float rippleX, rippleY;
     private float rippleMaxRadius;
     private float rippleProgress = -1;
+    private boolean reverseAnimator;
     private boolean shouldInvalidateColor;
     private Runnable onRippleEndCallback;
     private ValueAnimator rippleAnimator;
@@ -169,10 +170,11 @@ public class SpoilerEffect extends Drawable {
         rippleY = rY;
         rippleMaxRadius = radMax;
         rippleProgress = reverse ? 1 : 0;
+        reverseAnimator = reverse;
 
         if (rippleAnimator != null)
             rippleAnimator.cancel();
-        int startAlpha = particlePaint.getAlpha();
+        int startAlpha = reverseAnimator ? 0xFF : particlePaint.getAlpha();
         rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.3f, 250, 550));
         rippleAnimator.setInterpolator(rippleInterpolator);
         rippleAnimator.addUpdateListener(animation -> {
@@ -309,7 +311,7 @@ public class SpoilerEffect extends Drawable {
                 particle.y += particle.vecY * hdt;
             }
 
-            if (rippleAnimator == null && particles.size() < maxParticles) {
+            if ((!hasAnimator || reverseAnimator) && particles.size() < maxParticles) {
                 int np = Math.min(newParticles, maxParticles - particles.size());
                 Arrays.fill(particleRands, -1);
                 for (int i = 0; i < np; i++) {
@@ -319,18 +321,9 @@ public class SpoilerEffect extends Drawable {
                     }
 
                     Particle newParticle = !particlesPool.isEmpty() ? particlesPool.pop() : new Particle();
-                    if (keyPoints != null && !keyPoints.isEmpty()) {
-                        long kp = keyPoints.get(Utilities.fastRandom.nextInt(keyPoints.size()));
-                        newParticle.keyX = getBounds().left + (kp >> 16);
-                        newParticle.keyY = getBounds().top + (kp & 0xFFFF);
-                        newParticle.x = newParticle.keyX + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
-                        newParticle.y = newParticle.keyY + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
-                    } else {
-                        newParticle.keyX = -1;
-                        newParticle.keyY = -1;
-                        newParticle.x = getBounds().left + rf * getBounds().width();
-                        newParticle.y = getBounds().top + rf * getBounds().height();
-                    }
+                    do {
+                        generateRandomLocation(newParticle, i);
+                    } while (isOnSpace(newParticle.x, newParticle.y));
 
                     double angleRad = rf * Math.PI * 2 - Math.PI;
                     float vx = (float) Math.cos(angleRad);
@@ -359,6 +352,30 @@ public class SpoilerEffect extends Drawable {
         canvas.drawPoints(particlePoints, 0, renderCount, particlePaint);
 
         invalidateSelf();
+    }
+
+    private boolean isOnSpace(float x, float y) {
+        for (RectF r : spaces) {
+            if (r.contains(x, y))
+                return true;
+        }
+        return false;
+    }
+
+    private void generateRandomLocation(Particle newParticle, int i) {
+        float rf = particleRands[i % RAND_REPEAT];
+        if (keyPoints != null && !keyPoints.isEmpty()) {
+            long kp = keyPoints.get(Utilities.fastRandom.nextInt(keyPoints.size()));
+            newParticle.keyX = getBounds().left + (kp >> 16);
+            newParticle.keyY = getBounds().top + (kp & 0xFFFF);
+            newParticle.x = newParticle.keyX + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
+            newParticle.y = newParticle.keyY + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
+        } else {
+            newParticle.keyX = -1;
+            newParticle.keyY = -1;
+            newParticle.x = getBounds().left + rf * getBounds().width();
+            newParticle.y = getBounds().top + rf * getBounds().height();
+        }
     }
 
     @Override
