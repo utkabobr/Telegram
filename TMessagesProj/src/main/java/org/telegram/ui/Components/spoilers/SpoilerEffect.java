@@ -288,22 +288,14 @@ public class SpoilerEffect extends Drawable {
         if (dt >= renderDelayMs) {
             lastDrawTime = curTime;
 
+            int left = getBounds().left, top = getBounds().top, right = getBounds().right, bottom = getBounds().bottom;
             if (!suppressUpdates) {
                 Iterator<Particle> it = particles.iterator();
-                int top = getBounds().top, bottom = getBounds().bottom;
                 while (it.hasNext()) {
                     Particle particle = it.next();
                     particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
-                    boolean rem = false;
-                    for (RectF r : spaces) {
-                        if (r.contains(particle.x, particle.y)) {
-                            rem = true;
-                            break;
-                        }
-                    }
-                    if (rem || particle.currentTime >= particle.lifeTime || !getBounds().contains((int) particle.x, (int) particle.y) ||
-                            particle.y < top + AndroidUtilities.dp(VERTICAL_PADDING_DP) || particle.y > bottom - AndroidUtilities.dp(VERTICAL_PADDING_DP) ||
-                                (hasAnimator && Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
+                    if (particle.currentTime >= particle.lifeTime || isOutOfBounds(left, top, right, bottom, particle.x, particle.y) ||
+                            (hasAnimator && Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
                         if (particlesPool.size() < maxParticles) {
                             particlesPool.push(particle);
                         }
@@ -333,9 +325,11 @@ public class SpoilerEffect extends Drawable {
                     }
 
                     Particle newParticle = !particlesPool.isEmpty() ? particlesPool.pop() : new Particle();
+                    int attempts = 0;
                     do {
                         generateRandomLocation(newParticle, i);
-                    } while (isOnSpace(newParticle.x, newParticle.y));
+                        attempts++;
+                    } while (isOutOfBounds(left, top, right, bottom, newParticle.x, newParticle.y) && attempts < 4);
 
                     double angleRad = rf * Math.PI * 2 - Math.PI;
                     float vx = (float) Math.cos(angleRad);
@@ -366,7 +360,11 @@ public class SpoilerEffect extends Drawable {
         invalidateSelf();
     }
 
-    private boolean isOnSpace(float x, float y) {
+    private boolean isOutOfBounds(int left, int top, int right, int bottom, float x, float y) {
+        if (x < left || x > right || y < top + AndroidUtilities.dp(VERTICAL_PADDING_DP) ||
+                y > bottom - AndroidUtilities.dp(VERTICAL_PADDING_DP))
+            return true;
+
         for (RectF r : spaces) {
             if (r.contains(x, y))
                 return true;
@@ -569,19 +567,12 @@ public class SpoilerEffect extends Drawable {
             vSpan.removeSpan(urlSpan);
         int tLen = vSpan.toString().trim().length();
         if (tLen == 0) return;
-        StaticLayout newLayout;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            newLayout = StaticLayout.Builder.obtain(vSpan, 0, vSpan.length(), textLayout.getPaint(), textLayout.getWidth())
-                    .setBreakStrategy(StaticLayout.BREAK_STRATEGY_HIGH_QUALITY)
-                    .setHyphenationFrequency(StaticLayout.HYPHENATION_FREQUENCY_NONE)
-                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                    .build();
-        } else {
-            newLayout = new StaticLayout(vSpan, textLayout.getPaint(), textLayout.getWidth(), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);;
-        }
+        StaticLayout newLayout = new StaticLayout(vSpan, textLayout.getPaint(), textLayout.getWidth(), Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+        boolean rtlInNonRTL = (LocaleController.isRTLCharacter(vSpan.charAt(0)) || LocaleController.isRTLCharacter(vSpan.charAt(vSpan.length() - 1))) && !LocaleController.isRTL;
         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
         spoilerEffect.setRippleProgress(-1);
-        float ps = realStart == lineStart ? tempRect.left : textLayout.getPrimaryHorizontal(realStart), pe = realEnd == lineEnd ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
+        float ps = realStart == lineStart ? tempRect.left : textLayout.getPrimaryHorizontal(realStart),
+                pe = realEnd == lineEnd || rtlInNonRTL && realEnd == lineEnd - 1 && spannable.charAt(lineEnd - 1) == '\u2026' ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
         spoilerEffect.setBounds((int)Math.min(ps, pe), tempRect.top, (int)Math.max(ps, pe), tempRect.bottom);
         spoilerEffect.setColor(textLayout.getPaint().getColor());
         spoilerEffect.setRippleInterpolator(Easings.easeInQuad);
