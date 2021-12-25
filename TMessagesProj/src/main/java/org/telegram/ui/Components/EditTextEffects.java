@@ -11,9 +11,6 @@ import android.text.Spannable;
 import android.view.MotionEvent;
 import android.widget.EditText;
 
-import androidx.core.math.MathUtils;
-
-import org.telegram.messenger.MessageObject;
 import org.telegram.ui.Components.spoilers.SpoilerEffect;
 import org.telegram.ui.Components.spoilers.SpoilersClickDetector;
 
@@ -47,6 +44,7 @@ public class EditTextEffects extends EditText {
             eff.startRipple(lastRippleX, lastRippleY, rad, true);
         }
     };
+    private Rect rect = new Rect();
 
     public EditTextEffects(Context context) {
         super(context);
@@ -211,9 +209,13 @@ public class EditTextEffects extends EditText {
         super.onDraw(canvas);
         canvas.restore();
 
+        rect.set(0, (int) (getScrollY() - getPaint().getTextSize()), getWidth(), getScrollY() + getHeight());
         for (SpoilerEffect eff : spoilers) {
-            eff.setColor(getPaint().getColor());
-            eff.draw(canvas);
+            Rect b = eff.getBounds();
+            if (rect.top <= b.bottom && rect.bottom >= b.top || b.top <= rect.bottom && b.bottom >= rect.top) {
+                eff.setColor(getPaint().getColor());
+                eff.draw(canvas);
+            }
         }
     }
 
