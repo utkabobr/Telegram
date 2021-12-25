@@ -53,7 +53,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SpoilerEffect extends Drawable {
     public final static int MAX_PARTICLES_PER_ENTITY = measureMaxParticlesCount();
     public final static int PARTICLES_PER_CHARACTER = measureParticlesPerCharacter();
-    private final static int SPACE_OFFSET_DP = 2;
     private final static int RAND_REPEAT = 14;
     private final static float KEYPOINT_DELTA = 1f;
     private final static int FPS = 30;
@@ -548,6 +547,7 @@ public class SpoilerEffect extends Drawable {
         }
     }
 
+    @SuppressLint("WrongConstant")
     private static void addSpoilersInternal(View v, Spannable spannable, Layout textLayout, int lineStart, int lineEnd, int realStart, int realEnd, Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
         SpannableStringBuilder vSpan = new SpannableStringBuilder(spannable, realStart, realEnd);
         for (TextStyleSpan styleSpan : vSpan.getSpans(0, vSpan.length(), TextStyleSpan.class))
@@ -556,7 +556,16 @@ public class SpoilerEffect extends Drawable {
             vSpan.removeSpan(urlSpan);
         int tLen = vSpan.toString().trim().length();
         if (tLen == 0) return;
-        StaticLayout newLayout = new StaticLayout(vSpan, textLayout.getPaint(), Math.max(v != null ? v.getWidth() : 0, textLayout.getWidth()), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+        StaticLayout newLayout;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            newLayout = StaticLayout.Builder.obtain(vSpan, 0, vSpan.length(), textLayout.getPaint(), textLayout.getWidth())
+                    .setBreakStrategy(StaticLayout.BREAK_STRATEGY_HIGH_QUALITY)
+                    .setHyphenationFrequency(StaticLayout.HYPHENATION_FREQUENCY_NONE)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .build();
+        } else {
+            newLayout = new StaticLayout(vSpan, textLayout.getPaint(), textLayout.getWidth(), LocaleController.isRTL ? Layout.Alignment.ALIGN_OPPOSITE : Layout.Alignment.ALIGN_NORMAL, 1, 0, false);;
+        }
         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
         spoilerEffect.setRippleProgress(-1);
         float ps = realStart == lineStart ? tempRect.left : textLayout.getPrimaryHorizontal(realStart), pe = realEnd == lineEnd ? tempRect.right : textLayout.getPrimaryHorizontal(realEnd);
@@ -576,8 +585,8 @@ public class SpoilerEffect extends Drawable {
                 r.top = textLayout.getLineTop(line);
                 r.bottom = textLayout.getLineBottom(line);
                 float lh = textLayout.getPrimaryHorizontal(off), rh = textLayout.getPrimaryHorizontal(off + 1);
-                r.left = (int) (Math.min(lh, rh) - AndroidUtilities.dp(SPACE_OFFSET_DP)); // RTL
-                r.right = (int) (Math.max(lh, rh) + AndroidUtilities.dp(SPACE_OFFSET_DP));
+                r.left = (int) Math.min(lh, rh); // RTL
+                r.right = (int) Math.max(lh, rh);
                 if (Math.abs(lh - rh) <= AndroidUtilities.dp(20))
                     spoilerEffect.spaces.add(r);
             }
