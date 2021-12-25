@@ -635,7 +635,7 @@ public class SpoilerEffect extends Drawable {
     public static void renderWithRipple(View v, boolean invalidateSpoilersParent, int spoilersColor, int verticalOffset, AtomicReference<Layout> patchedLayoutRef, Layout textLayout, List<SpoilerEffect> spoilers, Canvas canvas) {
         Layout pl = patchedLayoutRef.get();
         if (pl == null || !textLayout.getText().toString().equals(pl.getText().toString()) || textLayout.getWidth() != pl.getWidth() || textLayout.getHeight() != pl.getHeight()) {
-            SpannableStringBuilder sb = SpannableStringBuilder.valueOf(textLayout.getText());
+            SpannableStringBuilder sb = new SpannableStringBuilder(textLayout.getText());
             Spannable sp = (Spannable) textLayout.getText();
             for (TextStyleSpan ss : sp.getSpans(0, sp.length(), TextStyleSpan.class)) {
                 if (ss.isSpoiler()) {
