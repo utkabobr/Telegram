@@ -308,7 +308,7 @@ android {
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            outputFileName = "app.apk"
+            outputFileName = "app_" + getCurrentGitCommitHash() + ".apk"
             output.versionCodeOverride = defaultConfig.versionCode * 10 + variant.productFlavors.get(0).abiVersionCode
         }
     }
@@ -333,6 +333,16 @@ android {
                 arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-16', "-j=16"
             }
         }
+    }
+}
+
+static String getCurrentGitCommitHash() {
+    try {
+        return Runtime.getRuntime().exec("git rev-parse HEAD").inputStream.readLines().get(0).substring(0, 10)
+    } catch (Exception e){
+        println("Unable to get git commit hash:")
+        e.printStackTrace()
+        return "non-git build"
     }
 }
 
