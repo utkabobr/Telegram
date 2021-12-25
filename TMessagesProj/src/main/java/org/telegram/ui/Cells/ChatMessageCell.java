@@ -86,6 +86,7 @@ import org.telegram.messenger.MediaController;
 import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.SharedConfig;
@@ -149,7 +150,7 @@ import java.util.Locale;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate, ImageReceiver.ImageReceiverDelegate, DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView {
+public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate, ImageReceiver.ImageReceiverDelegate, DownloadController.FileDownloadProgressListener, TextSelectionHelper.SelectableView, NotificationCenter.NotificationCenterDelegate {
 
     public RadialProgress2 getRadialProgress() {
         return radialProgress;
@@ -159,6 +160,26 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     public void setEnterTransitionInProgress(boolean b) {
         enterTransitionInPorgress = b;
         invalidate();
+    }
+
+    @Override
+    public void didReceivedNotification(int id, int account, Object... args) {
+        if (id == NotificationCenter.startSpoilers) {
+            setSpoilersSuppressed(false);
+        } else if (id == NotificationCenter.stopSpoilers) {
+            setSpoilersSuppressed(true);
+        }
+    }
+
+    public void setSpoilersSuppressed(boolean s) {
+        for (SpoilerEffect eff : captionSpoilers)
+            eff.setSuppressUpdates(s);
+        for (SpoilerEffect eff : replySpoilers)
+            eff.setSuppressUpdates(s);
+        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null)
+            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks)
+                for (SpoilerEffect eff : bl.spoilers)
+                    eff.setSuppressUpdates(s);
     }
 
     public interface ChatMessageCellDelegate {
@@ -3072,6 +3093,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.startSpoilers);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.stopSpoilers);
+
         cancelShakeAnimation();
         if (animationRunning) {
             return;
@@ -3129,6 +3154,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.startSpoilers);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.stopSpoilers);
 
         if (currentMessageObject != null) {
             currentMessageObject.animateComments = false;

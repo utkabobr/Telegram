@@ -91,6 +91,7 @@ public class SpoilerEffect extends Drawable {
     private TimeInterpolator rippleInterpolator = input -> input;
 
     private boolean invalidateParent;
+    private boolean suppressUpdates;
 
     private static int measureParticlesPerCharacter() {
         switch (SharedConfig.getDevicePerformanceClass()) {
@@ -123,6 +124,14 @@ public class SpoilerEffect extends Drawable {
         particlePaint.setStrokeCap(Paint.Cap.ROUND);
 
         setColor(Color.TRANSPARENT);
+    }
+
+    /**
+     * Sets if we should suppress updates or not
+     */
+    public void setSuppressUpdates(boolean suppressUpdates) {
+        this.suppressUpdates = suppressUpdates;
+        invalidateSelf();
     }
 
     /**
@@ -279,35 +288,37 @@ public class SpoilerEffect extends Drawable {
         if (dt >= renderDelayMs) {
             lastDrawTime = curTime;
 
-            Iterator<Particle> it = particles.iterator();
-            while (it.hasNext()) {
-                Particle particle = it.next();
-                particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
-                boolean rem = false;
-                for (RectF r : spaces) {
-                    if (r.contains(particle.x, particle.y)) {
-                        rem = true;
-                        break;
+            if (!suppressUpdates) {
+                Iterator<Particle> it = particles.iterator();
+                while (it.hasNext()) {
+                    Particle particle = it.next();
+                    particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
+                    boolean rem = false;
+                    for (RectF r : spaces) {
+                        if (r.contains(particle.x, particle.y)) {
+                            rem = true;
+                            break;
+                        }
                     }
-                }
-                if (rem || particle.currentTime >= particle.lifeTime || !getBounds().contains((int) particle.x, (int) particle.y) || (hasAnimator &&
+                    if (rem || particle.currentTime >= particle.lifeTime || !getBounds().contains((int) particle.x, (int) particle.y) || (hasAnimator &&
                             Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
-                    if (particlesPool.size() < maxParticles) {
-                        particlesPool.push(particle);
+                        if (particlesPool.size() < maxParticles) {
+                            particlesPool.push(particle);
+                        }
+                        it.remove();
+                        continue;
                     }
-                    it.remove();
-                    continue;
-                }
 
-                if (hasAnimator) {
-                    float adt = dt / 300f;
+                    if (hasAnimator) {
+                        float adt = dt / 300f;
 
-                    particle.vecX += ((particle.x - rippleX) / getBounds().width()) * adt;
-                    particle.vecY += ((particle.y - rippleY) / getBounds().height()) * adt;
+                        particle.vecX += ((particle.x - rippleX) / getBounds().width()) * adt;
+                        particle.vecY += ((particle.y - rippleY) / getBounds().height()) * adt;
+                    }
+                    float hdt = particle.velocity * dt / 500f;
+                    particle.x += particle.vecX * hdt;
+                    particle.y += particle.vecY * hdt;
                 }
-                float hdt = particle.velocity * dt / 500f;
-                particle.x += particle.vecX * hdt;
-                particle.y += particle.vecY * hdt;
             }
 
             if ((!hasAnimator || reverseAnimator) && particles.size() < maxParticles) {

@@ -107,6 +107,8 @@ public class NotificationCenter {
     public static final int newPeopleNearbyAvailable = totalEvents++;
     public static final int stopAllHeavyOperations = totalEvents++;
     public static final int startAllHeavyOperations = totalEvents++;
+    public static final int stopSpoilers = totalEvents++;
+    public static final int startSpoilers = totalEvents++;
     public static final int sendingMessagesChanged = totalEvents++;
     public static final int didUpdateReactions = totalEvents++;
     public static final int didVerifyMessagesStickers = totalEvents++;
