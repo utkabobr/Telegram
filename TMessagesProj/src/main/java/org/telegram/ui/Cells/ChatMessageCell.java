@@ -2760,7 +2760,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         parentHeight = parentH;
         backgroundHeight = parentH;
         viewTop = visibleTop;
-        updateSpoilersVisiblePart(position - AndroidUtilities.dp(8), position + height + parent);
+        updateSpoilersVisiblePart(position - AndroidUtilities.dp(8), position + height);
 
         if (parent != parentHeight || parentOffset != this.parentViewTopOffset) {
             this.parentViewTopOffset = parentOffset;
