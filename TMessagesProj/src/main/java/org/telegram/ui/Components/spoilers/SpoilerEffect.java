@@ -655,6 +655,7 @@ public class SpoilerEffect extends Drawable {
                         .setBreakStrategy(StaticLayout.BREAK_STRATEGY_HIGH_QUALITY)
                         .setHyphenationFrequency(StaticLayout.HYPHENATION_FREQUENCY_NONE)
                         .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                        .setLineSpacing(textLayout.getSpacingAdd(), textLayout.getSpacingMultiplier())
                         .build();
             } else layout = new StaticLayout(sb, textLayout.getPaint(), textLayout.getWidth(), textLayout.getAlignment(), textLayout.getSpacingMultiplier(), textLayout.getSpacingAdd(), false);
             patchedLayoutRef.set(pl = layout);
@@ -662,7 +663,7 @@ public class SpoilerEffect extends Drawable {
 
         if (!spoilers.isEmpty()) {
             canvas.save();
-            canvas.translate(0, -v.getPaddingTop() + verticalOffset);
+            canvas.translate(0, verticalOffset);
             pl.draw(canvas);
             canvas.restore();
         } else {
