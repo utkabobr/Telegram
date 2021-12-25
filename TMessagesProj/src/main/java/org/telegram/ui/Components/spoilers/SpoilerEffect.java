@@ -22,6 +22,7 @@ import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.ReplacementSpan;
 import android.view.View;
 import android.widget.TextView;
 
@@ -32,6 +33,7 @@ import androidx.core.graphics.ColorUtils;
 import androidx.core.math.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.Emoji;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
@@ -93,12 +95,12 @@ public class SpoilerEffect extends Drawable {
     private static int measureParticlesPerCharacter() {
         switch (SharedConfig.getDevicePerformanceClass()) {
             case SharedConfig.PERFORMANCE_CLASS_LOW:
-                return 10;
+                return 13;
             default:
             case SharedConfig.PERFORMANCE_CLASS_AVERAGE:
-                return 21;
-            case SharedConfig.PERFORMANCE_CLASS_HIGH:
                 return 27;
+            case SharedConfig.PERFORMANCE_CLASS_HIGH:
+                return 35;
         }
     }
 
@@ -605,6 +607,20 @@ public class SpoilerEffect extends Drawable {
             Spannable sp = (Spannable) textLayout.getText();
             for (TextStyleSpan ss : sp.getSpans(0, sp.length(), TextStyleSpan.class)) {
                 if (ss.isSpoiler()) {
+                    int start = sp.getSpanStart(ss), end = sp.getSpanEnd(ss);
+                    for (Emoji.EmojiSpan e : sp.getSpans(start, end, Emoji.EmojiSpan.class)) {
+                        sb.setSpan(new ReplacementSpan() {
+                            @Override
+                            public int getSize(@NonNull Paint paint, CharSequence text, int start, int end, @Nullable Paint.FontMetricsInt fm) {
+                                return e.getSize(paint, text, start, end, fm);
+                            }
+
+                            @Override
+                            public void draw(@NonNull Canvas canvas, CharSequence text, int start, int end, float x, int top, int y, int bottom, @NonNull Paint paint) {}
+                        }, start, end, sp.getSpanFlags(ss));
+                        sb.removeSpan(e);
+                    }
+
                     sb.setSpan(new ForegroundColorSpan(Color.TRANSPARENT), sp.getSpanStart(ss), sp.getSpanEnd(ss), sp.getSpanFlags(ss));
                     sb.removeSpan(ss);
                 }
