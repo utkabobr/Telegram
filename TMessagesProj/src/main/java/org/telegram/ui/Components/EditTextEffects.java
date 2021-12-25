@@ -140,6 +140,9 @@ public class EditTextEffects extends EditText {
 
                 for (SpoilerEffect eff : spoilers) {
                     if (eff.getBounds().contains(x, y)) {
+                        int selOffset = lengthAfter - lengthBefore;
+                        selStart += selOffset;
+                        selEnd += selOffset;
                         onSpoilerClicked(eff, x, y);
                         break;
                     }
