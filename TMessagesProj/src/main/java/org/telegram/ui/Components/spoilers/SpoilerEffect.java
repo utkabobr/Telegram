@@ -577,6 +577,8 @@ public class SpoilerEffect extends Drawable {
                 }
             }
         }
+        if (v instanceof TextView && spoilersPool != null)
+            spoilersPool.clear();
     }
 
     @SuppressLint("WrongConstant")
