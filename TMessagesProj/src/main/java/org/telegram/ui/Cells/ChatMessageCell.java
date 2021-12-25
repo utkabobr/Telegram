@@ -31,7 +31,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
@@ -120,6 +119,7 @@ import org.telegram.ui.Components.MsgClockDrawable;
 import org.telegram.ui.Components.Point;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.RadialProgress2;
+import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.RoundVideoPlayingDrawable;
 import org.telegram.ui.Components.SeekBar;
 import org.telegram.ui.Components.SeekBarAccessibilityDelegate;
@@ -695,6 +695,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     public StaticLayout replyNameLayout;
     public StaticLayout replyTextLayout;
+    private AtomicReference<Layout> spoilersPatchedReplyTextLayout = new AtomicReference<>();
     public ImageReceiver replyImageReceiver;
     public int replyStartX;
     public int replyStartY;
@@ -2103,6 +2104,27 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
                     for (SpoilerEffect eff : block.spoilers) {
                         eff.startRipple(x - textX + offX, y - block.textYOffset - textY, rad);
+                    }
+                }
+            }
+            if (getParent() instanceof RecyclerListView) {
+                ViewGroup vg = (ViewGroup) getParent();
+                for (int i = 0; i < vg.getChildCount(); i++) {
+                    View ch = vg.getChildAt(i);
+                    if (ch instanceof ChatMessageCell) {
+                        ChatMessageCell cell = (ChatMessageCell) ch;
+                        if (cell.getMessageObject() != null && cell.getMessageObject().getReplyMsgId() == getMessageObject().getId()) {
+                            if (!cell.replySpoilers.isEmpty()) {
+                                cell.replySpoilers.get(0).setOnRippleEndCallback(()->post(()->{
+                                    cell.getMessageObject().replyMessageObject.isSpoilersRevealed = true;
+                                    cell.replySpoilers.clear();
+                                    cell.invalidate();
+                                }));
+                                for (SpoilerEffect eff : cell.replySpoilers) {
+                                    eff.startRipple(eff.getBounds().centerX(), eff.getBounds().centerY(), rad);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -8559,7 +8581,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 try {
                     Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
 
-                    SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, canvas, block.spoilersPatchedTextLayout, block.textLayout, block.spoilers);
+                    SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, 0, block.spoilersPatchedTextLayout, block.textLayout, block.spoilers, canvas);
                     Emoji.emojiDrawingYOffset = 0;
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -10213,7 +10235,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                             replyTextOffset = (int) replyTextLayout.getLineLeft(0);
                         }
                         replySpoilers.clear();
-                        SpoilerEffect.addSpoilers(this, replyTextLayout, replySpoilersPool, replySpoilers);
+                        if (getMessageObject().replyMessageObject != null && !getMessageObject().replyMessageObject.isSpoilersRevealed)
+                            SpoilerEffect.addSpoilers(this, replyTextLayout, replySpoilersPool, replySpoilers);
                     }
                 } catch (Exception e) {
                     FileLog.e(e);
@@ -11564,25 +11587,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     canvas.save();
                     canvas.translate(forwardNameX, replyStartY + AndroidUtilities.dp(19));
 
-                    canvas.save();
-                    sPath.rewind();
-                    for (SpoilerEffect eff : replySpoilers) {
-                        Rect b = eff.getBounds();
-                        sPath.addRect(b.left, b.top, b.right, b.bottom, Path.Direction.CW);
-                    }
-                    canvas.clipPath(sPath, Region.Op.DIFFERENCE);
-                    replyTextLayout.draw(canvas);
-                    canvas.restore();
-
                     int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? getThemedColor(Theme.key_chat_outTimeText) : replyTextLayout.getPaint().getColor();
-                    for (SpoilerEffect eff : replySpoilers) {
-                        eff.setInvalidateParent(invalidateSpoilersParent);
-                        if (eff.shouldInvalidateColor())
-                            eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
-                        else eff.setColor(spoilersColor);
-                        eff.draw(canvas);
-                    }
-                    canvas.restore();
+                    SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, -AndroidUtilities.dp(2), spoilersPatchedReplyTextLayout, replyTextLayout, replySpoilers, canvas);
                 }
             }
         }
@@ -12004,7 +12010,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 Emoji.emojiDrawingYOffset = -transitionYOffsetForDrawables;
 
                 int spoilersColor = currentMessageObject.isOut() && !ChatObject.isChannelAndNotMegaGroup(currentMessageObject.getChatId(), currentAccount) ? getThemedColor(Theme.key_chat_outTimeText) : captionLayout.getPaint().getColor();
-                SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, canvas, captionPatchedSpoilersLayout, captionLayout, captionSpoilers);
+                SpoilerEffect.renderWithRipple(this, invalidateSpoilersParent, spoilersColor, 0, captionPatchedSpoilersLayout, captionLayout, captionSpoilers, canvas);
 
                 Emoji.emojiDrawingYOffset = 0;
             } catch (Exception e) {

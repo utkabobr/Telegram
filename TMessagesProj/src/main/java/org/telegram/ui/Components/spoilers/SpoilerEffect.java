@@ -60,7 +60,7 @@ public class SpoilerEffect extends Drawable {
     private final static int renderDelayMs = 1000 / FPS + 1;
 
     private Stack<Particle> particlesPool = new Stack<>();
-    private int maxParticles, newParticles;
+    private int maxParticles;
     private float[] particlePoints = new float[MAX_PARTICLES_PER_ENTITY * 2];
     private float[] particleRands = new float[RAND_REPEAT];
 
@@ -108,12 +108,12 @@ public class SpoilerEffect extends Drawable {
     private static int measureMaxParticlesCount() {
         switch (SharedConfig.getDevicePerformanceClass()) {
             case SharedConfig.PERFORMANCE_CLASS_LOW:
-                return 300;
+                return 400;
             default:
             case SharedConfig.PERFORMANCE_CLASS_AVERAGE:
-                return 500;
+                return 700;
             case SharedConfig.PERFORMANCE_CLASS_HIGH:
-                return 800;
+                return 1000;
         }
     }
 
@@ -312,7 +312,7 @@ public class SpoilerEffect extends Drawable {
             }
 
             if ((!hasAnimator || reverseAnimator) && particles.size() < maxParticles) {
-                int np = Math.min(newParticles, maxParticles - particles.size());
+                int np = maxParticles - particles.size();
                 Arrays.fill(particleRands, -1);
                 for (int i = 0; i < np; i++) {
                     float rf = particleRands[i % RAND_REPEAT];
@@ -492,17 +492,9 @@ public class SpoilerEffect extends Drawable {
      */
     public void setMaxParticlesCount(int maxParticles) {
         this.maxParticles = maxParticles;
-        newParticles = Math.max(10, maxParticles / 10);
         while (particlesPool.size() + particles.size() < maxParticles) {
             particlesPool.push(new Particle());
         }
-    }
-
-    /**
-     * Sets how many new particles to spawn per tick
-     */
-    public void setNewParticlesCountPerTick(int newParticles) {
-        this.newParticles = newParticles;
     }
 
     /**
@@ -610,14 +602,15 @@ public class SpoilerEffect extends Drawable {
      * @param v View to use as a parent view
      * @param invalidateSpoilersParent Set to invalidate parent or not
      * @param spoilersColor Spoilers' color
-     * @param canvas Canvas to render
+     * @param verticalOffset Additional vertical offset
      * @param patchedLayoutRef Patched layout reference
      * @param textLayout Layout to render
      * @param spoilers Spoilers list to render
+     * @param canvas Canvas to render
      */
     @SuppressLint("WrongConstant")
     @MainThread
-    public static void renderWithRipple(View v, boolean invalidateSpoilersParent, int spoilersColor, Canvas canvas, AtomicReference<Layout> patchedLayoutRef, Layout textLayout, List<SpoilerEffect> spoilers) {
+    public static void renderWithRipple(View v, boolean invalidateSpoilersParent, int spoilersColor, int verticalOffset, AtomicReference<Layout> patchedLayoutRef, Layout textLayout, List<SpoilerEffect> spoilers, Canvas canvas) {
         Layout pl = patchedLayoutRef.get();
         if (pl == null || !textLayout.getText().toString().equals(pl.getText().toString()) || textLayout.getWidth() != pl.getWidth() || textLayout.getHeight() != pl.getHeight()) {
             SpannableStringBuilder sb = SpannableStringBuilder.valueOf(textLayout.getText());
@@ -655,7 +648,10 @@ public class SpoilerEffect extends Drawable {
         }
 
         if (!spoilers.isEmpty()) {
+            canvas.save();
+            canvas.translate(0, -v.getPaddingTop() + verticalOffset);
             pl.draw(canvas);
+            canvas.restore();
         } else {
             textLayout.draw(canvas);
         }
