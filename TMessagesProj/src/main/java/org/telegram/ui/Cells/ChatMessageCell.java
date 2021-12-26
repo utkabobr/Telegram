@@ -2103,7 +2103,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     MessageObject.TextLayoutBlock block = blocks.get(i);
                     int offX = block.isRtl() ? (int) currentMessageObject.textXOffset : 0;
                     for (SpoilerEffect eff : block.spoilers) {
-                        if (eff.getBounds().contains(x - textX + offX, y - textY)) {
+                        if (eff.getBounds().contains(x - textX + offX, (int) (y - textY - block.textYOffset))) {
                             spoilerPressed = eff;
                             isCaptionSpoilerPressed = false;
                             return true;
