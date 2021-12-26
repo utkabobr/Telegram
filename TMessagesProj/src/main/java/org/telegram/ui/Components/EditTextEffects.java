@@ -170,15 +170,17 @@ public class EditTextEffects extends EditText {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
+        boolean detector = false;
         if (shouldRevealSpoilersByTouch && clickDetector.onTouchEvent(event)) {
-            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+            int act = event.getActionMasked();
+            if (act == MotionEvent.ACTION_UP) {
                 MotionEvent c = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
                 super.dispatchTouchEvent(c);
                 c.recycle();
             }
-            return true;
+            detector = true;
         }
-        return super.dispatchTouchEvent(event);
+        return super.dispatchTouchEvent(event) || detector;
     }
 
     /**
