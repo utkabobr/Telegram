@@ -195,8 +195,9 @@ public class SpoilerEffect extends Drawable {
                 Iterator<Particle> it = particles.iterator();
                 while (it.hasNext()) {
                     Particle p = it.next();
-                    if (particlesPool.size() < maxParticles)
+                    if (particlesPool.size() < maxParticles) {
                         particlesPool.push(p);
+                    }
                     it.remove();
                 }
 
@@ -259,8 +260,9 @@ public class SpoilerEffect extends Drawable {
      */
     public void setRippleProgress(float rippleProgress) {
         this.rippleProgress = rippleProgress;
-        if (rippleProgress == -1 && rippleAnimator != null)
+        if (rippleProgress == -1 && rippleAnimator != null) {
             rippleAnimator.cancel();
+        }
         shouldInvalidateColor = true;
     }
 
@@ -270,10 +272,12 @@ public class SpoilerEffect extends Drawable {
         Iterator<Particle> it = particles.iterator();
         while (it.hasNext()) {
             Particle p = it.next();
-            if (!getBounds().contains((int)p.x, (int)p.y))
+            if (!getBounds().contains((int)p.x, (int)p.y)) {
                 it.remove();
-            if (particlesPool.size() < maxParticles)
+            }
+            if (particlesPool.size() < maxParticles) {
                 particlesPool.push(p);
+            }
         }
     }
 
@@ -383,8 +387,9 @@ public class SpoilerEffect extends Drawable {
             return true;
 
         for (RectF r : spaces) {
-            if (r.contains(x, y))
+            if (r.contains(x, y)) {
                 return true;
+            }
         }
         return false;
     }
@@ -490,8 +495,9 @@ public class SpoilerEffect extends Drawable {
             for (int y = 0; y < h; y++) {
                 int clr = pixels[y * measureBitmap.getWidth() + x];
                 if (Color.alpha(clr) >= 0x80) {
-                    if (sX == -1)
+                    if (sX == -1) {
                         sX = x;
+                    }
                     keyPoints.add(((long) (x - sX) << 16) + y);
                 }
             }
@@ -563,12 +569,16 @@ public class SpoilerEffect extends Drawable {
                 }
             }
         }
-        if (v instanceof TextView && spoilersPool != null)
+        if (v instanceof TextView && spoilersPool != null) {
             spoilersPool.clear();
+        }
     }
 
     @SuppressLint("WrongConstant")
-    private static void addSpoilersInternal(View v, Spannable spannable, Layout textLayout, int lineStart, int lineEnd, float ll, float lt, float lr, float lb, int realStart, int realEnd, Stack<SpoilerEffect> spoilersPool, List<SpoilerEffect> spoilers) {
+    private static void addSpoilersInternal(View v, Spannable spannable, Layout textLayout, int lineStart,
+                                            int lineEnd, float lineLeft, float lineTop, float lineRight,
+                                            float lineBottom, int realStart, int realEnd, Stack<SpoilerEffect> spoilersPool,
+                                            List<SpoilerEffect> spoilers) {
         SpannableStringBuilder vSpan = SpannableStringBuilder.valueOf(AndroidUtilities.replaceNewLines(new SpannableStringBuilder(spannable, realStart, realEnd)));
         for (TextStyleSpan styleSpan : vSpan.getSpans(0, vSpan.length(), TextStyleSpan.class))
             vSpan.removeSpan(styleSpan);
@@ -589,15 +599,16 @@ public class SpoilerEffect extends Drawable {
         boolean rtlInNonRTL = (LocaleController.isRTLCharacter(vSpan.charAt(0)) || LocaleController.isRTLCharacter(vSpan.charAt(vSpan.length() - 1))) && !LocaleController.isRTL;
         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
         spoilerEffect.setRippleProgress(-1);
-        float ps = realStart == lineStart ? ll : textLayout.getPrimaryHorizontal(realStart),
-                pe = realEnd == lineEnd || rtlInNonRTL && realEnd == lineEnd - 1 && spannable.charAt(lineEnd - 1) == '\u2026' ? lr : textLayout.getPrimaryHorizontal(realEnd);
-        spoilerEffect.setBounds((int)Math.min(ps, pe), (int)lt, (int)Math.max(ps, pe), (int)lb);
+        float ps = realStart == lineStart ? lineLeft : textLayout.getPrimaryHorizontal(realStart),
+                pe = realEnd == lineEnd || rtlInNonRTL && realEnd == lineEnd - 1 && spannable.charAt(lineEnd - 1) == '\u2026' ? lineRight : textLayout.getPrimaryHorizontal(realEnd);
+        spoilerEffect.setBounds((int)Math.min(ps, pe), (int)lineTop, (int)Math.max(ps, pe), (int)lineBottom);
         spoilerEffect.setColor(textLayout.getPaint().getColor());
         spoilerEffect.setRippleInterpolator(Easings.easeInQuad);
         spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
         spoilerEffect.updateMaxParticles();
-        if (v != null)
+        if (v != null) {
             spoilerEffect.setParentView(v);
+        }
         spoilerEffect.spaces.clear();
         for (int i = 0; i < vSpan.length(); i++) {
             if (vSpan.charAt(i) == ' ') {
@@ -609,8 +620,9 @@ public class SpoilerEffect extends Drawable {
                 float lh = textLayout.getPrimaryHorizontal(off), rh = textLayout.getPrimaryHorizontal(off + 1);
                 r.left = (int) Math.min(lh, rh); // RTL
                 r.right = (int) Math.max(lh, rh);
-                if (Math.abs(lh - rh) <= AndroidUtilities.dp(20))
+                if (Math.abs(lh - rh) <= AndroidUtilities.dp(20)) {
                     spoilerEffect.spaces.add(r);
+                }
             }
         }
         spoilers.add(spoilerEffect);
@@ -697,8 +709,9 @@ public class SpoilerEffect extends Drawable {
             canvas.save();
             canvas.clipPath(tempPath);
             tempPath.rewind();
-            if (!spoilers.isEmpty())
+            if (!spoilers.isEmpty()) {
                 spoilers.get(0).getRipplePath(tempPath);
+            }
             canvas.clipPath(tempPath);
             canvas.translate(0, -v.getPaddingTop());
             textLayout.draw(canvas);
@@ -710,9 +723,11 @@ public class SpoilerEffect extends Drawable {
         for (SpoilerEffect eff : spoilers) {
             eff.setInvalidateParent(invalidateSpoilersParent);
             if (eff.getParentView() != v) eff.setParentView(v);
-            if (eff.shouldInvalidateColor())
+            if (eff.shouldInvalidateColor()) {
                 eff.setColor(ColorUtils.blendARGB(spoilersColor, Theme.chat_msgTextPaint.getColor(), Math.max(0, eff.getRippleProgress())));
-            else eff.setColor(spoilersColor);
+            } else {
+                eff.setColor(spoilersColor);
+            }
             eff.draw(canvas);
         }
         canvas.restore();
