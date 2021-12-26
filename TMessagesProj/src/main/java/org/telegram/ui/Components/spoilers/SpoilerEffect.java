@@ -58,17 +58,19 @@ public class SpoilerEffect extends Drawable {
     private final static float KEYPOINT_DELTA = 5f;
     private final static int FPS = 30;
     private final static int renderDelayMs = 1000 / FPS + 1;
+    private final static float[] ALPHAS = {
+            0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f
+    };
+    private Paint[] particlePaints = new Paint[ALPHAS.length];
 
     private Stack<Particle> particlesPool = new Stack<>();
     private int maxParticles;
-    private float[] particlePoints = new float[MAX_PARTICLES_PER_ENTITY * 2];
+    private float[][] particlePoints = new float[ALPHAS.length][MAX_PARTICLES_PER_ENTITY * 2];
     private float[] particleRands = new float[RAND_REPEAT];
 
     private static Path tempPath = new Path();
 
     private RectF visibleRect;
-
-    private Paint particlePaint;
 
     private ArrayList<Particle> particles = new ArrayList<>();
     private View mParent;
@@ -91,6 +93,8 @@ public class SpoilerEffect extends Drawable {
 
     private boolean invalidateParent;
     private boolean suppressUpdates;
+
+    private int lastColor;
 
     private static int measureParticlesPerCharacter() {
         switch (SharedConfig.getDevicePerformanceClass()) {
@@ -117,12 +121,22 @@ public class SpoilerEffect extends Drawable {
     }
 
     public SpoilerEffect() {
-        particlePaint = new Paint();
+        for (int i = 0; i < ALPHAS.length; i++) {
+            particlePaints[i] = createNewPaint();
+        }
+
+        setColor(Color.TRANSPARENT);
+    }
+
+    /**
+     * @return Newly created paint
+     */
+    private Paint createNewPaint() {
+        Paint particlePaint = new Paint();
         particlePaint.setStrokeWidth(AndroidUtilities.dp(1.1f));
         particlePaint.setStyle(Paint.Style.STROKE);
         particlePaint.setStrokeCap(Paint.Cap.ROUND);
-
-        setColor(Color.TRANSPARENT);
+        return particlePaint;
     }
 
     /**
@@ -180,7 +194,7 @@ public class SpoilerEffect extends Drawable {
 
         if (rippleAnimator != null)
             rippleAnimator.cancel();
-        int startAlpha = reverseAnimator ? 0xFF : particlePaint.getAlpha();
+        int startAlpha = reverseAnimator ? 0xFF : particlePaints[ALPHAS.length - 1].getAlpha();
         rippleAnimator = ValueAnimator.ofFloat(rippleProgress, reverse ? 0 : 1).setDuration((long) MathUtils.clamp(rippleMaxRadius * 0.3f, 250, 550));
         rippleAnimator.setInterpolator(rippleInterpolator);
         rippleAnimator.addUpdateListener(animation -> {
@@ -347,23 +361,29 @@ public class SpoilerEffect extends Drawable {
 
                     newParticle.lifeTime = 1000 + Utilities.fastRandom.nextInt(2000); // [1000;3000]
                     newParticle.velocity = 4 + rf * 6;
+                    newParticle.alpha = Utilities.fastRandom.nextInt(ALPHAS.length);
                     particles.add(newParticle);
                 }
             }
         }
 
-        int renderCount = 0;
-        for (int i = 0; i < particles.size(); i++) {
-            Particle p = particles.get(i);
+        for (int a = 0; a < ALPHAS.length; a++) {
+            int renderCount = 0;
+            int off = 0;
+            for (int i = 0; i < particles.size(); i++) {
+                Particle p = particles.get(i);
 
-            if (visibleRect != null && !visibleRect.contains(p.x, p.y))
-                continue;
+                if (visibleRect != null && !visibleRect.contains(p.x, p.y) || p.alpha != a) {
+                    off++;
+                    continue;
+                }
 
-            particlePoints[i * 2] = p.x;
-            particlePoints[i * 2 + 1] = p.y;
-            renderCount++;
+                particlePoints[a][(i - off) * 2] = p.x;
+                particlePoints[a][(i - off) * 2 + 1] = p.y;
+                renderCount += 2;
+            }
+            canvas.drawPoints(particlePoints[a], 0, renderCount, particlePaints[a]);
         }
-        canvas.drawPoints(particlePoints, 0, renderCount, particlePaint);
 
         invalidateSelf();
     }
@@ -441,12 +461,17 @@ public class SpoilerEffect extends Drawable {
 
     @Override
     public void setAlpha(int alpha) {
-        particlePaint.setAlpha(mAlpha = alpha);
+        mAlpha = alpha;
+        for (int i = 0; i < ALPHAS.length; i++) {
+            particlePaints[i].setAlpha((int) (ALPHAS[i] * alpha));
+        }
     }
 
     @Override
     public void setColorFilter(@Nullable ColorFilter colorFilter) {
-        particlePaint.setColorFilter(colorFilter);
+        for (Paint p : particlePaints) {
+            p.setColorFilter(colorFilter);
+        }
     }
 
     /**
@@ -454,8 +479,10 @@ public class SpoilerEffect extends Drawable {
      * @param color New color
      */
     public void setColor(int color) {
-        if (particlePaint.getColor() != color) {
-            particlePaint.setColor(ColorUtils.setAlphaComponent(color, mAlpha));
+        if (lastColor != color) {
+            for (int i = 0; i < ALPHAS.length; i++) {
+                particlePaints[i].setColor(ColorUtils.setAlphaComponent(color, (int) (mAlpha * ALPHAS[i])));
+            }
         }
     }
 
@@ -463,7 +490,7 @@ public class SpoilerEffect extends Drawable {
      * @return If effect has color
      */
     public boolean hasColor() {
-        return particlePaint.getColor() != Color.TRANSPARENT;
+        return lastColor != Color.TRANSPARENT;
     }
 
     @Override
@@ -739,5 +766,6 @@ public class SpoilerEffect extends Drawable {
         private float keyX = -1, keyY = -1;
         private float velocity;
         private float lifeTime, currentTime;
+        private int alpha;
     }
 }
