@@ -64,10 +64,7 @@ public class SpoilerEffect extends Drawable {
     private float[] particlePoints = new float[MAX_PARTICLES_PER_ENTITY * 2];
     private float[] particleRands = new float[RAND_REPEAT];
 
-    private static Bitmap measureBitmap;
-    private static Canvas measureCanvas;
     private static Path tempPath = new Path();
-
     private static Rect tempRect = new Rect();
 
     private RectF visibleRect;
@@ -481,16 +478,9 @@ public class SpoilerEffect extends Drawable {
         if (w == 0 || h == 0)
             return Collections.emptyList();
 
-        if (measureBitmap == null || measureBitmap.isRecycled() || measureBitmap.getWidth() < w || measureBitmap.getHeight() < h) { // Multiple reallocations without the need would be bad for performance
-            if (measureBitmap != null && !measureBitmap.isRecycled())
-                measureBitmap.recycle();
-            measureBitmap = Bitmap.createBitmap(Math.round(w), Math.round(h), Bitmap.Config.ARGB_8888);
-            measureCanvas = new Canvas(measureBitmap);
-        }
-        measureBitmap.eraseColor(Color.TRANSPARENT);
-        measureCanvas.save();
+        Bitmap measureBitmap = Bitmap.createBitmap(Math.round(w), Math.round(h), Bitmap.Config.ARGB_4444); // We can use 4444 as we don't need accuracy here
+        Canvas measureCanvas = new Canvas(measureBitmap);
         textLayout.draw(measureCanvas);
-        measureCanvas.restore();
 
         int[] pixels = new int[measureBitmap.getWidth() * measureBitmap.getHeight()];
         measureBitmap.getPixels(pixels, 0, measureBitmap.getWidth(), 0, 0, w, h);
@@ -508,6 +498,7 @@ public class SpoilerEffect extends Drawable {
             }
         }
         keyPoints.trimToSize();
+        measureBitmap.recycle();
         return keyPoints;
     }
 
