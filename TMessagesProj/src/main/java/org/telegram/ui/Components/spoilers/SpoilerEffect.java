@@ -60,7 +60,7 @@ public class SpoilerEffect extends Drawable {
     private final static int FPS = 30;
     private final static int renderDelayMs = 1000 / FPS + 1;
     private final static float[] ALPHAS = {
-            0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f
+            0.2f, 0.4f, 0.6f, 0.8f, 1.0f
     };
     private Paint[] particlePaints = new Paint[ALPHAS.length];
 
@@ -94,6 +94,7 @@ public class SpoilerEffect extends Drawable {
 
     private boolean invalidateParent;
     private boolean suppressUpdates;
+    private boolean isLowDevice;
 
     private int lastColor;
 
@@ -126,6 +127,7 @@ public class SpoilerEffect extends Drawable {
             particlePaints[i] = createNewPaint();
         }
 
+        isLowDevice = SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_LOW;
         setColor(Color.TRANSPARENT);
     }
 
@@ -159,7 +161,7 @@ public class SpoilerEffect extends Drawable {
      * Updates max particles count
      */
     public void updateMaxParticles() {
-        setMaxParticlesCount(MathUtils.clamp((getBounds().width() / AndroidUtilities.dp(6)) * PARTICLES_PER_CHARACTER, 50, MAX_PARTICLES_PER_ENTITY));
+        setMaxParticlesCount(MathUtils.clamp((getBounds().width() / AndroidUtilities.dp(6)) * PARTICLES_PER_CHARACTER, PARTICLES_PER_CHARACTER, MAX_PARTICLES_PER_ENTITY));
     }
 
     /**
@@ -306,7 +308,7 @@ public class SpoilerEffect extends Drawable {
             lastDrawTime = curTime;
 
             int left = getBounds().left, top = getBounds().top, right = getBounds().right, bottom = getBounds().bottom;
-            if (!suppressUpdates) {
+            if (!(suppressUpdates || isLowDevice)) {
                 Iterator<Particle> it = particles.iterator();
                 while (it.hasNext()) {
                     Particle particle = it.next();
