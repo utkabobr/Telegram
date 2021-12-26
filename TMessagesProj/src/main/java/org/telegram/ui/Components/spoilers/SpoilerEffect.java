@@ -21,8 +21,10 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.StaticLayout;
+import android.text.TextPaint;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ReplacementSpan;
+import android.text.style.URLSpan;
 import android.view.View;
 import android.widget.TextView;
 
@@ -40,7 +42,6 @@ import org.telegram.messenger.Utilities;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.Easings;
 import org.telegram.ui.Components.TextStyleSpan;
-import org.telegram.ui.Components.URLSpanReplacement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -483,6 +484,7 @@ public class SpoilerEffect extends Drawable {
             for (int i = 0; i < ALPHAS.length; i++) {
                 particlePaints[i].setColor(ColorUtils.setAlphaComponent(color, (int) (mAlpha * ALPHAS[i])));
             }
+            lastColor = color;
         }
     }
 
@@ -609,20 +611,22 @@ public class SpoilerEffect extends Drawable {
         SpannableStringBuilder vSpan = SpannableStringBuilder.valueOf(AndroidUtilities.replaceNewLines(new SpannableStringBuilder(spannable, realStart, realEnd)));
         for (TextStyleSpan styleSpan : vSpan.getSpans(0, vSpan.length(), TextStyleSpan.class))
             vSpan.removeSpan(styleSpan);
-        for (URLSpanReplacement urlSpan : vSpan.getSpans(0, vSpan.length(), URLSpanReplacement.class))
+        for (URLSpan urlSpan : vSpan.getSpans(0, vSpan.length(), URLSpan.class))
             vSpan.removeSpan(urlSpan);
         int tLen = vSpan.toString().trim().length();
         if (tLen == 0) return;
         int width = textLayout.getEllipsizedWidth() > 0 ? textLayout.getEllipsizedWidth() : textLayout.getWidth();
+        TextPaint measurePaint = new TextPaint(textLayout.getPaint());
+        measurePaint.setColor(Color.BLACK);
         StaticLayout newLayout;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            newLayout = StaticLayout.Builder.obtain(vSpan, 0, vSpan.length(), textLayout.getPaint(), width)
+            newLayout = StaticLayout.Builder.obtain(vSpan, 0, vSpan.length(), measurePaint, width)
                     .setBreakStrategy(StaticLayout.BREAK_STRATEGY_HIGH_QUALITY)
                     .setHyphenationFrequency(StaticLayout.HYPHENATION_FREQUENCY_NONE)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                     .setLineSpacing(textLayout.getSpacingAdd(), textLayout.getSpacingMultiplier())
                     .build();
-        } else newLayout = new StaticLayout(vSpan, textLayout.getPaint(), width, Layout.Alignment.ALIGN_NORMAL, textLayout.getSpacingMultiplier(), textLayout.getSpacingAdd(), false);
+        } else newLayout = new StaticLayout(vSpan, measurePaint, width, Layout.Alignment.ALIGN_NORMAL, textLayout.getSpacingMultiplier(), textLayout.getSpacingAdd(), false);
         boolean rtlInNonRTL = (LocaleController.isRTLCharacter(vSpan.charAt(0)) || LocaleController.isRTLCharacter(vSpan.charAt(vSpan.length() - 1))) && !LocaleController.isRTL;
         SpoilerEffect spoilerEffect = spoilersPool == null || spoilersPool.isEmpty() ? new SpoilerEffect() : spoilersPool.remove(0);
         spoilerEffect.setRippleProgress(-1);
