@@ -418,18 +418,14 @@ public class SpoilerEffect extends Drawable {
     }
 
     private void generateRandomLocation(Particle newParticle, int i) {
-        float rf = particleRands[i % RAND_REPEAT];
         if (keyPoints != null && !keyPoints.isEmpty()) {
+            float rf = particleRands[i % RAND_REPEAT];
             long kp = keyPoints.get(Utilities.fastRandom.nextInt(keyPoints.size()));
-            newParticle.keyX = getBounds().left + (kp >> 16);
-            newParticle.keyY = getBounds().top + (kp & 0xFFFF);
-            newParticle.x = newParticle.keyX + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
-            newParticle.y = newParticle.keyY + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
+            newParticle.x = getBounds().left + (kp >> 16) + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
+            newParticle.y = getBounds().top + (kp & 0xFFFF) + rf * AndroidUtilities.dp(KEYPOINT_DELTA) - AndroidUtilities.dp(KEYPOINT_DELTA / 2f);
         } else {
-            newParticle.keyX = -1;
-            newParticle.keyY = -1;
-            newParticle.x = getBounds().left + rf * getBounds().width();
-            newParticle.y = getBounds().top + rf * getBounds().height();
+            newParticle.x = getBounds().left + Utilities.fastRandom.nextFloat() * getBounds().width();
+            newParticle.y = getBounds().top + Utilities.fastRandom.nextFloat() * getBounds().height();
         }
     }
 
@@ -637,7 +633,8 @@ public class SpoilerEffect extends Drawable {
         spoilerEffect.setBounds((int)Math.min(ps, pe), (int)lineTop, (int)Math.max(ps, pe), (int)lineBottom);
         spoilerEffect.setColor(textLayout.getPaint().getColor());
         spoilerEffect.setRippleInterpolator(Easings.easeInQuad);
-        spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
+        if (!spoilerEffect.isLowDevice)
+            spoilerEffect.setKeyPoints(SpoilerEffect.measureKeyPoints(newLayout));
         spoilerEffect.updateMaxParticles();
         if (v != null) {
             spoilerEffect.setParentView(v);
@@ -769,7 +766,6 @@ public class SpoilerEffect extends Drawable {
     private static class Particle {
         private float x, y;
         private float vecX, vecY;
-        private float keyX = -1, keyY = -1;
         private float velocity;
         private float lifeTime, currentTime;
         private int alpha;
