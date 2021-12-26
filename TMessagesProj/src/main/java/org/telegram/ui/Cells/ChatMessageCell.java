@@ -176,27 +176,49 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             eff.setSuppressUpdates(s);
         for (SpoilerEffect eff : replySpoilers)
             eff.setSuppressUpdates(s);
-        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null)
-            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks)
-                for (SpoilerEffect eff : bl.spoilers)
+        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null) {
+            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks) {
+                for (SpoilerEffect eff : bl.spoilers) {
                     eff.setSuppressUpdates(s);
+                }
+            }
+        }
+    }
+
+    public boolean hasSpoilers() {
+        if (hasCaptionLayout() && !captionSpoilers.isEmpty() || replyTextLayout != null && !replySpoilers.isEmpty()) {
+            return true;
+        }
+        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null) {
+            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks) {
+                if (!bl.spoilers.isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void updateSpoilersVisiblePart(int top, int bottom) {
         if (hasCaptionLayout()) {
             float off = -captionY;
-            for (SpoilerEffect eff : captionSpoilers)
+            for (SpoilerEffect eff : captionSpoilers) {
                 eff.setVisibleBounds(0, top + off, getWidth(), bottom + off);
+            }
         }
         if (replyTextLayout != null) {
             float off = -replyStartY - replyTextLayout.getHeight();
-            for (SpoilerEffect eff : replySpoilers)
+            for (SpoilerEffect eff : replySpoilers) {
                 eff.setVisibleBounds(0, top + off, getWidth(), bottom + off);
+            }
         }
-        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null)
-            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks)
-                for (SpoilerEffect eff : bl.spoilers)
+        if (getMessageObject() != null && getMessageObject().textLayoutBlocks != null) {
+            for (MessageObject.TextLayoutBlock bl : getMessageObject().textLayoutBlocks) {
+                for (SpoilerEffect eff : bl.spoilers) {
                     eff.setVisibleBounds(0, top - bl.textYOffset - textY, getWidth(), bottom - bl.textYOffset - textY);
+                }
+            }
+        }
     }
 
     public interface ChatMessageCellDelegate {
@@ -2761,7 +2783,6 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         parentHeight = parentH;
         backgroundHeight = parentH;
         viewTop = visibleTop;
-        updateSpoilersVisiblePart(position - AndroidUtilities.dp(8), position + height);
 
         if (parent != parentHeight || parentOffset != this.parentViewTopOffset) {
             this.parentViewTopOffset = parentOffset;
@@ -7579,10 +7600,16 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     private void drawContent(Canvas canvas) {
-        if (needNewVisiblePart && currentMessageObject.type == 0) {
+        boolean newPart = needNewVisiblePart && currentMessageObject.type == 0, hasSpoilers = hasSpoilers();
+        if (newPart || hasSpoilers) {
             getLocalVisibleRect(scrollRect);
-            setVisiblePart(scrollRect.top, scrollRect.bottom - scrollRect.top, parentHeight, parentViewTopOffset, viewTop, parentWidth, backgroundHeight);
-            needNewVisiblePart = false;
+            if (hasSpoilers) {
+                updateSpoilersVisiblePart(scrollRect.top, scrollRect.bottom);
+            }
+            if (newPart) {
+                setVisiblePart(scrollRect.top, scrollRect.bottom - scrollRect.top, parentHeight, parentViewTopOffset, viewTop, parentWidth, backgroundHeight);
+                needNewVisiblePart = false;
+            }
         }
 
         float buttonX = this.buttonX;
