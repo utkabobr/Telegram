@@ -2167,6 +2167,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                 }
             }
 
+            spoilerPressed = null;
             return true;
         }
 
