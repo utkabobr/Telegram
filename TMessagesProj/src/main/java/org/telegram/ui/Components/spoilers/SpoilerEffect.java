@@ -309,9 +309,6 @@ public class SpoilerEffect extends Drawable {
                 Iterator<Particle> it = particles.iterator();
                 while (it.hasNext()) {
                     Particle particle = it.next();
-                    if (visibleRect != null && !visibleRect.contains(particle.x, particle.y))
-                        continue;
-
                     particle.currentTime = Math.min(particle.currentTime + dt, particle.lifeTime);
                     if (particle.currentTime >= particle.lifeTime || isOutOfBounds(left, top, right, bottom, particle.x, particle.y) ||
                             (hasAnimator && Math.pow(particle.x - rippleX, 2) + Math.pow(particle.y - rippleY, 2) <= Math.pow(rr, 2))) {
@@ -321,6 +318,9 @@ public class SpoilerEffect extends Drawable {
                         it.remove();
                         continue;
                     }
+
+                    if (visibleRect != null && !visibleRect.contains(particle.x, particle.y))
+                        continue;
 
                     if (hasAnimator) {
                         float adt = dt / 300f;
