@@ -4391,11 +4391,6 @@ public class MessageObject {
                 block.charactersOffset = 0;
                 block.charactersEnd = textLayout.getText().length();
 
-                block.spoilers.clear();
-                if (!isSpoilersRevealed) {
-                    SpoilerEffect.addSpoilers(null, textLayout, null, block.spoilers);
-                }
-
                 if (emojiOnlyCount != 0) {
                     switch (emojiOnlyCount) {
                         case 1:
@@ -4432,10 +4427,6 @@ public class MessageObject {
                     } else {
                         block.textLayout = new StaticLayout(messageText, startCharacter, endCharacter, paint, maxWidth, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
                     }
-                    block.spoilers.clear();
-                    if (!isSpoilersRevealed) {
-                        SpoilerEffect.addSpoilers(null, textLayout, null, block.spoilers);
-                    }
 
                     block.textYOffset = textLayout.getLineTop(linesOffset);
                     if (a != 0) {
@@ -4455,6 +4446,10 @@ public class MessageObject {
                         FileLog.e(e);
                     }
                 }
+            }
+            block.spoilers.clear();
+            if (!isSpoilersRevealed) {
+                SpoilerEffect.addSpoilers(null, block.textLayout, null, block.spoilers);
             }
 
             textLayoutBlocks.add(block);
