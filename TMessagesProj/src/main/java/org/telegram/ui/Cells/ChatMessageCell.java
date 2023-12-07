@@ -4642,6 +4642,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         lastHeight = AndroidUtilities.displaySize.y;
         lastWidth = getParentWidth();
         forceDrawAvatar = false;
+        suppressCheckBox = false;
         avatarImage.setVisible(false, true);
         isRoundVideo = messageObject != null && messageObject.isRoundVideo();
         mediaSpoilerRevealProgress = 0f;

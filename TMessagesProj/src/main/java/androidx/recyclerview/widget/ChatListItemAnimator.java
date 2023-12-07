@@ -1401,7 +1401,7 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
                     entityRef.get().cancel();
                 }
             };
-            animator.setDuration(2000);
+            animator.setDuration(1600);
 
             entityRef.set(thanosLayout.disappear(view, () -> {
                 animator.removeAllListeners();

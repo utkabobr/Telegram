@@ -21059,7 +21059,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         View ch = chatLayoutManager.getChildAt(i);
                         if (ch instanceof ChatMessageCell) {
                             ((ChatMessageCell) ch).setCheckBoxSuppressed(true);
-                            ((ChatMessageCell) ch).setForceDrawAvatar(((ChatMessageCell) ch).getAvatarImage().getVisible());
+                            if (((ChatMessageCell) ch).getAvatarImage() != null) {
+                                ((ChatMessageCell) ch).setForceDrawAvatar(((ChatMessageCell) ch).getAvatarImage().getVisible());
+                            }
                         }
                     }
                     chatAdapter.notifyItemRemoved(i);
