@@ -5871,6 +5871,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         if (LiteMode.isEnabled(LiteMode.FLAG_CHAT_THANOS)) {
             thanosLayout = new ThanosLayout(context);
             contentView.addView(thanosLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            chatListView.setHideIfEmpty(false);
         }
 
         if (currentChat != null) {
@@ -19213,8 +19214,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             if (LiteMode.isEnabled(LiteMode.FLAG_CHAT_THANOS) && thanosLayout == null) {
                 thanosLayout = new ThanosLayout(getContext());
                 contentView.addView(thanosLayout, contentView.indexOfChild(floatingDateView) + 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+                chatListView.setHideIfEmpty(false);
             } else if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_THANOS) && thanosLayout != null) {
                 contentView.removeView(thanosLayout);
+                chatListView.setHideIfEmpty(true);
             }
         } else if (id == NotificationCenter.channelRightsUpdated) {
             TLRPC.Chat chat = (TLRPC.Chat) args[0];
