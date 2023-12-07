@@ -798,6 +798,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private CheckBoxBase mediaCheckBox;
     private CheckBoxBase checkBox;
     private boolean checkBoxVisible;
+    private boolean suppressCheckBox;
+    private boolean forceHideCheckBox;
     private boolean checkBoxAnimationInProgress;
     private float checkBoxAnimationProgress;
     private long lastCheckBoxAnimationTime;
@@ -4603,6 +4605,8 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         boolean widthChanged = lastWidth != getParentWidth();
         lastHeight = AndroidUtilities.displaySize.y;
         lastWidth = getParentWidth();
+        forceDrawAvatar = false;
+        avatarImage.setVisible(false, true);
         isRoundVideo = messageObject != null && messageObject.isRoundVideo();
         mediaSpoilerRevealProgress = 0f;
         TLRPC.Message newReply = messageObject.hasValidReplyMessageObject() ? messageObject.replyMessageObject.messageOwner : null;
@@ -14480,7 +14484,16 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         return mediaBackground || drawPinnedBottom || forceMediaByGroup;
     }
 
+    public void setCheckBoxSuppressed(boolean val) {
+        suppressCheckBox = val;
+    }
+
+    public void setForceHideCheckBox(boolean val) {
+        forceHideCheckBox = val;
+    }
+
     public void drawCheckBox(Canvas canvas) {
+        if (forceHideCheckBox) return;
         if (currentMessageObject != null && !currentMessageObject.isSending() && !currentMessageObject.isSendError() && checkBox != null && (checkBoxVisible || checkBoxAnimationInProgress) && (currentPosition == null || (currentPosition.flags & MessageObject.POSITION_FLAG_BOTTOM) != 0 && (currentPosition.flags & MessageObject.POSITION_FLAG_LEFT) != 0)) {
             canvas.save();
             float y = getY();
@@ -16647,6 +16660,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void setCheckBoxVisible(boolean visible, boolean animated) {
+        if (suppressCheckBox) return;
         if (visible) {
             quoteHighlight = null;
             if (checkBox == null) {
@@ -16691,6 +16705,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     public void setChecked(boolean checked, boolean allChecked, boolean animated) {
+        if (suppressCheckBox) return;
         if (checkBox != null) {
             checkBox.setChecked(allChecked, animated);
         }
@@ -19591,6 +19606,16 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     public boolean willRemovedAfterAnimation() {
         return willRemoved;
+    }
+
+    public void setForceDrawAvatar(boolean f) {
+        forceDrawAvatar = f;
+        invalidate();
+    }
+
+    private boolean forceDrawAvatar;
+    public boolean shouldForceDrawAvatar() {
+        return forceDrawAvatar;
     }
 
     public float getAnimationOffsetX() {

@@ -298,6 +298,7 @@ public class NotificationCenter {
     public static final int stealthModeChanged = totalEvents++;
     public static final int onReceivedChannelDifference = totalEvents++;
     public static final int storiesReadUpdated = totalEvents++;
+    public static final int thanosToggled = totalEvents++;
 
     public static boolean alreadyLogged;
 

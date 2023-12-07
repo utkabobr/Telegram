@@ -26,6 +26,7 @@ import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.ChatGreetingsView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.ThanosLayout;
 import org.telegram.ui.TextMessageEnterTransition;
 import org.telegram.ui.VoiceMessageEnterTransition;
 
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ChatListItemAnimator extends DefaultItemAnimator {
 
@@ -1371,34 +1373,84 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         animatorSet.start();
     }
 
+    protected ThanosLayout getThanosLayout() {
+        return null;
+    }
+
     protected void animateRemoveImpl(final RecyclerView.ViewHolder holder) {
         if (BuildVars.LOGS_ENABLED) {
             FileLog.d("animate remove impl");
         }
         final View view = holder.itemView;
         mRemoveAnimations.add(holder);
-        ObjectAnimator animator = ObjectAnimator.ofFloat(view, View.ALPHA, view.getAlpha(), 0f);
+        Animator animator;
+        ThanosLayout thanosLayout = getThanosLayout();
+        if (thanosLayout != null && view instanceof ChatMessageCell) {
+            AtomicReference<ThanosLayout.Entity> entityRef = new AtomicReference<>();
 
-        dispatchRemoveStarting(holder);
+            animator = new ValueAnimator() {
+                {
+                    setFloatValues(0, 1);
+                }
 
-        animator.setDuration(getRemoveDuration());
-        animator.addListener(
-                new AnimatorListenerAdapter() {
+                @Override
+                public void cancel() {
+                    super.cancel();
 
-                    @Override
-                    public void onAnimationEnd(Animator animator) {
-                        animator.removeAllListeners();
-                        view.setAlpha(1);
-                        view.setScaleX(1f);
-                        view.setScaleY(1f);
-                        view.setTranslationX(0);
-                        view.setTranslationY(0);
-                        if (mRemoveAnimations.remove(holder)) {
-                            dispatchRemoveFinished(holder);
-                            dispatchFinishedWhenDone();
+                    entityRef.get().cancel();
+                }
+            };
+            animator.setDuration(2000);
+
+            entityRef.set(thanosLayout.disappear(view, () -> {
+                animator.removeAllListeners();
+                view.setAlpha(1);
+                view.setScaleX(1f);
+                view.setScaleY(1f);
+                view.setTranslationX(0);
+                view.setTranslationY(0);
+                if (entityRef.get() != null) {
+                    holder.setIsRecyclable(true);
+                }
+                if (mRemoveAnimations.remove(holder)) {
+                    dispatchRemoveFinished(holder);
+                    dispatchFinishedWhenDone();
+                }
+            }));
+
+            dispatchRemoveStarting(holder);
+            if (entityRef.get() != null) {
+                holder.setIsRecyclable(false);
+            } else {
+                if (mRemoveAnimations.remove(holder)) {
+                    dispatchRemoveFinished(holder);
+                    dispatchFinishedWhenDone();
+                }
+                return;
+            }
+        } else {
+            animator = ObjectAnimator.ofFloat(view, View.ALPHA, view.getAlpha(), 0f);
+            dispatchRemoveStarting(holder);
+
+            animator.setDuration(getRemoveDuration());
+            animator.addListener(
+                    new AnimatorListenerAdapter() {
+
+                        @Override
+                        public void onAnimationEnd(Animator animator) {
+                            animator.removeAllListeners();
+                            view.setAlpha(1);
+                            view.setScaleX(1f);
+                            view.setScaleY(1f);
+                            view.setTranslationX(0);
+                            view.setTranslationY(0);
+                            if (mRemoveAnimations.remove(holder)) {
+                                dispatchRemoveFinished(holder);
+                                dispatchFinishedWhenDone();
+                            }
                         }
-                    }
-                });
+                    });
+        }
         animators.put(holder, animator);
         animator.start();
         recyclerListView.stopScroll();

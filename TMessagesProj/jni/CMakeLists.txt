@@ -438,6 +438,7 @@ add_library(${NATIVE_LIB} SHARED
         utilities.cpp
         gifvideo.cpp
         lottie.cpp
+        thanos.cpp
         TgNetWrapper.cpp
         NativeLoader.cpp
         exoplayer/flac_jni.cc

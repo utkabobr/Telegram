@@ -67,7 +67,6 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.URLSpan;
-import android.util.Log;
 import android.util.Pair;
 import android.util.Property;
 import android.util.SparseArray;
@@ -291,6 +290,7 @@ import org.telegram.ui.Components.StickersAlert;
 import org.telegram.ui.Components.SuggestEmojiView;
 import org.telegram.ui.Components.TextSelectionHint;
 import org.telegram.ui.Components.TextStyleSpan;
+import org.telegram.ui.Components.ThanosLayout;
 import org.telegram.ui.Components.ThemeEditorView;
 import org.telegram.ui.Components.TranscribeButton;
 import org.telegram.ui.Components.TranslateAlert2;
@@ -390,6 +390,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private ActionBarMenuItem.Item openForumItem;
     private ClippingImageView animatingImageView;
     private RecyclerListView chatListView;
+    private ThanosLayout thanosLayout;
     private ChatListItemAnimator chatListItemAnimator;
     private GridLayoutManagerFixed chatLayoutManager;
     private ChatActivityAdapter chatAdapter;
@@ -2078,6 +2079,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             translation += chatActivityEnterView.getTopViewTranslation();
             mentionContainer.setTranslationY(translation);
             chatListView.setTranslationY(translation);
+            if (thanosLayout != null) {
+                thanosLayout.setTranslationY(translation);
+            }
 
             invalidateChatListViewTopPadding();
             invalidateMessagesVisiblePart();
@@ -2396,6 +2400,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didSetNewWallpapper);
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didApplyNewTheme);
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.goingToPreviewTheme);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.thanosToggled);
         getNotificationCenter().addObserver(this, NotificationCenter.channelRightsUpdated);
         getNotificationCenter().addObserver(this, NotificationCenter.audioRecordTooShort);
         getNotificationCenter().addObserver(this, NotificationCenter.didUpdateReactions);
@@ -2758,6 +2763,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didSetNewWallpapper);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.didApplyNewTheme);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.goingToPreviewTheme);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.thanosToggled);
         getNotificationCenter().removeObserver(this, NotificationCenter.channelRightsUpdated);
         getNotificationCenter().removeObserver(this, NotificationCenter.updateMentionsCount);
         getNotificationCenter().removeObserver(this, NotificationCenter.audioRecordTooShort);
@@ -4850,7 +4856,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             }
 
             @Override
-            public boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            public boolean drawChildInternal(Canvas canvas, View child, long drawingTime, boolean forceDrawAvatar) {
                 if (isSkeletonVisible()) {
                     invalidated = false;
                     invalidate();
@@ -4926,10 +4932,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
                     if (cell != null && clipToGroupBounds) {
                         cell.clipToGroupBounds = true;
-                        result = super.drawChild(canvas, child, drawingTime);
+                        result = super.drawChildInternal(canvas, child, drawingTime, forceDrawAvatar);
                         cell.clipToGroupBounds = false;
                     } else {
-                        result = super.drawChild(canvas, child, drawingTime);
+                        result = super.drawChildInternal(canvas, child, drawingTime, forceDrawAvatar);
                     }
                     if (clipToGroupBounds) {
                         canvas.restore();
@@ -5005,7 +5011,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     ImageReceiver imageReceiver = cell.getAvatarImage();
                     if (imageReceiver != null) {
                         MessageObject.GroupedMessages groupedMessages = getValidGroupedMessage(message);
-                        if (cell.getMessageObject().deleted) {
+                        if (cell.getMessageObject().deleted && !forceDrawAvatar && !cell.shouldForceDrawAvatar() || forceDrawAvatar && !cell.shouldForceDrawAvatar()) {
                             if (child.getTranslationY() != 0) {
                                 canvas.restore();
                             }
@@ -5275,6 +5281,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             chatListItemAnimator = new ChatListItemAnimator(this, chatListView, themeDelegate) {
 
                 Runnable finishRunnable;
+
+                @Override
+                protected ThanosLayout getThanosLayout() {
+                    return thanosLayout;
+                }
 
                 @Override
                 public void checkIsRunning() {
@@ -5806,6 +5817,10 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             calendar.set(year, monthOfYear, dayOfMonth);
             jumpToDate((int) (calendar.getTime().getTime() / 1000));
         });
+        if (LiteMode.isEnabled(LiteMode.FLAG_CHAT_THANOS)) {
+            thanosLayout = new ThanosLayout(context);
+            contentView.addView(thanosLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        }
 
         if (currentChat != null) {
             pendingRequestsDelegate = new ChatActivityMemberRequestsDelegate(this, currentChat, this::invalidateChatListViewTopPadding);
@@ -6515,6 +6530,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         }
 
                         chatListView.setTranslationY(dy);
+                        if (thanosLayout != null) {
+                            thanosLayout.setTranslationY(dy);
+                        }
                         if (topView != null && topView.getVisibility() == View.VISIBLE) {
                             topView.setTranslationY(animatedTop + (1f - topViewEnterProgress) * topView.getLayoutParams().height);
                             if (topLineView != null) {
@@ -6539,6 +6557,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                                     mentionContainer.setTranslationY(top);
                                 }
                                 chatListView.setTranslationY(top);
+                                if (thanosLayout != null) {
+                                    thanosLayout.setTranslationY(top);
+                                }
                                 invalidateChatListViewTopPadding();
                                 invalidateMessagesVisiblePart();
                             }
@@ -6556,6 +6577,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                                     }
                                 } else {
                                     chatListView.setTranslationY(0);
+                                    if (thanosLayout != null) {
+                                        thanosLayout.setTranslationY(0);
+                                    }
                                     if (mentionContainer != null) {
                                         mentionContainer.setTranslationY(0);
                                     }
@@ -6642,6 +6666,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     if (chatListView != null) {
                         chatListView.setTranslationY(translationY);
                     }
+                    if (thanosLayout != null) {
+                        thanosLayout.setTranslationY(translationY);
+                    }
                     if (progressView != null) {
                         progressView.setTranslationY(translationY);
                     }
@@ -6664,6 +6691,9 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 if (visibility == GONE) {
                     if (chatListView != null) {
                         chatListView.setTranslationY(0);
+                    }
+                    if (thanosLayout != null) {
+                        thanosLayout.setTranslationY(0);
                     }
                     if (progressView != null) {
                         progressView.setTranslationY(0);
@@ -19080,6 +19110,13 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     scrollToPositionOnRecreate = -1;
                 }
             }
+        } else if (id == NotificationCenter.thanosToggled) {
+            if (LiteMode.isEnabled(LiteMode.FLAG_CHAT_THANOS) && thanosLayout == null) {
+                thanosLayout = new ThanosLayout(getContext());
+                contentView.addView(thanosLayout, contentView.indexOfChild(floatingDateView) + 1, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+            } else if (!LiteMode.isEnabled(LiteMode.FLAG_CHAT_THANOS) && thanosLayout != null) {
+                contentView.removeView(thanosLayout);
+            }
         } else if (id == NotificationCenter.channelRightsUpdated) {
             TLRPC.Chat chat = (TLRPC.Chat) args[0];
             if (currentChat != null && chat.id == currentChat.id && chatActivityEnterView != null) {
@@ -20876,7 +20913,15 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 int prevLoadingUpRow = chatAdapter.loadingUpRow;
                 int prevLoadingDownRow = chatAdapter.loadingDownRow;
                 for (int a = 0, N = removedIndexes.size(); a < N; a++) {
-                    chatAdapter.notifyItemRemoved(removedIndexes.get(a));
+                    int i = removedIndexes.get(a);
+                    if (thanosLayout != null) {
+                        View ch = chatLayoutManager.getChildAt(i);
+                        if (ch instanceof ChatMessageCell) {
+                            ((ChatMessageCell) ch).setCheckBoxSuppressed(true);
+                            ((ChatMessageCell) ch).setForceDrawAvatar(((ChatMessageCell) ch).getAvatarImage().getVisible());
+                        }
+                    }
+                    chatAdapter.notifyItemRemoved(i);
                 }
                 if (!isThreadChat() || messages.size() <= 3) {
                     removeUnreadPlane(false);
@@ -32745,7 +32790,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         private BitmapShader serviceShaderSource;
         private boolean useSourceShader;
         private int currentColor;
-        private boolean isDark;
+        public boolean isDark;
         private List<EmojiThemes> cachedThemes;
         private AnimatorSet patternAlphaAnimator;
 
@@ -33512,7 +33557,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         int lastBottom;
     }
 
-    private class RecyclerListViewInternal extends RecyclerListView implements StoriesListPlaceProvider.ClippedView {
+    public class RecyclerListViewInternal extends RecyclerListView implements StoriesListPlaceProvider.ClippedView {
         public RecyclerListViewInternal(Context context, ThemeDelegate themeDelegate) {
             super(context, themeDelegate);
         }
@@ -33521,6 +33566,15 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         public void updateClip(int[] clip) {
             clip[0] = (int) chatListViewPaddingTop - AndroidUtilities.dp(4);
             clip[1] = chatListView.getMeasuredHeight() - (chatListView.getPaddingBottom() - AndroidUtilities.dp(3));
+        }
+
+        @Override
+        public boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            return drawChildInternal(canvas, child, drawingTime, false);
+        }
+
+        public boolean drawChildInternal(Canvas canvas, View child, long drawingTime, boolean forceDrawAvatar) {
+            return super.drawChild(canvas, child, drawingTime);
         }
     }
 }

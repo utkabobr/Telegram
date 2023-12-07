@@ -21,7 +21,6 @@ import android.os.Environment;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Base64;
-import android.util.Log;
 import android.webkit.WebView;
 
 import androidx.annotation.IntDef;
@@ -319,6 +318,8 @@ public class SharedConfig {
 
     public static boolean hasEmailLogin;
 
+    public static boolean firstLaunchWithThanos;
+
     @PerformanceClass
     private static int devicePerformanceClass;
     @PerformanceClass
@@ -476,6 +477,7 @@ public class SharedConfig {
                 editor.putBoolean("hasEmailLogin", hasEmailLogin);
                 editor.putBoolean("floatingDebugActive", isFloatingDebugActive);
                 editor.putBoolean("record_via_sco", recordViaSco);
+                editor.putBoolean("first_launch_with_thanos", firstLaunchWithThanos);
                 editor.apply();
             } catch (Exception e) {
                 FileLog.e(e);
@@ -581,6 +583,7 @@ public class SharedConfig {
             raiseToSpeak = preferences.getBoolean("raise_to_speak", false);
             nextMediaTap = preferences.getBoolean("next_media_on_tap", true);
             recordViaSco = preferences.getBoolean("record_via_sco", false);
+            firstLaunchWithThanos = preferences.getBoolean("first_launch_with_thanos", true);
             customTabs = preferences.getBoolean("custom_tabs", true);
             directShare = preferences.getBoolean("direct_share", true);
             shuffleMusic = preferences.getBoolean("shuffleMusic", false);

@@ -10484,6 +10484,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     presentFragment(set);
                     set.scrollToType(LiteModeSettingsActivity.SWITCH_TYPE_SMOOTH_TRANSITIONS);
                 }),
+                new SearchResult(915, LocaleController.getString(R.string.LiteOptionsDeleteDustEffect), LocaleController.getString(R.string.PowerUsage), R.drawable.msg2_battery, () -> {
+                    LiteModeSettingsActivity set = new LiteModeSettingsActivity();
+                    presentFragment(set);
+                    set.setExpanded(LiteMode.FLAGS_CHAT, true);
+                    set.scrollToFlags(LiteMode.FLAG_CHAT_THANOS);
+                }),
 
                 new SearchResult(400, LocaleController.getString("Language", R.string.Language), R.drawable.msg2_language, () -> presentFragment(new LanguageSelectActivity())),
                 new SearchResult(405, LocaleController.getString(R.string.ShowTranslateButton), LocaleController.getString(R.string.Language), R.drawable.msg2_language, () -> presentFragment(new LanguageSelectActivity())),

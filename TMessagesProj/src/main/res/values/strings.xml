@@ -6456,6 +6456,7 @@
     <string name="LiteOptionsSpoiler">Animated spoiler effect</string>
     <string name="LiteOptionsBlur">Night theme blur</string>
     <string name="LiteOptionsScale">Zoom animations</string>
+    <string name="LiteOptionsDeleteDustEffect">Dust effect on message deletion</string>
     <string name="LiteOptionsCalls">Animations in Calls</string>
     <string name="LiteOptionsAutoplayVideo">Autoplay Videos</string>
     <string name="LiteOptionsAutoplayGifs">Autoplay GIFs</string>
