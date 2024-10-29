@@ -109,6 +109,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.webkit.MimeTypeMap;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -133,6 +134,9 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import androidx.mediarouter.app.MediaRouteButton;
+import androidx.mediarouter.app.MediaRouteChooserDialogFragment;
+import androidx.mediarouter.app.MediaRouteDialogFactory;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScrollerEnd;
@@ -142,6 +146,7 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.gms.cast.framework.CastButtonFactory;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
@@ -154,6 +159,7 @@ import org.telegram.messenger.Bitmaps;
 import org.telegram.messenger.BotWebViewVibrationEffect;
 import org.telegram.messenger.BringAppForegroundService;
 import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.CastManager;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.DownloadController;
@@ -213,6 +219,7 @@ import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.BlurringShader;
 import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.Components.CancelableMediaRouteChooserDialogFragment;
 import org.telegram.ui.Components.CaptionPhotoViewer;
 import org.telegram.ui.Components.ChatAttachAlert;
 import org.telegram.ui.Components.CheckBox;
@@ -2007,6 +2014,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     private final static int gallery_menu_translate = 21;
     private final static int gallery_menu_hide_translation = 22;
     private final static int gallery_menu_reply = 23;
+    private final static int gallery_menu_chromecast = 24;
 
     private final static int ads_sponsor_info = 101;
     private final static int ads_about = 102;
@@ -3845,6 +3853,14 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                     break;
                 }
             }
+        } else if (id == NotificationCenter.castNeedSwapToRemote) {
+            if (MediaController.getInstance().isAboutToCastVideo()) {
+                releasePlayer(false);
+                onActionClick(false);
+                MediaController.getInstance().setAboutToCastVideo(false);
+            }
+        } else if (id == NotificationCenter.castStateUpdated || id == NotificationCenter.castSessionUpdated) {
+            ((ActionBarMenuSubItem) menuItem.getSubItem(gallery_menu_chromecast)).setText(getString(CastManager.isCasting() ? R.string.ChromecastStop : R.string.ChromecastStart));
         } else if (id == NotificationCenter.fileLoadProgressChanged) {
             String location = (String) args[0];
             for (int a = 0; a < 3; a++) {
@@ -5453,6 +5469,23 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         menuItem.hideSubItem(gallery_menu_hide_translation);
                     }, 32);
                     updateCaptionTranslated();
+                } else if (id == gallery_menu_chromecast) {
+                    MediaController.getInstance().setAboutToCastVideo(true);
+
+                    MediaRouteButton btn = new MediaRouteButton(containerView.getContext());
+                    btn.setDialogFactory(new MediaRouteDialogFactory() {
+                        @NonNull
+                        @Override
+                        public MediaRouteChooserDialogFragment onCreateChooserDialogFragment() {
+                            return new CancelableMediaRouteChooserDialogFragment();
+                        }
+                    });
+                    btn.setVisibility(View.INVISIBLE);
+                    containerView.addView(btn);
+                    CastButtonFactory.setUpMediaRouteButton(ApplicationLoader.applicationContext, btn);
+                    btn.performClick();
+                    // Yeah, that's kinda cringe, but it's better for compatibility
+                    containerView.removeView(btn);
                 }
             }
 
@@ -5572,6 +5605,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         speedGap.setColor(0xff181818);
         menuItem.getPopupLayout().setFitItems(true);
 
+        menuItem.addSubItem(gallery_menu_chromecast, R.drawable.msg_cast, getString(R.string.ChromecastStart)).setColors(0xfffafafa, 0xfffafafa);
         menuItem.addSubItem(gallery_menu_openin, R.drawable.msg_openin, getString(R.string.OpenInExternalApp)).setColors(0xfffafafa, 0xfffafafa);
         menuItem.setContentDescription(getString(R.string.AccDescrMoreOptions));
         allMediaItem = menuItem.addSubItem(gallery_menu_showall, R.drawable.msg_media, getString(R.string.ShowAllMedia));
@@ -5602,6 +5636,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         menuItem.redrawPopup(0xf9222222);
         menuItem.hideSubItem(gallery_menu_translate);
         menuItem.hideSubItem(gallery_menu_hide_translation);
+        menuItem.hideSubItem(gallery_menu_chromecast);
         setMenuItemIcon(false, true);
         menuItem.setPopupItemsSelectorColor(0x0fffffff);
 
@@ -9382,6 +9417,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         updateQualityItems();
                     }
                 };
+                videoPlayer.setNeedCast(MediaController.getInstance().isAboutToCastVideo() || CastManager.isCasting());
                 videoPlayer.setOnQualityChangeListener(this::updateQualityItems);
                 newPlayerCreated = true;
             }
@@ -12658,6 +12694,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         menuItem.hideSubItem(gallery_menu_edit_avatar);
         menuItem.hideSubItem(gallery_menu_set_as_main);
         menuItem.hideSubItem(gallery_menu_delete);
+        menuItem.hideSubItem(gallery_menu_chromecast);
         speedItem.setVisibility(View.GONE);
         speedGap.setVisibility(View.GONE);
         qualityItem.setVisibility(View.GONE);
@@ -13149,9 +13186,16 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             if (isVideo) {
                 bottomLayout.setVisibility(View.VISIBLE);
                 bottomLayout.setTag(1);
+                if (CastManager.isCastAvailable()) {
+                    menuItem.showSubItem(gallery_menu_chromecast);
+                    ((ActionBarMenuSubItem) menuItem.getSubItem(gallery_menu_chromecast)).setText(getString(CastManager.isCasting() ? R.string.ChromecastStop : R.string.ChromecastStart));
+                } else {
+                    menuItem.hideSubItem(gallery_menu_chromecast);
+                }
             } else {
                 bottomLayout.setVisibility(View.GONE);
                 bottomLayout.setTag(null);
+                menuItem.hideSubItem(gallery_menu_chromecast);
             }
             if (isInvoice) {
                 setItemVisible(masksItem, false, animated);
@@ -15820,6 +15864,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.emojiLoaded);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.filePreparingFailed);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.fileNewChunkAvailable);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.castNeedSwapToRemote);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.castStateUpdated);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.castSessionUpdated);
 
         placeProvider = provider;
         mergeDialogId = mDialogId;
@@ -16841,6 +16888,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.emojiLoaded);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.filePreparingFailed);
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.fileNewChunkAvailable);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.castNeedSwapToRemote);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.castStateUpdated);
+        NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.castSessionUpdated);
         ConnectionsManager.getInstance(currentAccount).cancelRequestsForGuid(classGuid);
     }
 
@@ -18740,7 +18790,12 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             }
         }
         if (file != null && uri == null && videoUrises == null) {
-            uri = Uri.fromFile(file);
+            String ext = file.getName().indexOf('.') != -1 ? file.getName().substring(file.getName().lastIndexOf('.') + 1) : "";
+            uri = Uri.fromFile(file).buildUpon()
+                    .appendQueryParameter("mime", MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext))
+                    .appendQueryParameter("name", file.getName())
+                    .appendQueryParameter("size", String.valueOf(file.length()))
+                    .build();
         }
         if (uri == null && videoUrises == null) {
             if (download) {

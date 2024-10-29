@@ -387,11 +387,15 @@ public class MusicPlayerService extends Service implements NotificationCenter.No
                     .setContentText(contentText)
                     .setSubText(audioInfo != null && messageObject.isMusic() ? audioInfo.getAlbum() : null)
                     .setContentIntent(contentIntent)
-                    .setDeleteIntent(pendingStop)
                     .setShowWhen(false)
                     .setCategory(Notification.CATEGORY_TRANSPORT)
                     .setPriority(Notification.PRIORITY_MAX)
                     .setStyle(mediaStyle);
+
+            if (!CastManager.isCasting()) {
+                bldr.setDeleteIntent(pendingStop);
+            }
+
             if (Build.VERSION.SDK_INT >= 26) {
                 NotificationsController.checkOtherNotificationsChannel();
                 bldr.setChannelId(NotificationsController.OTHER_NOTIFICATIONS_CHANNEL);

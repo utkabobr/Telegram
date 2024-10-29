@@ -319,6 +319,7 @@ public class ApplicationLoader extends Application {
 
         LauncherIconController.tryFixLauncherIconIfNeeded();
         ProxyRotationController.init();
+        CastManager.init();
     }
 
     public static void startPushService() {

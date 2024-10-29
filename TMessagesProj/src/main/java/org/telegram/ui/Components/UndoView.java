@@ -12,6 +12,8 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.Layout;
 import android.text.Selection;
@@ -56,7 +58,9 @@ import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.ChatActivity;
 import org.telegram.ui.Components.Premium.boosts.BoostRepository;
+import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.PaymentFormActivity;
 
 import java.util.ArrayList;
@@ -69,7 +73,7 @@ public class UndoView extends FrameLayout {
     private TextView subinfoTextView;
     private TextView undoTextView;
     private ImageView undoImageView;
-    private RLottieImageView leftImageView;
+    public RLottieImageView leftImageView;
     private BackupImageView avatarImageView;
     private LinearLayout undoButton;
     private int undoViewHeight;
@@ -1041,7 +1045,7 @@ public class UndoView extends FrameLayout {
                 timeLeft = 3000;
             } else if (currentAction == ACTION_FWD_MESSAGES) {
                 Integer count = (Integer) infoObject;
-                if (infoObject2 == null || infoObject2 instanceof TLRPC.TL_forumTopic) {
+                if (infoObject2 == null || infoObject2 instanceof TLRPC.TL_forumTopic || infoObject2 instanceof QuickShareComponent) {
                     if (did == UserConfig.getInstance(currentAccount).clientUserId) {
                         if (count == 1) {
                             infoTextView.setText(AndroidUtilities.replaceSingleTag(LocaleController.getString(R.string.FwdMessageToSavedMessages), SavedMessagesController::openSavedMessages));
@@ -1060,14 +1064,27 @@ public class UndoView extends FrameLayout {
                             }
                         } else {
                             TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(did);
+                            Runnable open = () -> {
+                                BaseFragment lastFragment = LaunchActivity.getLastFragment();
+                                if (lastFragment == null) {
+                                    return;
+                                }
+                                Bundle args = new Bundle();
+                                args.putLong("user_id", did);
+                                lastFragment.presentFragment(new ChatActivity(args));
+                            };
+
                             if (count == 1) {
-                                infoTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("FwdMessageToUser", R.string.FwdMessageToUser, UserObject.getFirstName(user))));
+                                infoTextView.setText(AndroidUtilities.replaceSingleTag(LocaleController.formatString("FwdMessageToUser", R.string.FwdMessageToUser, UserObject.getFirstName(user)), open));
                             } else {
-                                infoTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("FwdMessagesToUser", R.string.FwdMessagesToUser, UserObject.getFirstName(user))));
+                                infoTextView.setText(AndroidUtilities.replaceSingleTag(LocaleController.formatString("FwdMessagesToUser", R.string.FwdMessagesToUser, UserObject.getFirstName(user)), open));
                             }
                         }
                         leftImageView.setAnimation(R.raw.forward, 30, 30);
                         hapticDelay = 300;
+                    }
+                    if (infoObject2 instanceof QuickShareComponent && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        leftImageView.setTranslationZ(1);
                     }
                 } else {
                     int amount = (Integer) infoObject2;
@@ -1111,7 +1128,13 @@ public class UndoView extends FrameLayout {
             layoutParams.rightMargin = AndroidUtilities.dp(8);
 
             leftImageView.setProgress(0);
-            leftImageView.playAnimation();
+            if (!(infoObject2 instanceof QuickShareComponent)) {
+                leftImageView.playAnimation();
+            } else {
+                leftImageView.setAlpha(0f);
+                leftImageView.setScaleX(0.6f);
+                leftImageView.setScaleY(0.6f);
+            }
             if (hapticDelay > 0) {
                 leftImageView.postDelayed(() -> {
                     leftImageView.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);

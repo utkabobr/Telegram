@@ -59,6 +59,7 @@ public class LinkActionView extends LinearLayout {
     String link;
     BaseFragment fragment;
     ImageView optionsView;
+    ImageView qrView;
     private final TextView copyView;
     private final TextView shareView;
     private final TextView removeView;
@@ -100,6 +101,16 @@ public class LinkActionView extends LinearLayout {
         optionsView.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
         optionsView.setScaleType(ImageView.ScaleType.CENTER);
         frameLayout.addView(optionsView, LayoutHelper.createFrame(40, 48, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+
+        qrView = new ImageView(context);
+        qrView.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
+        qrView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.msg_qrcode));
+        qrView.setContentDescription(LocaleController.getString(R.string.GetQRCode));
+        qrView.setScaleType(ImageView.ScaleType.CENTER);
+        qrView.setOnClickListener(v -> showQrCode());
+        qrView.setVisibility(GONE);
+        frameLayout.addView(qrView, LayoutHelper.createFrame(40, 40, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 6, 0));
+
         addView(frameLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, containerPadding, 0, containerPadding, 0));
 
         LinearLayout linearLayout = new LinearLayout(context);
@@ -412,6 +423,8 @@ public class LinkActionView extends LinearLayout {
         frameLayout.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(8), Theme.getColor(Theme.key_graySection), ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_listSelector), (int) (255 * 0.3f))));
         linkView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         optionsView.setColorFilter(Theme.getColor(Theme.key_dialogTextGray3));
+        qrView.setColorFilter(Theme.getColor(Theme.key_dialogTextGray3));
+        qrView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
         //optionsView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1));
         avatarsContainer.countTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
         avatarsContainer.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(6), 0, ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText), (int) (255 * 0.3f))));
@@ -455,13 +468,23 @@ public class LinkActionView extends LinearLayout {
     public void hideRevokeOption(boolean b) {
         if (hideRevokeOption != b) {
             hideRevokeOption = b;
-            optionsView.setVisibility(View.VISIBLE);
-            optionsView.setImageDrawable(ContextCompat.getDrawable(optionsView.getContext(), R.drawable.ic_ab_other));
+
+            if (hideRevokeOption && !(!permanent && canEdit)) {
+                qrView.setVisibility(VISIBLE);
+                optionsView.setVisibility(View.GONE);
+                linkView.setPadding(linkView.getPaddingLeft(), linkView.getPaddingTop(), AndroidUtilities.dp(46), linkView.getPaddingBottom());
+            } else {
+                optionsView.setVisibility(View.VISIBLE);
+                optionsView.setImageDrawable(ContextCompat.getDrawable(optionsView.getContext(), R.drawable.ic_ab_other));
+                linkView.setPadding(linkView.getPaddingLeft(), linkView.getPaddingTop(), AndroidUtilities.dp(40), linkView.getPaddingBottom());
+            }
         }
     }
 
     public void hideOptions() {
         optionsView.setVisibility(View.GONE);
+        linkView.setPadding(linkView.getPaddingLeft(), linkView.getPaddingTop(), AndroidUtilities.dp(40), linkView.getPaddingBottom());
+        qrView.setVisibility(GONE);
         linkView.setGravity(Gravity.CENTER);
         removeView.setVisibility(View.GONE);
         avatarsContainer.setVisibility(View.GONE);

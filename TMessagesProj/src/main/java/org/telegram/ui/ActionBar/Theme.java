@@ -3984,6 +3984,8 @@ public class Theme {
     public static final int key_voipgroup_windowBackgroundWhiteInputField = colorsCount++;
     public static final int key_voipgroup_windowBackgroundWhiteInputFieldActivated = colorsCount++;
 
+    public static final int key_voipgroup_notifyMeButton = colorsCount++;
+
     public static final int key_table_background = colorsCount++;
     public static final int key_table_border = colorsCount++;
 

@@ -51,6 +51,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -161,6 +163,7 @@ import org.telegram.ui.Components.Point;
 import org.telegram.ui.Components.Premium.boosts.BoostCounterSpan;
 import org.telegram.ui.Components.Premium.boosts.cells.msg.GiveawayMessageCell;
 import org.telegram.ui.Components.Premium.boosts.cells.msg.GiveawayResultsMessageCell;
+import org.telegram.ui.Components.QuickShareComponent;
 import org.telegram.ui.Components.QuoteHighlight;
 import org.telegram.ui.Components.QuoteSpan;
 import org.telegram.ui.Components.RLottieDrawable;
@@ -720,6 +723,18 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
         default void forceUpdate(ChatMessageCell cell, boolean anchorScroll) {
 
+        }
+
+        default boolean canDrawSideButton(ChatMessageCell cell) {
+            return true;
+        }
+
+        default boolean onLongPressSideButton(ChatMessageCell cell, float x, float y) {
+            return false;
+        }
+
+        default QuickShareComponent getQuickShareComponent(ChatMessageCell cell) {
+            return null;
         }
     }
 
@@ -1372,17 +1387,18 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private boolean drawTopic;
     private MessageTopicButton topicButton;
 
-    private int drawSideButton;
+    public int drawSideButton;
     private boolean sideButtonVisible;
     private int drawSideButton2;
     private boolean sideButtonPressed;
+    private boolean ignoreNextCancel;
     private int pressedSideButton;
     private Path sideButtonPath1, sideButtonPath2;
     private float[] sideButtonPathCorners1, sideButtonPathCorners2;
     private static final int SIDE_BUTTON_SPONSORED_CLOSE = 4;
     private static final int SIDE_BUTTON_SPONSORED_MORE = 5;
-    private float sideStartX;
-    private float sideStartY;
+    public float sideStartX;
+    public float sideStartY;
 
     private StaticLayout nameLayout;
     private int nameLayoutWidth;
@@ -3887,6 +3903,16 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        QuickShareComponent qs = delegate.getQuickShareComponent(this);
+        if (qs != null) {
+            if (ignoreNextCancel) {
+                ignoreNextCancel = false;
+            } else {
+                qs.onTouchEvent(event);
+                return true;
+            }
+        }
+
         if (currentMessageObject == null || delegate != null && !delegate.canPerformActions() || animationRunning) {
             if (currentMessageObject != null && currentMessageObject.preview) {
                 return checkTextSelection(event);
@@ -9919,6 +9945,24 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     protected boolean onLongPress() {
+        if (sideButtonPressed) {
+            if (delegate.onLongPressSideButton(this, lastTouchX, lastTouchY)) {
+                ignoreNextCancel = true;
+                getParent().requestDisallowInterceptTouchEvent(true);
+                Vibrator vibrator = AndroidUtilities.getVibrator();
+                if (QuickShareComponent.USE_SMOOTH_OPEN_VIBRATION && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && vibrator.hasAmplitudeControl()) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(new long[]{90,10,5,10,95,10,5,10}, new int[] {5,20,60,20,0,20,60,20}, -1));
+
+                    MotionEvent e = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+                    onTouchEvent(e);
+                    e.recycle();
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        }
+
         if (isRoundVideo && isPlayingRound && MediaController.getInstance().isPlayingMessage(currentMessageObject)) {
             float touchRadius = (lastTouchX - photoImage.getCenterX()) * (lastTouchX - photoImage.getCenterX()) + (lastTouchY - photoImage.getCenterY()) * (lastTouchY - photoImage.getCenterY());
             float r1 = (photoImage.getImageWidth() / 2f) * (photoImage.getImageWidth() / 2f);
@@ -9929,7 +9973,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     videoPlayerRewinder = new VideoPlayerRewinder() {
                         @Override
                         protected void onRewindCanceled() {
-                            onTouchEvent(MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0));
+                            MotionEvent e = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
+                            onTouchEvent(e);
+                            e.recycle();
                             videoForwardDrawable.setShowing(false);
                         }
 
@@ -18142,7 +18188,9 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
             }
             drawBotButtons(canvas, botButtons, (int) (alpha * 0xFF));
         }
-        drawSideButton(canvas);
+        if (delegate.canDrawSideButton(this)) {
+            drawSideButton(canvas);
+        }
     }
 
     public void drawAnimatedEmojis(Canvas canvas, float alpha) {
@@ -18308,7 +18356,11 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         }
     }
 
-    private void drawSideButton(Canvas canvas) {
+    public void drawSideButton(Canvas canvas) {
+        drawSideButton(canvas, 0);
+    }
+
+    public void drawSideButton(Canvas canvas, float rotation) {
         if (drawSideButton != 0) {
             if (currentPosition != null && currentMessagesGroup != null && currentMessagesGroup.isDocuments && !currentPosition.last) {
                 return;
@@ -18451,7 +18503,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     final int shw = drawable.getIntrinsicWidth() / 2, shh = drawable.getIntrinsicHeight() / 2;
                     drawable.setBounds(scx - shw, scy - shh, scx + shw, scy + shh);
                     setDrawableBounds(drawable, sideStartX + AndroidUtilities.dp(4), sideStartY + AndroidUtilities.dp(4));
+                    canvas.save();
+                    canvas.rotate(rotation, scx, scy);
                     drawable.draw(canvas);
+                    canvas.restore();
                 }
             }
         }

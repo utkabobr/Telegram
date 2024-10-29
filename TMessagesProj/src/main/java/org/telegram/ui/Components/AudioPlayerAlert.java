@@ -15,6 +15,7 @@ import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -54,14 +55,19 @@ import androidx.core.graphics.ColorUtils;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import androidx.mediarouter.app.MediaRouteButton;
+import androidx.mediarouter.app.MediaRouteChooserDialogFragment;
+import androidx.mediarouter.app.MediaRouteDialogFactory;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.gms.cast.framework.CastButtonFactory;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.CastManager;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.DownloadController;
@@ -107,6 +113,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.NotificationCenterDelegate, DownloadController.FileDownloadProgressListener {
+    private final static int OPTION_FORWARD = 1,
+        OPTION_SHAREOUT = 2,
+        OPTION_DOWNLOAD = 5,
+        OPTION_SHOW_IN_CHAT = 4,
+        OPTION_CAST = 6;
 
     private ActionBar actionBar;
     private View actionBarShadow;
@@ -262,6 +273,8 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.musicDidLoad);
         NotificationCenter.getInstance(currentAccount).addObserver(this, NotificationCenter.moreMusicDidLoad);
         NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.messagePlayingSpeedChanged);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.castStateUpdated);
+        NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.castSessionUpdated);
 
         containerView = new FrameLayout(context) {
 
@@ -1093,10 +1106,13 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
             optionsButton.setBackgroundDrawable(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 1, AndroidUtilities.dp(18)));
         }
         bottomView.addView(optionsButton, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.TOP));
-        optionsButton.addSubItem(1, R.drawable.msg_forward, LocaleController.getString(R.string.Forward));
-        optionsButton.addSubItem(2, R.drawable.msg_shareout, LocaleController.getString(R.string.ShareFile));
-        optionsButton.addSubItem(5, R.drawable.msg_download, LocaleController.getString(R.string.SaveToMusic));
-        optionsButton.addSubItem(4, R.drawable.msg_message, LocaleController.getString(R.string.ShowInChat));
+        optionsButton.addSubItem(OPTION_FORWARD, R.drawable.msg_forward, LocaleController.getString(R.string.Forward));
+        optionsButton.addSubItem(OPTION_SHAREOUT, R.drawable.msg_shareout, LocaleController.getString(R.string.ShareFile));
+        optionsButton.addSubItem(OPTION_DOWNLOAD, R.drawable.msg_download, LocaleController.getString(R.string.SaveToMusic));
+        optionsButton.addSubItem(OPTION_SHOW_IN_CHAT, R.drawable.msg_message, LocaleController.getString(R.string.ShowInChat));
+        if (CastManager.isCastAvailable()) {
+            optionsButton.addSubItem(OPTION_CAST, R.drawable.msg_cast, LocaleController.getString(R.string.ChromecastStart));
+        }
         optionsButton.setShowedFromBottom(true);
         optionsButton.setOnClickListener(v -> optionsButton.toggleSubMenu());
         optionsButton.setDelegate(this::onSubItemClick);
@@ -1462,139 +1478,167 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         if (messageObject == null || parentActivity == null) {
             return;
         }
-        if (id == 1) {
-            if (UserConfig.selectedAccount != currentAccount) {
-                parentActivity.switchToAccount(currentAccount, true);
-            }
-            Bundle args = new Bundle();
-            args.putBoolean("onlySelect", true);
-            args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_FORWARD);
-            args.putBoolean("canSelectTopics", true);
-            DialogsActivity fragment = new DialogsActivity(args);
-            final ArrayList<MessageObject> fmessages = new ArrayList<>();
-            fmessages.add(messageObject);
-            fragment.setDelegate((fragment1, dids, message, param, notify, scheduleDate, topicsFragment) -> {
-                if (dids.size() > 1 || dids.get(0).dialogId == UserConfig.getInstance(currentAccount).getClientUserId() || message != null) {
-                    for (int a = 0; a < dids.size(); a++) {
-                        long did = dids.get(a).dialogId;
-                        if (message != null) {
-                            SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of(message.toString(), did, null, null, null, true, null, null, null, true, 0, null, false));
+        switch (id) {
+            case OPTION_FORWARD: {
+                if (UserConfig.selectedAccount != currentAccount) {
+                    parentActivity.switchToAccount(currentAccount, true);
+                }
+                Bundle args = new Bundle();
+                args.putBoolean("onlySelect", true);
+                args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_FORWARD);
+                args.putBoolean("canSelectTopics", true);
+                DialogsActivity fragment = new DialogsActivity(args);
+                final ArrayList<MessageObject> fmessages = new ArrayList<>();
+                fmessages.add(messageObject);
+                fragment.setDelegate((fragment1, dids, message, param, notify, scheduleDate, topicsFragment) -> {
+                    if (dids.size() > 1 || dids.get(0).dialogId == UserConfig.getInstance(currentAccount).getClientUserId() || message != null) {
+                        for (int a = 0; a < dids.size(); a++) {
+                            long did = dids.get(a).dialogId;
+                            if (message != null) {
+                                SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of(message.toString(), did, null, null, null, true, null, null, null, true, 0, null, false));
+                            }
+                            SendMessagesHelper.getInstance(currentAccount).sendMessage(fmessages, did, false, false, true, 0);
                         }
-                        SendMessagesHelper.getInstance(currentAccount).sendMessage(fmessages, did, false, false, true, 0);
-                    }
-                    fragment1.finishFragment();
-                } else {
-                    MessagesStorage.TopicKey topicKey = dids.get(0);
-                    long did = topicKey.dialogId;
-                    Bundle args1 = new Bundle();
-                    args1.putBoolean("scrollToTopOnResume", true);
-                    if (DialogObject.isEncryptedDialog(did)) {
-                        args1.putInt("enc_id", DialogObject.getEncryptedChatId(did));
-                    } else if (DialogObject.isUserDialog(did)) {
-                        args1.putLong("user_id", did);
-                    } else {
-                        args1.putLong("chat_id", -did);
-                    }
-                    ChatActivity chatActivity = new ChatActivity(args1);
-                    if (topicKey.topicId != 0) {
-                        ForumUtilities.applyTopic(chatActivity, topicKey);
-                    }
-                    if (parentActivity.presentFragment(chatActivity, true, false)) {
-                        chatActivity.showFieldPanelForForward(true, fmessages);
-                        if (topicKey.topicId != 0) {
-                            fragment1.removeSelfFromStack();
-                        }
-                    } else {
                         fragment1.finishFragment();
+                    } else {
+                        MessagesStorage.TopicKey topicKey = dids.get(0);
+                        long did = topicKey.dialogId;
+                        Bundle args1 = new Bundle();
+                        args1.putBoolean("scrollToTopOnResume", true);
+                        if (DialogObject.isEncryptedDialog(did)) {
+                            args1.putInt("enc_id", DialogObject.getEncryptedChatId(did));
+                        } else if (DialogObject.isUserDialog(did)) {
+                            args1.putLong("user_id", did);
+                        } else {
+                            args1.putLong("chat_id", -did);
+                        }
+                        ChatActivity chatActivity = new ChatActivity(args1);
+                        if (topicKey.topicId != 0) {
+                            ForumUtilities.applyTopic(chatActivity, topicKey);
+                        }
+                        if (parentActivity.presentFragment(chatActivity, true, false)) {
+                            chatActivity.showFieldPanelForForward(true, fmessages);
+                            if (topicKey.topicId != 0) {
+                                fragment1.removeSelfFromStack();
+                            }
+                        } else {
+                            fragment1.finishFragment();
+                        }
                     }
-                }
-                return true;
-            });
-            parentActivity.presentFragment(fragment);
-            dismiss();
-        } else if (id == 2) {
-            try {
-                File f = null;
-                boolean isVideo = false;
+                    return true;
+                });
+                parentActivity.presentFragment(fragment);
+                dismiss();
+                break;
+            }
+            case OPTION_SHAREOUT:
+                try {
+                    File f = null;
+                    boolean isVideo = false;
 
-                if (!TextUtils.isEmpty(messageObject.messageOwner.attachPath)) {
-                    f = new File(messageObject.messageOwner.attachPath);
-                    if (!f.exists()) {
-                        f = null;
+                    if (!TextUtils.isEmpty(messageObject.messageOwner.attachPath)) {
+                        f = new File(messageObject.messageOwner.attachPath);
+                        if (!f.exists()) {
+                            f = null;
+                        }
                     }
-                }
-                if (f == null) {
-                    f = FileLoader.getInstance(currentAccount).getPathToMessage(messageObject.messageOwner);
-                }
+                    if (f == null) {
+                        f = FileLoader.getInstance(currentAccount).getPathToMessage(messageObject.messageOwner);
+                    }
 
-                if (f.exists()) {
-                    Intent intent = new Intent(Intent.ACTION_SEND);
-                    intent.setType(messageObject.getMimeType());
-                    if (Build.VERSION.SDK_INT >= 24) {
-                        try {
-                            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(ApplicationLoader.applicationContext, ApplicationLoader.getApplicationId() + ".provider", f));
-                            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        } catch (Exception ignore) {
+                    if (f.exists()) {
+                        Intent intent = new Intent(Intent.ACTION_SEND);
+                        intent.setType(messageObject.getMimeType());
+                        if (Build.VERSION.SDK_INT >= 24) {
+                            try {
+                                intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(ApplicationLoader.applicationContext, ApplicationLoader.getApplicationId() + ".provider", f));
+                                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            } catch (Exception ignore) {
+                                intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(f));
+                            }
+                        } else {
                             intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(f));
                         }
-                    } else {
-                        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(f));
-                    }
 
-                    parentActivity.startActivityForResult(Intent.createChooser(intent, LocaleController.getString(R.string.ShareFile)), 500);
+                        parentActivity.startActivityForResult(Intent.createChooser(intent, LocaleController.getString(R.string.ShareFile)), 500);
+                    } else {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(parentActivity);
+                        builder.setTitle(LocaleController.getString(R.string.AppName));
+                        builder.setPositiveButton(LocaleController.getString(R.string.OK), null);
+                        builder.setMessage(LocaleController.getString(R.string.PleaseDownload));
+                        builder.show();
+                    }
+                } catch (Exception e) {
+                    FileLog.e(e);
+                }
+                break;
+            case OPTION_SHOW_IN_CHAT: {
+                if (UserConfig.selectedAccount != currentAccount) {
+                    parentActivity.switchToAccount(currentAccount, true);
+                }
+
+                Bundle args = new Bundle();
+                long did = messageObject.getDialogId();
+                if (DialogObject.isEncryptedDialog(did)) {
+                    args.putInt("enc_id", DialogObject.getEncryptedChatId(did));
+                } else if (DialogObject.isUserDialog(did)) {
+                    args.putLong("user_id", did);
                 } else {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(parentActivity);
-                    builder.setTitle(LocaleController.getString(R.string.AppName));
-                    builder.setPositiveButton(LocaleController.getString(R.string.OK), null);
-                    builder.setMessage(LocaleController.getString(R.string.PleaseDownload));
-                    builder.show();
+                    TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-did);
+                    if (chat != null && chat.migrated_to != null) {
+                        args.putLong("migrated_to", did);
+                        did = -chat.migrated_to.channel_id;
+                    }
+                    args.putLong("chat_id", -did);
                 }
-            } catch (Exception e) {
-                FileLog.e(e);
+                args.putInt("message_id", messageObject.getId());
+                NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.closeChats);
+                parentActivity.presentFragment(new ChatActivity(args), false, false);
+                dismiss();
+                break;
             }
-        } else if (id == 4) {
-            if (UserConfig.selectedAccount != currentAccount) {
-                parentActivity.switchToAccount(currentAccount, true);
-            }
-            
-            Bundle args = new Bundle();
-            long did = messageObject.getDialogId();
-            if (DialogObject.isEncryptedDialog(did)) {
-                args.putInt("enc_id", DialogObject.getEncryptedChatId(did));
-            } else if (DialogObject.isUserDialog(did)) {
-                args.putLong("user_id", did);
-            } else {
-                TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(-did);
-                if (chat != null && chat.migrated_to != null) {
-                    args.putLong("migrated_to", did);
-                    did = -chat.migrated_to.channel_id;
+            case OPTION_DOWNLOAD: {
+                if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && parentActivity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    parentActivity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
+                    return;
                 }
-                args.putLong("chat_id", -did);
-            }
-            args.putInt("message_id", messageObject.getId());
-            NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.closeChats);
-            parentActivity.presentFragment(new ChatActivity(args), false, false);
-            dismiss();
-        } else if (id == 5) {
-            if (Build.VERSION.SDK_INT >= 23 && (Build.VERSION.SDK_INT <= 28 || BuildVars.NO_SCOPED_STORAGE) && parentActivity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                parentActivity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 4);
-                return;
-            }
-            String fileName = FileLoader.getDocumentFileName(messageObject.getDocument());
-            if (TextUtils.isEmpty(fileName)) {
-                fileName = messageObject.getFileName();
-            }
-            String path = messageObject.messageOwner.attachPath;
-            if (path != null && path.length() > 0) {
-                File temp = new File(path);
-                if (!temp.exists()) {
-                    path = null;
+                String fileName = FileLoader.getDocumentFileName(messageObject.getDocument());
+                if (TextUtils.isEmpty(fileName)) {
+                    fileName = messageObject.getFileName();
                 }
+                String path = messageObject.messageOwner.attachPath;
+                if (path != null && path.length() > 0) {
+                    File temp = new File(path);
+                    if (!temp.exists()) {
+                        path = null;
+                    }
+                }
+                if (path == null || path.length() == 0) {
+                    path = FileLoader.getInstance(currentAccount).getPathToMessage(messageObject.messageOwner).toString();
+                }
+                MediaController.saveFile(path, parentActivity, 3, fileName, messageObject.getDocument() != null ? messageObject.getDocument().mime_type : "", uri -> BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createDownloadBulletin(BulletinFactory.FileType.AUDIO).show());
+                break;
             }
-            if (path == null || path.length() == 0) {
-                path = FileLoader.getInstance(currentAccount).getPathToMessage(messageObject.messageOwner).toString();
+            case OPTION_CAST: {
+                MediaController.getInstance().pauseMessage(MediaController.getInstance().getPlayingMessageObject());
+
+                MediaController.getInstance().setAboutToCastAudio(true);
+                MediaRouteButton btn = new MediaRouteButton(getContext());
+                btn.setDialogFactory(new MediaRouteDialogFactory() {
+                    @NonNull
+                    @Override
+                    public MediaRouteChooserDialogFragment onCreateChooserDialogFragment() {
+                        return new CancelableMediaRouteChooserDialogFragment();
+                    }
+                });
+                btn.setVisibility(View.INVISIBLE);
+                containerView.addView(btn);
+                CastButtonFactory.setUpMediaRouteButton(getContext(), btn);
+                btn.performClick();
+                // Yeah, that's kinda cringe, but it's better for compatibility
+                containerView.removeView(btn);
+                break;
             }
-            MediaController.saveFile(path, parentActivity, 3, fileName, messageObject.getDocument() != null ? messageObject.getDocument().mime_type : "", uri -> BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createDownloadBulletin(BulletinFactory.FileType.AUDIO).show());
         }
     }
 
@@ -1755,6 +1799,8 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                     seekBarBufferSpring.start();
                 }
             }
+        } else if (id == NotificationCenter.castStateUpdated || id == NotificationCenter.castSessionUpdated) {
+            updateTitle(false);
         }
     }
 
@@ -2026,15 +2072,23 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
                 messageObject.messageOwner.noforwards
             );
             if (noforwards) {
-                optionsButton.hideSubItem(1);
-                optionsButton.hideSubItem(2);
-                optionsButton.hideSubItem(5);
+                optionsButton.hideSubItem(OPTION_FORWARD);
+                optionsButton.hideSubItem(OPTION_SHAREOUT);
+                optionsButton.hideSubItem(OPTION_DOWNLOAD);
                 optionsButton.setAdditionalYOffset(-AndroidUtilities.dp(16));
             } else {
-                optionsButton.showSubItem(1);
-                optionsButton.showSubItem(2);
-                optionsButton.showSubItem(5);
+                optionsButton.showSubItem(OPTION_FORWARD);
+                optionsButton.showSubItem(OPTION_SHAREOUT);
+                optionsButton.showSubItem(OPTION_DOWNLOAD);
                 optionsButton.setAdditionalYOffset(-AndroidUtilities.dp(157));
+            }
+            if (CastManager.isCastAvailable()) {
+                optionsButton.showSubItem(OPTION_CAST);
+                ((ActionBarMenuSubItem) optionsButton.getSubItem(OPTION_CAST)).setText(LocaleController.getString(CastManager.isCasting() ? R.string.ChromecastStop : R.string.ChromecastStart));
+                optionsButton.setAdditionalYOffset(optionsButton.getAdditionalYOffset() - AndroidUtilities.dp(47));
+            } else {
+                optionsButton.hideSubItem(OPTION_CAST);
+                optionsButton.setAdditionalYOffset(optionsButton.getAdditionalYOffset() + AndroidUtilities.dp(47));
             }
 
             checkIfMusicDownloaded(messageObject);

@@ -1813,6 +1813,10 @@ public class ActionBarMenuItem extends FrameLayout {
         additionalYOffset = value;
     }
 
+    public int getAdditionalYOffset() {
+        return additionalYOffset;
+    }
+
     public void setAdditionalXOffset(int value) {
         additionalXOffset = value;
     }

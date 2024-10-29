@@ -8179,4 +8179,9 @@
     <string name="Gift2ButtonSendGift">send a gift</string>
     <string name="Gift2ButtonSell_one">sell for %d Star</string>
     <string name="Gift2ButtonSell_other">sell for %d Stars</string>
+    <string name="BotStartHint">Tap here to use this bot</string>
+    <string name="VoipNotifyMe">Notify Me</string>
+    <string name="VoipNotifyMeSubscribed">You will be notified when the live stream starts.</string>
+    <string name="ChromecastStart">Chromecast to device...</string>
+    <string name="ChromecastStop">Stop casting</string>
 </resources>

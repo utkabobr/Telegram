@@ -349,6 +349,11 @@ public class NotificationCenter {
     public static final int storiesReadUpdated = totalEvents++;
     public static final int nearEarEvent = totalEvents++;
 
+    public static final int castStateUpdated = totalEvents++;
+    public static final int castSessionUpdated = totalEvents++;
+    public static final int castNeedSwapToRemote = totalEvents++;
+    public static final int castStartFailed = totalEvents++;
+
     public static boolean alreadyLogged;
 
     private SparseArray<ArrayList<NotificationCenterDelegate>> observers = new SparseArray<>();

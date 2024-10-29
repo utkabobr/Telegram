@@ -745,6 +745,8 @@ public class ThemeColors {
         defaultColors[key_voipgroup_windowBackgroundWhiteInputField] = 0xffdbdbdb;
         defaultColors[key_voipgroup_windowBackgroundWhiteInputFieldActivated] = 0xff37a9f0;
 
+        defaultColors[key_voipgroup_notifyMeButton] = 0xff778cff;
+
         defaultColors[key_chat_outReactionButtonBackground] = 0xff78c272;
         defaultColors[key_chat_inReactionButtonBackground] = 0xff72b5e8;
         defaultColors[key_chat_inReactionButtonText] = 0xff3a8ccf;
@@ -1399,6 +1401,7 @@ public class ThemeColors {
         colorKeysMap.put(key_voipgroup_mutedByAdminMuteButtonDisabled, "voipgroup_mutedByAdminMuteButtonDisabled");
         colorKeysMap.put(key_voipgroup_windowBackgroundWhiteInputField, "voipgroup_windowBackgroundWhiteInputField");
         colorKeysMap.put(key_voipgroup_windowBackgroundWhiteInputFieldActivated, "voipgroup_windowBackgroundWhiteInputFieldActivated");
+        colorKeysMap.put(key_voipgroup_notifyMeButton, "voipgroup_notifyMeButton");
         colorKeysMap.put(key_passport_authorizeBackground, "passport_authorizeBackground");
         colorKeysMap.put(key_passport_authorizeBackgroundSelected, "passport_authorizeBackgroundSelected");
         colorKeysMap.put(key_passport_authorizeText, "passport_authorizeText");

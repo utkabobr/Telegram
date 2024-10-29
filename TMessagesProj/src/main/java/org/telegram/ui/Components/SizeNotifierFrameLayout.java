@@ -87,7 +87,7 @@ public class SizeNotifierFrameLayout extends FrameLayout {
     private boolean animationInProgress;
     private boolean skipBackgroundDrawing;
     SnowflakesEffect snowflakesEffect;
-    protected View backgroundView;
+    public View backgroundView;
     boolean attached;
 
 
