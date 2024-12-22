@@ -58,7 +58,9 @@ public class TimelineView extends View {
 
     // milliseconds when timeline goes out of the box
     public long getMaxScrollDuration() {
-        if (collageTracks.isEmpty()) {
+        if (!delegate.needVideoDurationLimit()) {
+            return getBaseDuration();
+        } else if (collageTracks.isEmpty()) {
             return 120 * 1000L;
         } else {
             return 70 * 1000L;
@@ -67,35 +69,51 @@ public class TimelineView extends View {
     // minimal allowed duration to select
     public static final long MIN_SELECT_DURATION = 1 * 1000L;
     // maximum allowed duration to select
-    public static final long MAX_SELECT_DURATION = (long) (59 * 1000L);
+    public static final long MAX_SELECT_DURATION = 59 * 1000L;
+
+    private long getBaseDuration() {
+        if (videoTrack != null) {
+            return Math.max(1, videoTrack.duration);
+        }
+        if (collageMain != null) {
+            return Math.max(1, collageMain.duration);
+        }
+        if (hasRound) {
+            return Math.max(1, roundDuration);
+        }
+        return Math.max(1, audioDuration);
+    }
 
     interface TimelineDelegate {
-        default void onProgressDragChange(boolean dragging) {};
-        default void onProgressChange(long progress, boolean fast) {};
+        default void onProgressDragChange(boolean dragging) {}
+        default void onProgressChange(long progress, boolean fast) {}
 
-        default void onVideoLeftChange(float left) {};
-        default void onVideoRightChange(float right) {};
-        default void onVideoVolumeChange(float volume) {};
+        default void onVideoLeftChange(float left) {}
+        default void onVideoRightChange(float right) {}
+        default void onVideoVolumeChange(float volume) {}
+        default boolean needVideoDurationLimit() {
+            return true;
+        }
 
-        default void onVideoLeftChange(int i, float left) {};
-        default void onVideoRightChange(int i, float right) {};
-        default void onVideoVolumeChange(int i, float volume) {};
-        default void onVideoOffsetChange(int i, long offset) {};
-        default void onVideoSelected(int i) {};
+        default void onVideoLeftChange(int i, float left) {}
+        default void onVideoRightChange(int i, float right) {}
+        default void onVideoVolumeChange(int i, float volume) {}
+        default void onVideoOffsetChange(int i, long offset) {}
+        default void onVideoSelected(int i) {}
 
-        default void onAudioOffsetChange(long offset) {};
-        default void onAudioLeftChange(float left) {};
-        default void onAudioRightChange(float right) {};
-        default void onAudioVolumeChange(float volume) {};
-        default void onAudioRemove() {};
+        default void onAudioOffsetChange(long offset) {}
+        default void onAudioLeftChange(float left) {}
+        default void onAudioRightChange(float right) {}
+        default void onAudioVolumeChange(float volume) {}
+        default void onAudioRemove() {}
 
-        default void onRoundOffsetChange(long offset) {};
-        default void onRoundLeftChange(float left) {};
-        default void onRoundRightChange(float right) {};
-        default void onRoundVolumeChange(float volume) {};
-        default void onRoundRemove() {};
+        default void onRoundOffsetChange(long offset) {}
+        default void onRoundLeftChange(float left) {}
+        default void onRoundRightChange(float right) {}
+        default void onRoundVolumeChange(float volume) {}
+        default void onRoundRemove() {}
 
-        default void onRoundSelectChange(boolean selected) {};
+        default void onRoundSelectChange(boolean selected) {}
     }
 
     private TimelineDelegate delegate;
@@ -184,19 +202,6 @@ public class TimelineView extends View {
     private float audioVolume;
     private boolean resetWaveform;
     private AudioWaveformLoader waveform;
-
-    private long getBaseDuration() {
-        if (videoTrack != null) {
-            return Math.max(1, videoTrack.duration);
-        }
-        if (collageMain != null) {
-            return Math.max(1, collageMain.duration);
-        }
-        if (hasRound) {
-            return Math.max(1, roundDuration);
-        }
-        return Math.max(1, audioDuration);
-    }
 
     private final AnimatedFloat roundT = new AnimatedFloat(this, 0, 360, CubicBezierInterpolator.EASE_OUT_QUINT);
     private final AnimatedFloat roundSelectedT = new AnimatedFloat(this, 360, CubicBezierInterpolator.EASE_OUT_QUINT);
@@ -905,6 +910,10 @@ public class TimelineView extends View {
     private int scrollingCollage = -1;
     private boolean scrolling = false;
 
+    public boolean needDurationLimit() {
+        return delegate == null || delegate.needVideoDurationLimit();
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (videoTrack == null && collageTracks.isEmpty() && !hasAudio && !hasRound) {
@@ -994,7 +1003,7 @@ public class TimelineView extends View {
                         if (delegate != null) {
                             delegate.onVideoLeftChange(videoTrack.left);
                         }
-                        if (videoTrack.right - videoTrack.left > MAX_SELECT_DURATION / (float) videoTrack.duration) {
+                        if (needDurationLimit() && videoTrack.right - videoTrack.left > MAX_SELECT_DURATION / (float) videoTrack.duration) {
                             videoTrack.right = Math.min(1, videoTrack.left + MAX_SELECT_DURATION / (float) videoTrack.duration);
                             if (delegate != null) {
                                 delegate.onVideoRightChange(videoTrack.right);
@@ -1005,7 +1014,7 @@ public class TimelineView extends View {
                         if (delegate != null) {
                             delegate.onVideoRightChange(videoTrack.right);
                         }
-                        if (videoTrack.right - videoTrack.left > MAX_SELECT_DURATION / (float) videoTrack.duration) {
+                        if (needDurationLimit() && videoTrack.right - videoTrack.left > MAX_SELECT_DURATION / (float) videoTrack.duration) {
                             videoTrack.left = Math.max(0, videoTrack.right - MAX_SELECT_DURATION / (float) videoTrack.duration);
                             if (delegate != null) {
                                 delegate.onVideoLeftChange(videoTrack.left);
@@ -1044,7 +1053,7 @@ public class TimelineView extends View {
                             minValue = Math.max(minValue, (collageMain.left * collageMain.duration + scroll - audioOffset) / (float) audioDuration);
                         } else if (hasRound) {
                             minValue = Math.max(minValue, (roundLeft * roundDuration + scroll - audioOffset) / (float) audioDuration);
-                        } else {
+                        } else if (needDurationLimit()) {
                             minValue = Math.max(minValue, audioRight - MAX_SELECT_DURATION / (float) audioDuration);
                             if (!hadDragChange && d < 0 && audioLeft <= (audioRight - MAX_SELECT_DURATION / (float) audioDuration)) {
                                 pressHandle = HANDLE_AUDIO_REGION;
@@ -1070,7 +1079,7 @@ public class TimelineView extends View {
                             maxValue = Math.min(maxValue, (collageMain.right * collageMain.duration + scroll - audioOffset) / (float) audioDuration);
                         } else if (hasRound) {
                             maxValue = Math.min(maxValue, (roundRight * roundDuration + scroll - audioOffset) / (float) audioDuration);
-                        } else {
+                        } else if (needDurationLimit()) {
                             maxValue = Math.min(maxValue, audioLeft + MAX_SELECT_DURATION / (float) audioDuration);
                             if (!hadDragChange && d > 0 && audioRight >= (audioLeft + MAX_SELECT_DURATION / (float) audioDuration)) {
                                 pressHandle = HANDLE_AUDIO_REGION;
@@ -1128,7 +1137,7 @@ public class TimelineView extends View {
                             minValue = Math.max(minValue, (videoTrack.left * videoTrack.duration + scroll - roundOffset) / (float) roundDuration);
                         } else if (collageMain != null) {
                             minValue = Math.max(minValue, (collageMain.left * collageMain.duration + scroll - roundOffset) / (float) roundDuration);
-                        } else {
+                        } else if (needDurationLimit()) {
                             minValue = Math.max(minValue, roundRight - MAX_SELECT_DURATION / (float) roundDuration);
                             if (!hadDragChange && d < 0 && roundLeft <= (roundRight - MAX_SELECT_DURATION / (float) roundDuration)) {
                                 pressHandle = HANDLE_AUDIO_REGION;
@@ -1152,7 +1161,7 @@ public class TimelineView extends View {
                             maxValue = Math.min(maxValue, (videoTrack.right * videoTrack.duration + scroll - roundOffset) / (float) roundDuration);
                         } if (collageMain != null) {
                             maxValue = Math.min(maxValue, (collageMain.right * collageMain.duration + scroll - roundOffset) / (float) roundDuration);
-                        } else {
+                        } else if (needDurationLimit()) {
                             maxValue = Math.min(maxValue, roundLeft + MAX_SELECT_DURATION / (float) roundDuration);
                             if (!hadDragChange && d > 0 && roundRight >= (roundLeft + MAX_SELECT_DURATION / (float) roundDuration)) {
                                 pressHandle = HANDLE_AUDIO_REGION;
@@ -1207,7 +1216,7 @@ public class TimelineView extends View {
                     if (pressHandle == HANDLE_COLLAGE_LEFT) {
                         float maxValue = track.right - minAudioSelect() / (float) track.duration;
                         float minValue = Math.max(0, scroll - track.offset) / (float) track.duration;
-                        if (track == collageMain) {
+                        if (track == collageMain && needDurationLimit()) {
                             minValue = Math.max(minValue, track.right - MAX_SELECT_DURATION / (float) track.duration);
                             if (!hadDragChange && d < 0 && track.left <= (track.right - MAX_SELECT_DURATION / (float) track.duration)) {
                                 pressHandle = HANDLE_COLLAGE_REGION;
@@ -1230,7 +1239,7 @@ public class TimelineView extends View {
                     } else if (pressHandle == HANDLE_COLLAGE_RIGHT) {
                         float maxValue = Math.min(1, Math.max(0, scroll - track.offset + videoScrollDuration) / (float) track.duration);
                         float minValue = track.left + minAudioSelect() / (float) track.duration;
-                        if (track == collageMain) {
+                        if (track == collageMain && needDurationLimit()) {
                             maxValue = Math.min(maxValue, track.left + MAX_SELECT_DURATION / (float) track.duration);
                             if (!hadDragChange && d > 0 && track.right >= (track.left + MAX_SELECT_DURATION / (float) track.duration)) {
                                 pressHandle = HANDLE_COLLAGE_REGION;

@@ -109,6 +109,12 @@ public class AvatarSpan extends ReplacementSpan {
         imageReceiver.setForUserOrChat(user, avatarDrawable);
     }
 
+    public void setSaved(TLRPC.User user) {
+        avatarDrawable.setAvatarType(AvatarDrawable.AVATAR_TYPE_SAVED);
+        avatarDrawable.setScaleSize(0.6f);
+        imageReceiver.setImage(null, null, avatarDrawable, null, user, 0);
+    }
+
     public void setName(String name) {
         avatarDrawable.setInfo(0, name, null, null, null, null);
         imageReceiver.setForUserOrChat(null, avatarDrawable);

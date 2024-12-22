@@ -171,6 +171,8 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
     private float panTranslationProgress;
     private float panTranslationY, scale, inputTransformX, inputTransformY, transformX, transformY, imageWidth, imageHeight;
     private boolean ignoreLayout;
+    private float renderWidth, renderHeight;
+    private int insetTop, insetBottom;
     private float baseScale;
     private Size paintingSize;
     public boolean drawForThemeToggle, clipVideoMessageForBitmap;
@@ -301,6 +303,9 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
     public PaintView(Context context, boolean fileFromGallery, File file, boolean isVideo, boolean isBot, StoryRecorder.WindowView parent, Activity activity, int currentAccount, Bitmap bitmap, Bitmap blurBitmap, Bitmap originalBitmap, int originalRotation, ArrayList<VideoEditedInfo.MediaEntity> entities, StoryEntry entry, int viewWidth, int viewHeight, MediaController.CropState cropState, Runnable onInit, BlurringShader.BlurManager blurManager, Theme.ResourcesProvider resourcesProvider, PreviewView.TextureViewHolder videoTextureHolder, PreviewView previewView) {
         super(context, activity, true);
         setDelegate(this);
+        setClipToPadding(false);
+        setClipChildren(false);
+
         this.blurManager = blurManager;
         this.videoTextureHolder = videoTextureHolder;
         this.fileFromGallery = fileFromGallery;
@@ -422,6 +427,15 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
                 }
                 paintToolsView.select(index);
                 onBrushSelected(brush);
+            }
+
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                if (needFixAspectRatio()) {
+                    super.onMeasure(MeasureSpec.makeMeasureSpec((int) renderWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) renderHeight, MeasureSpec.EXACTLY));
+                } else {
+                    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+                }
             }
         };
         renderView.setDelegate(new RenderView.RenderViewDelegate() {
@@ -589,7 +603,11 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
 
             @Override
             protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+                if (needFixAspectRatio()) {
+                    super.onMeasure(MeasureSpec.makeMeasureSpec((int) renderWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) renderHeight, MeasureSpec.EXACTLY));
+                } else {
+                    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+                }
                 if (w <= 0) {
                     w = entitiesView.getMeasuredWidth();
                 }
@@ -618,6 +636,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
         entitiesView.setVisibility(INVISIBLE);
 
         selectionContainerView = new FrameLayout(context) {
+
             @SuppressLint("ClickableViewAccessibility")
             @Override
             public boolean onTouchEvent(MotionEvent event) {
@@ -627,6 +646,15 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
             public boolean dispatchTouchEvent(MotionEvent ev) {
                 if (isCoverPreview) return false;
                 return super.dispatchTouchEvent(ev);
+            }
+
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                if (needFixAspectRatio()) {
+                    super.onMeasure(MeasureSpec.makeMeasureSpec((int) renderWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) renderHeight, MeasureSpec.EXACTLY));
+                } else {
+                    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+                }
             }
         };
 //        addView(selectionContainerView);
@@ -1936,7 +1964,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
 
             @Override
             public boolean canClickWidget(Integer widgetId) {
-                if (widgetId == EmojiBottomSheet.WIDGET_REACTION) {
+                if (widgetId == EmojiBottomSheet.WIDGET_REACTION && needStoryRestrictions()) {
                     int widgetsCount = 0;
                     for (int i = 0; i < entitiesView.getChildCount(); i++) {
                         if (entitiesView.getChildAt(i) instanceof ReactionWidgetEntityView) {
@@ -2080,8 +2108,12 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
         return true;
     }
 
+    protected boolean restrictClickableLinks() {
+        return false;
+    }
+
     private void showLinkAlert(LinkView editingLinkView) {
-        StoryLinkSheet sheet = new StoryLinkSheet(getContext(), resourcesProvider, previewView, media -> {
+        StoryLinkSheet sheet = new StoryLinkSheet(getContext(), resourcesProvider, previewView, restrictClickableLinks(), media -> {
             if (editingLinkView != null) {
                 editingLinkView.setLink(currentAccount, media, null);
                 appearAnimation(editingLinkView);
@@ -2288,31 +2320,47 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
             bitmapH = height - ActionBar.getCurrentActionBarHeight() - dp(48);
         }
 
-        float renderWidth = width;
-        float renderHeight = (float) Math.floor(renderWidth * bitmapH / bitmapW);
-        if (renderHeight > maxHeight) {
-            renderHeight = maxHeight;
-            renderWidth = (float) Math.floor(renderHeight * bitmapW / bitmapH);
-        }
+        renderWidth = width;
+        renderHeight = height;
 
-//        renderView.measure(MeasureSpec.makeMeasureSpec((int) renderWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) renderHeight, MeasureSpec.EXACTLY));
+        if (needFixAspectRatio()) {
+            if (height > width) {
+                renderWidth = height * 9f / 16f;
+            } else {
+                renderHeight = width * 16f / 9f;
+            }
+
+            AndroidUtilities.runOnUIThread(()->{
+                renderView.requestLayout();
+                entitiesView.requestLayout();
+                selectionContainerView.requestLayout();
+            });
+        } else {
+            renderHeight = (float) Math.floor(renderWidth * bitmapH / bitmapW);
+
+            if (renderHeight > maxHeight) {
+                renderHeight = maxHeight;
+                renderWidth = (float) Math.floor(renderHeight * bitmapW / bitmapH);
+            }
+        }
 //        renderInputView.measure(MeasureSpec.makeMeasureSpec((int) renderWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) renderHeight, MeasureSpec.EXACTLY));
 
         baseScale = renderWidth / paintingSize.width;
-//        entitiesView.setScaleX(baseScale);
-//        entitiesView.setScaleY(baseScale);
-//        entitiesView.measure(MeasureSpec.makeMeasureSpec((int) paintingSize.width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) paintingSize.height, MeasureSpec.EXACTLY));
+
         if (currentEntityView != null) {
             currentEntityView.updateSelectionView();
         }
 //        selectionContainerView.measure(MeasureSpec.makeMeasureSpec((int) renderWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec((int) renderHeight, MeasureSpec.EXACTLY));
+        bottomLayout.setPadding(bottomLayout.getPaddingLeft(), bottomLayout.getPaddingTop(), bottomLayout.getPaddingRight(), insetBottom);
+        bottomLayout.getLayoutParams().height = dp(44 + 60) + insetBottom;
+
         measureChild(bottomLayout, widthMeasureSpec, heightMeasureSpec);
         measureChild(weightChooserView, widthMeasureSpec, heightMeasureSpec);
         measureChild(pipetteContainerLayout, widthMeasureSpec, heightMeasureSpec);
         int keyboardPad = Math.max(emojiPadding - parent.getPaddingUnderContainer(), measureKeyboardHeight());
         measureChild(overlayLayout, widthMeasureSpec, MeasureSpec.makeMeasureSpec(height - keyboardPad, MeasureSpec.EXACTLY));
 
-        topLayout.setPadding(topLayout.getPaddingLeft(), dp(12), topLayout.getPaddingRight(), topLayout.getPaddingBottom());
+        topLayout.setPadding(topLayout.getPaddingLeft(), dp(12) + insetTop, topLayout.getPaddingRight(), topLayout.getPaddingBottom());
         measureChild(topLayout, widthMeasureSpec, heightMeasureSpec);
         ignoreLayout = false;
 
@@ -2356,11 +2404,19 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
 //        selectionContainerView.layout(x, y, x + selectionContainerView.getMeasuredWidth(), y + selectionContainerView.getMeasuredHeight());
     }
 
+    protected int getPaintingWidth() {
+        return 1080;
+    }
+
+    protected int getPaintingHeight() {
+        return 1920;
+    }
+
     private Size getPaintingSize() {
         if (paintingSize != null) {
             return paintingSize;
         }
-        return paintingSize = new Size(1080, 1920);
+        return paintingSize = new Size(getPaintingWidth(), getPaintingHeight());
     }
 
     @Override
@@ -2501,6 +2557,14 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
             }
             entitiesView.setVisibility(View.VISIBLE);
         }
+    }
+
+    protected boolean needStoryRestrictions() {
+        return true;
+    }
+
+    protected boolean needFixAspectRatio() {
+        return false;
     }
 
     private int getFrameRotation() {
@@ -2804,6 +2868,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
                         area.color = weatherView.marker.outlinePaint.getColor();
                         mediaEntity.mediaArea = area;
                         mediaEntity.mediaArea.coordinates = new TL_stories.TL_mediaAreaCoordinates();
+                        mediaEntity.fromAttachCamera = !needStoryRestrictions();
                         TLRPC.Document emojiDocument = weatherView.marker.getCodeEmojiDocument();
                         if (emojiDocument != null) {
                             VideoEditedInfo.EmojiEntity tlentity = new VideoEditedInfo.EmojiEntity();
@@ -2816,7 +2881,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
                             }
                             mediaEntity.entities.add(tlentity);
                         }
-                        drawThisEntity = false;
+                        drawThisEntity = !needStoryRestrictions();
                     } else if (entity instanceof LinkView) {
                         LinkView linkView = (LinkView) entity;
                         mediaEntity.type = VideoEditedInfo.MediaEntity.TYPE_LINK;
@@ -2842,7 +2907,9 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
                         ((TL_stories.TL_mediaAreaUrl) mediaEntity.mediaArea).url = linkView.link.webpage != null && !TextUtils.isEmpty(linkView.link.webpage.url) ? linkView.link.webpage.url : linkView.link.url;
                         mediaEntity.mediaArea.coordinates = new TL_stories.TL_mediaAreaCoordinates();
                     } else if (entity instanceof ReactionWidgetEntityView) {
-                        skipDrawToBitmap = true;
+                        if (needStoryRestrictions()) {
+                            skipDrawToBitmap = true;
+                        }
                         ReactionWidgetEntityView reactionView = (ReactionWidgetEntityView) entity;
                         mediaEntity.type = VideoEditedInfo.MediaEntity.TYPE_REACTION;
                         mediaEntity.mediaArea = new TL_stories.TL_mediaAreaSuggestedReaction();
@@ -3203,7 +3270,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
 //        float x = (float) (x2 * Math.cos(rotation) - y2 * Math.sin(rotation)) + renderView.getMeasuredWidth() / 2f;
 //        float y = (float) (x2 * Math.sin(rotation) + y2 * Math.cos(rotation)) + renderView.getMeasuredHeight() / 2f;
 
-        float x = ev.getX(), y = ev.getY();
+        float x = ev.getX() - renderView.getLeft(), y = ev.getY() - renderView.getTop();
 
         MotionEvent event = MotionEvent.obtain(ev);
         event.setLocation(x, y);
@@ -3255,6 +3322,14 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
     @Override
     public RenderView getRenderView() {
         return renderView;
+    }
+
+    public float getRenderWidth() {
+        return renderWidth;
+    }
+
+    public float getRenderHeight() {
+        return renderHeight;
     }
 
     public View getTextDimView() {
@@ -4558,7 +4633,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
         if (h <= 0) h = this.h;
         float side = (float) Math.floor(w * 0.43f);
         Size size = new Size(side, side);
-        float x = w - size.width / 2f - dp(16);
+        float x = entitiesView.getLeft() + w - size.width / 2f - dp(16);
         float y = dp(72) + size.height / 2f;
         RoundView view = new RoundView(getContext(), new Point(x, y), 0, 1f, size, thumbPath);
         view.setDelegate(this);
@@ -4679,6 +4754,12 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
         return view;
     }
 
+    public void setInsets(int top, int bottom) {
+        insetTop = top;
+        insetBottom = bottom;
+        requestLayout();
+    }
+
     public void removeCurrentEntity() {
         if (currentEntityView != null) {
             removeEntity(currentEntityView);
@@ -4778,6 +4859,7 @@ public class PaintView extends SizeNotifierFrameLayoutPhoto implements IPhotoPai
         return selectEntity(entityView);
     }
 
+    @Override
     public boolean isEntityDeletable() {
         return isEntityDeletable(currentEntityView);
     }

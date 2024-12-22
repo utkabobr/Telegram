@@ -118,6 +118,10 @@ public class CollageLayoutView2 extends FrameLayout implements ItemOptions.Scrim
         return nextPart;
     }
 
+    public boolean hasParts() {
+        return parts.size() > 1;
+    }
+
     private final Runnable resetReordering = () -> {
         if (this.reordering) {
             this.reordering = false;
@@ -478,13 +482,17 @@ public class CollageLayoutView2 extends FrameLayout implements ItemOptions.Scrim
         return (float) done / total;
     }
 
+    protected boolean needClipRound() {
+        return true;
+    }
+
     private final Path clipPath = new Path();
     private void drawPart(Canvas canvas, RectF rect, Part part) {
         if (AndroidUtilities.makingGlobalBlurBitmap && part == longPressedPart) {
             return;
         }
         boolean restore = false;
-        if (part == reorderingPart && animatedReordering.get() > 0) {
+        if (part == reorderingPart && animatedReordering.get() > 0 && needClipRound()) {
             canvas.save();
             clipPath.rewind();
             AndroidUtilities.rectTmp.set(rect);

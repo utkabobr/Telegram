@@ -11,6 +11,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ViewAnimator;
@@ -232,9 +233,10 @@ public class RoundVideoRecorder extends FrameLayout {
                 cameraViewAnimator.cancel();
             }
             cameraViewAnimator = ValueAnimator.ofFloat(0, 1);
+            View v = (View) roundView.getParent();
             final float fromScale = cameraView.getScaleX();
-            final float toX = (roundView.getX() + roundView.getWidth() / 2f) - (cameraView.getX() + cameraView.getWidth() / 2f);
-            final float toY = (roundView.getY() + roundView.getHeight() / 2f) - (cameraView.getY() + cameraView.getHeight() / 2f);
+            final float toX = v.getLeft() + (roundView.getX() + roundView.getWidth() / 2f) - (cameraView.getX() + cameraView.getWidth() / 2f);
+            final float toY = v.getTop() + (roundView.getY() + roundView.getHeight() / 2f) - (cameraView.getY() + cameraView.getHeight() / 2f);
             cameraViewAnimator.addUpdateListener(anm -> {
                 final float t = (float) anm.getAnimatedValue();
                 cameraView.setScaleX(AndroidUtilities.lerp(fromScale, scale, t));

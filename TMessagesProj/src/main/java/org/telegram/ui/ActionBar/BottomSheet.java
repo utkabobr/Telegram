@@ -113,6 +113,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
     private boolean bigTitle;
     private boolean multipleLinesTitle;
     private int bottomInset;
+    private int vanillaBottomInset;
     private int leftInset;
     private int rightInset;
     protected boolean fullWidth;
@@ -537,7 +538,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
             }
             keyboardVisible = keyboardHeight > AndroidUtilities.dp(20);
             if (lastInsets != null && Build.VERSION.SDK_INT >= 21) {
-                bottomInset = lastInsets.getSystemWindowInsetBottom();
+                vanillaBottomInset = bottomInset = lastInsets.getSystemWindowInsetBottom();
                 leftInset = lastInsets.getSystemWindowInsetLeft();
                 rightInset = lastInsets.getSystemWindowInsetRight();
                 if (Build.VERSION.SDK_INT >= 29) {
@@ -549,6 +550,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                 if (!drawNavigationBar && !occupyNavigationBar) {
                     containerHeight -= getBottomInset();
                 }
+                onMeasuredInsets();
             }
             setMeasuredDimension(width, containerHeight);
             if (lastInsets != null && Build.VERSION.SDK_INT >= 21 && !occupyNavigationBar) {
@@ -862,6 +864,17 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
     }
 
     public void setHideSystemVerticalInsets(boolean hideSystemVerticalInsets) {
+        setHideSystemVerticalInsets(hideSystemVerticalInsets, true);
+    }
+
+    public void setHideSystemVerticalInsets(boolean hideSystemVerticalInsets, boolean animate) {
+        if (!animate) {
+            hideSystemVerticalInsetsProgress = hideSystemVerticalInsets ? 1 : 0;
+            container.requestLayout();
+            containerView.requestLayout();
+            return;
+        }
+
         ValueAnimator animator = ValueAnimator.ofFloat(hideSystemVerticalInsetsProgress, hideSystemVerticalInsets ? 1f : 0f).setDuration(180);
         animator.setInterpolator(CubicBezierInterpolator.DEFAULT);
         animator.addUpdateListener(animation -> {
@@ -1137,10 +1150,15 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
                 lastInsets = insets;
                 v.requestLayout();
                 onInsetsChanged();
-                if (Build.VERSION.SDK_INT >= 30) {
-                    return WindowInsets.CONSUMED;
+
+                if (needConsumeInsets()) {
+                    if (Build.VERSION.SDK_INT >= 30) {
+                        return WindowInsets.CONSUMED;
+                    } else {
+                        return insets.consumeSystemWindowInsets();
+                    }
                 } else {
-                    return insets.consumeSystemWindowInsets();
+                    return insets;
                 }
             });
             if (Build.VERSION.SDK_INT >= 30) {
@@ -1151,6 +1169,10 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
         }
 
         backDrawable.setAlpha(0);
+    }
+
+    protected boolean needConsumeInsets() {
+        return true;
     }
 
     protected void onInsetsChanged() {
@@ -1661,6 +1683,7 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
 
     public void setDimBehindAlpha(int value) {
         dimBehindAlpha = value;
+        backDrawable.setAlpha(dimBehind ? dimBehindAlpha : 0);
     }
 
     public void setItemText(int item, CharSequence text) {
@@ -2133,12 +2156,16 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
     }
 
     public int getLeftInset() {
+        return getLeftInset(true);
+    }
+
+    public int getLeftInset(boolean checkHide) {
         if (lastInsets != null && Build.VERSION.SDK_INT >= 21) {
             float inset;
             if (AVOID_SYSTEM_CUTOUT_FULLSCREEN && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && lastInsets.getDisplayCutout() != null) {
-                inset = lastInsets.getDisplayCutout().getSafeInsetLeft() + (lastInsets.getSystemWindowInsetLeft() - lastInsets.getDisplayCutout().getSafeInsetLeft()) * (1f - hideSystemVerticalInsetsProgress);
+                inset = lastInsets.getDisplayCutout().getSafeInsetLeft() + (lastInsets.getSystemWindowInsetLeft() - lastInsets.getDisplayCutout().getSafeInsetLeft()) * (checkHide ? 1f - hideSystemVerticalInsetsProgress : 1f);
             } else {
-                inset = lastInsets.getSystemWindowInsetLeft() * (1f - hideSystemVerticalInsetsProgress);
+                inset = lastInsets.getSystemWindowInsetLeft() * (checkHide ? 1f - hideSystemVerticalInsetsProgress : 1f);
             }
             return (int) inset;
         }
@@ -2146,24 +2173,42 @@ public class BottomSheet extends Dialog implements BaseFragment.AttachedSheet {
     }
 
     public int getRightInset() {
+        return getRightInset(true);
+    }
+
+    public int getRightInset(boolean checkHide) {
         if (lastInsets != null && Build.VERSION.SDK_INT >= 21) {
             float inset;
             if (AVOID_SYSTEM_CUTOUT_FULLSCREEN && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && lastInsets.getDisplayCutout() != null) {
-                inset = lastInsets.getDisplayCutout().getSafeInsetRight() + (lastInsets.getSystemWindowInsetRight() - lastInsets.getDisplayCutout().getSafeInsetRight()) * (1f - hideSystemVerticalInsetsProgress);
+                inset = lastInsets.getDisplayCutout().getSafeInsetRight() + (lastInsets.getSystemWindowInsetRight() - lastInsets.getDisplayCutout().getSafeInsetRight()) * (checkHide ? 1f - hideSystemVerticalInsetsProgress : 1f);
             } else {
-                inset = lastInsets.getSystemWindowInsetRight() * (1f - hideSystemVerticalInsetsProgress);
+                inset = lastInsets.getSystemWindowInsetRight() * (checkHide ? 1f - hideSystemVerticalInsetsProgress : 1f);
             }
             return (int) inset;
         }
         return 0;
     }
 
+    protected void onMeasuredInsets() {}
+
     public int getStatusBarHeight() {
-        return (int) (statusBarHeight * (1f - hideSystemVerticalInsetsProgress));
+        return getStatusBarHeight(true);
+    }
+
+    public int getStatusBarHeight(boolean checkHide) {
+        return (int) (statusBarHeight * (checkHide ? 1f - hideSystemVerticalInsetsProgress : 1f));
+    }
+
+    public int getVanillaBottomInset() {
+        return vanillaBottomInset;
     }
 
     public int getBottomInset() {
-        return (int) (bottomInset * (1f - hideSystemVerticalInsetsProgress));
+        return getBottomInset(true);
+    }
+
+    public int getBottomInset(boolean checkHide) {
+        return (int) (bottomInset * (checkHide ? 1f - hideSystemVerticalInsetsProgress : 1f));
     }
 
     public void onConfigurationChanged(android.content.res.Configuration newConfig) {

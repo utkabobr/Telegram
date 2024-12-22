@@ -122,6 +122,7 @@ public class StoryEntry {
 
     public int resultWidth = 720;
     public int resultHeight = 1280;
+    public boolean landscape;
 
     public int width, height;
     // matrix describes transformations from width x height to resultWidth x resultHeight
@@ -184,6 +185,9 @@ public class StoryEntry {
     public Bitmap thumbBitmap;
     private boolean fromCamera;
 
+    public boolean isCameraAttachment;
+    public int cameraTtl;
+
     public boolean wouldBeVideo() {
         return wouldBeVideo(mediaEntities);
     }
@@ -205,7 +209,7 @@ public class StoryEntry {
                     if (isAnimated(entity.document, entity.text)) {
                         return true;
                     }
-                } else if ((entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT/* || entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION*/) && entity.entities != null && !entity.entities.isEmpty()) {
+                } else if ((entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT || (entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION && isCameraAttachment)) && entity.entities != null && !entity.entities.isEmpty()) {
                     for (int j = 0; j < entity.entities.size(); ++j) {
                         VideoEditedInfo.EmojiEntity e = entity.entities.get(j);
                         if (isAnimated(e.document, e.documentAbsolutePath)) {
@@ -863,6 +867,11 @@ public class StoryEntry {
     }
 
     public static StoryEntry fromPhotoEntry(MediaController.PhotoEntry photoEntry) {
+        return fromPhotoEntry(photoEntry, false);
+    }
+
+    /** @noinspection SuspiciousNameCombination*/
+    public static StoryEntry fromPhotoEntry(MediaController.PhotoEntry photoEntry, boolean landscape) {
         StoryEntry entry = new StoryEntry();
         entry.file = new File(photoEntry.path);
         entry.orientation = photoEntry.orientation;
@@ -882,6 +891,12 @@ public class StoryEntry {
             entry.width = photoEntry.width;
             entry.height = photoEntry.height;
         }
+        if (landscape && entry.resultHeight > entry.resultWidth) {
+            int w = entry.resultWidth;
+            entry.resultWidth = entry.resultHeight;
+            entry.resultHeight = w;
+            entry.landscape = true;
+        }
         entry.setupMatrix();
         return entry;
     }
@@ -900,6 +915,11 @@ public class StoryEntry {
     }
 
     public static StoryEntry asCollage(CollageLayout layout, ArrayList<StoryEntry> entries) {
+        return asCollage(layout, entries, false);
+    }
+
+    /** @noinspection SuspiciousNameCombination*/
+    public static StoryEntry asCollage(CollageLayout layout, ArrayList<StoryEntry> entries, boolean landscape) {
         StoryEntry entry = new StoryEntry();
         entry.collage = layout;
         entry.collageContent = entries;
@@ -921,11 +941,23 @@ public class StoryEntry {
             entry.resultWidth = 1080;
             entry.resultHeight = 1920;
         }
+        if (landscape) {
+            int w = entry.width;
+            entry.width = entry.resultWidth = entry.height;
+            entry.height = entry.resultHeight = w;
+            entry.landscape = true;
+        }
+
         entry.setupMatrix();
         return entry;
     }
 
     public static StoryEntry fromPhotoShoot(File file, int rotate) {
+        return fromPhotoShoot(file, rotate, false);
+    }
+
+    /** @noinspection SuspiciousNameCombination*/
+    public static StoryEntry fromPhotoShoot(File file, int rotate, boolean landscape) {
         StoryEntry entry = new StoryEntry();
         entry.file = file;
         entry.fileDeletable = true;
@@ -934,6 +966,12 @@ public class StoryEntry {
         entry.isVideo = false;
         if (file != null) {
             entry.decodeBounds(file.getAbsolutePath());
+        }
+        if (landscape && entry.resultHeight > entry.resultWidth) {
+            int w = entry.resultWidth;
+            entry.resultWidth = entry.resultHeight;
+            entry.resultHeight = w;
+            entry.landscape = true;
         }
         entry.setupMatrix();
         return entry;
@@ -1092,10 +1130,17 @@ public class StoryEntry {
             return;
         }
         if (!isVideo && (resultWidth > 720 || resultHeight > 1280)) {
-            float s = 720f / resultWidth;
-            matrix.postScale(s, s, 0, 0);
-            resultWidth = 720;
-            resultHeight = 1280;
+            if (landscape) {
+                float s = 1280f / resultHeight;
+                matrix.postScale(s, s, 0, 0);
+                resultWidth = 1280;
+                resultHeight = 720;
+            } else {
+                float s = 720f / resultWidth;
+                matrix.postScale(s, s, 0, 0);
+                resultWidth = 720;
+                resultHeight = 1280;
+            }
         }
         final String videoPath = file == null ? null : file.getAbsolutePath();
         final int[][] params = new int[Math.max(1, isCollage() ? collageContent.size() : 0)][AnimatedFileDrawable.PARAM_NUM_COUNT];

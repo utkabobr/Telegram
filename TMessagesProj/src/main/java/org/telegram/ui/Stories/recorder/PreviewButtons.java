@@ -1,15 +1,19 @@
 package org.telegram.ui.Stories.recorder;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
+import static org.telegram.messenger.LocaleController.getString;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Layout;
@@ -21,7 +25,11 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.ImageSpan;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -30,14 +38,21 @@ import android.widget.ImageView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.ActionBarMenuSubItem;
+import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.AlertsCreator;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class PreviewButtons extends FrameLayout {
 
@@ -55,8 +70,13 @@ public class PreviewButtons extends FrameLayout {
     private String shareText;
     private boolean shareArrow = true;
 
+    private ActionBarPopupWindow sendPopupWindow;
+
     public PreviewButtons(Context context) {
         super(context);
+
+        setClipChildren(false);
+        setClipToPadding(false);
 
         shadowView = new View(context);
         shadowView.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[] { 0x66000000, 0x00000000 }));
@@ -72,6 +92,10 @@ public class PreviewButtons extends FrameLayout {
         addView(shareButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
         updateAppearT();
+    }
+
+    public void setLongClickEnabled(boolean en) {
+        shareButton.setLongClickable(en);
     }
 
     public void setFiltersVisible(boolean visible) {
@@ -114,9 +138,9 @@ public class PreviewButtons extends FrameLayout {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         final int w = right - left;
-        final int h = bottom - top;
+        final int h = bottom - top - getPaddingBottom();
 
-        shadowView.layout(0, 0, w, h);
+        shadowView.layout(0, 0, w, bottom - top);
         shareButton.layout(w - shareButton.getMeasuredWidth(), (h - shareButton.getMeasuredHeight()) / 2, w, (h + shareButton.getMeasuredHeight()) / 2);
 
         int W = w - dp(10 + 10 + 12.33f) - shareButton.getMeasuredWidth();
@@ -143,11 +167,16 @@ public class PreviewButtons extends FrameLayout {
         this.onClickListener = onClickListener;
     }
 
+    private OnShareListener onShareListener;
+    public void setOnShareClickListener(OnShareListener listener) {
+        this.onShareListener = listener;
+    }
+
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(
             MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(dp(52), MeasureSpec.EXACTLY)
+            MeasureSpec.makeMeasureSpec(dp(52) + getPaddingBottom(), MeasureSpec.EXACTLY)
         );
     }
 
@@ -210,6 +239,34 @@ public class PreviewButtons extends FrameLayout {
         }
     }
 
+    protected boolean isSendingSticker() {
+        return false;
+    }
+
+    protected boolean isCaptionOverLimit() {
+        return false;
+    }
+
+    protected boolean canScheduleMessage() {
+        return false;
+    }
+
+    protected boolean isCurrentVideo() {
+        return false;
+    }
+
+    protected boolean hasTimer() {
+        return false;
+    }
+
+    protected TLRPC.User getCurrentUser() {
+        return null;
+    }
+
+    protected long getDialogId() {
+        return 0;
+    }
+
     private class ShareButtonView extends View {
 
         private final TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
@@ -224,6 +281,7 @@ public class PreviewButtons extends FrameLayout {
         private AnimatedFloat enabledT = new AnimatedFloat(this, 0, 220, CubicBezierInterpolator.EASE_OUT_QUINT);
         public boolean enabled = true;
 
+        @SuppressLint("ClickableViewAccessibility")
         public ShareButtonView(Context context, String text, boolean withArrow) {
             super(context);
             this.arrow = withArrow;
@@ -265,10 +323,110 @@ public class PreviewButtons extends FrameLayout {
             h = AndroidUtilities.dp(32 + 8);
 
             setOnClickListener(e -> {
-                if (appearing && onClickListener != null) {
-                    onClickListener.run(BUTTON_SHARE);
+                if (appearing && onShareListener != null) {
+                    onShareListener.sendPressed(true, 0);
                 }
             });
+            setOnLongClickListener(view -> {
+                if (isSendingSticker() || isCaptionOverLimit()) {
+                    return false;
+                }
+                TLRPC.User user = getCurrentUser();
+
+                ActionBarPopupWindow.ActionBarPopupWindowLayout sendPopupLayout = new ActionBarPopupWindow.ActionBarPopupWindowLayout(getContext());
+                sendPopupLayout.setAnimationEnabled(false);
+                Rect hitRect = new Rect();
+                sendPopupLayout.setOnTouchListener((v2, event) -> {
+                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                        if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                            v2.getHitRect(hitRect);
+                            if (!hitRect.contains((int) event.getX(), (int) event.getY())) {
+                                sendPopupWindow.dismiss();
+                            }
+                        }
+                    }
+                    return false;
+                });
+                sendPopupLayout.setDispatchKeyEventListener(keyEvent -> {
+                    if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_BACK && keyEvent.getRepeatCount() == 0 && sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                        sendPopupWindow.dismiss();
+                    }
+                });
+                sendPopupLayout.setShownFromBottom(false);
+                sendPopupLayout.setBackgroundColor(0xf9222222);
+
+                boolean canReplace = false;
+                int[] order = {4, 3, 2, 0, 1};
+                for (int i = 0; i < 5; i++) {
+                    int a = order[i];
+                    if (a == 0 && !canScheduleMessage()) {
+                        continue;
+                    }
+                    if (a == 1 && UserObject.isUserSelf(user)) {
+                        continue;
+                    } else if ((a == 2 || a == 3) && !canReplace) {
+                        continue;
+                    } else if (a == 4 && (isCurrentVideo() || hasTimer())) {
+                        continue;
+                    }
+                    ActionBarMenuSubItem cell = new ActionBarMenuSubItem(getContext(), a == 0, a == 3);
+                    if (a == 0) {
+                        if (UserObject.isUserSelf(user)) {
+                            cell.setTextAndIcon(getString("SetReminder", R.string.SetReminder), R.drawable.msg_calendar2);
+                        } else {
+                            cell.setTextAndIcon(getString("ScheduleMessage", R.string.ScheduleMessage), R.drawable.msg_calendar2);
+                        }
+                    } else if (a == 1) {
+                        cell.setTextAndIcon(getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
+                    } else if (a == 3) {
+                        cell.setTextAndIcon(getString("SendAsNewPhoto", R.string.SendAsNewPhoto), R.drawable.msg_send);
+                    } else if (a == 4) {
+                        cell.setTextAndIcon(getString(R.string.SendAsFile), R.drawable.msg_sendfile);
+                    }
+                    cell.setMinimumWidth(dp(196));
+                    cell.setColors(0xffffffff, 0xffffffff);
+                    sendPopupLayout.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+                    cell.setOnClickListener(v -> {
+                        if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                            sendPopupWindow.dismiss();
+                        }
+                        if (a == 0) {
+                            AlertsCreator.ScheduleDatePickerColors colors = new AlertsCreator.ScheduleDatePickerColors(0xffffffff, 0xff252525, 0xffffffff, 0x1effffff, 0xffffffff, 0xf9222222, 0x24ffffff);
+                            AlertsCreator.createScheduleDatePickerDialog(getContext(), getDialogId(), onShareListener::sendPressed, colors);
+                        } else if (a == 1) {
+                            onShareListener.sendPressed(false, 0);
+                        } else if (a == 3) {
+                            onShareListener.sendPressed(true, 0);
+                        } else if (a == 4) {
+                            onShareListener.sendPressed(true, 0, true);
+                        }
+                    });
+                }
+                if (sendPopupLayout.getChildCount() == 0) {
+                    return false;
+                }
+                sendPopupLayout.setupRadialSelectors(0x24ffffff);
+
+                sendPopupWindow = new ActionBarPopupWindow(sendPopupLayout, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+                sendPopupWindow.setAnimationEnabled(false);
+                sendPopupWindow.setAnimationStyle(R.style.PopupContextAnimation2);
+                sendPopupWindow.setOutsideTouchable(true);
+                sendPopupWindow.setClippingEnabled(true);
+                sendPopupWindow.setInputMethodMode(ActionBarPopupWindow.INPUT_METHOD_NOT_NEEDED);
+                sendPopupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED);
+                sendPopupWindow.getContentView().setFocusableInTouchMode(true);
+
+                sendPopupLayout.measure(View.MeasureSpec.makeMeasureSpec(dp(1000), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(dp(1000), View.MeasureSpec.AT_MOST));
+                sendPopupWindow.setFocusable(true);
+
+                int[] location = new int[2];
+                view.getLocationInWindow(location);
+                sendPopupWindow.showAtLocation(view, Gravity.LEFT | Gravity.TOP, location[0] + view.getMeasuredWidth() - sendPopupLayout.getMeasuredWidth() + dp(14), location[1] - sendPopupLayout.getMeasuredHeight() - dp(8));
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+
+                return false;
+            });
+            setLongClickable(false);
         }
 
         @Override
@@ -377,5 +535,13 @@ public class PreviewButtons extends FrameLayout {
             super.onInitializeAccessibilityNodeInfo(info);
             info.setClassName("android.widget.Button");
         }
+    }
+
+    public interface OnShareListener {
+        default void sendPressed(boolean notify, int scheduleDate) {
+            sendPressed(notify, scheduleDate, false);
+        }
+
+        void sendPressed(boolean notify, int scheduleDate, boolean forceDocument);
     }
 }

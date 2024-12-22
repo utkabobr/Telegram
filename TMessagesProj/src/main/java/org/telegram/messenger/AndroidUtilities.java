@@ -4946,6 +4946,14 @@ public class AndroidUtilities {
         }
     }
 
+    public static void lerp(float[] a, float[] b, float f, float[] to) {
+        if (to == null) return;
+        for (int i = 0; i < to.length; ++i) {
+            float av = a == null || i >= a.length ? 0 : a[i];
+            float bv = b == null || i >= b.length ? 0 : b[i];
+            to[i] = lerp(av, bv, f);
+        }
+    }
     public static void scaleRect(RectF rect, float scale) {
         scaleRect(rect, scale, rect.centerX(), rect.centerY());
     }

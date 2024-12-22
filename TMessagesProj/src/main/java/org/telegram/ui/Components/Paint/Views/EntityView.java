@@ -67,6 +67,9 @@ public class EntityView extends FrameLayout {
         default boolean isEntityDeletable() {
             return true;
         }
+        default int getTrashOffsetBottom() {
+            return 0;
+        }
     }
 
     private float previousLocationX,  previousLocationY;
@@ -228,10 +231,12 @@ public class EntityView extends FrameLayout {
                 delegate.onEntityDraggedBottom(position.y + getHeight() / 2f * scale > ((View) getParent()).getHeight() - dp(64 + 50));
             }
 
+            int offsetBottom = delegate != null ? delegate.getTrashOffsetBottom() : 0;
+            View v = (View) getParent();
             updateTrash(
                 (delegate == null || delegate.isEntityDeletable()) &&
                     !multitouch &&
-                    MathUtils.distance(x, y,  ((View) getParent()).getWidth() / 2f, ((View) getParent()).getHeight() - dp(76)) < dp(32)
+                    MathUtils.distance(x, y,  v.getWidth() / 2f + v.getLeft(), v.getHeight() - dp(76) - offsetBottom) < dp(32)
             );
 
             bounce.setPressed(false);
@@ -495,11 +500,11 @@ public class EntityView extends FrameLayout {
         if (parent != null) {
             int newStickyX = STICKY_NONE;
             if (!lastIsMultitouch) {
-                if (Math.abs(position.x - parent.getMeasuredWidth() / 2f) <= dp(STICKY_TRIGGER_DP) && position.y < parent.getMeasuredHeight() - dp(112)) {
+                if (Math.abs(position.x - parent.getMeasuredWidth() / 2f) <= dp(STICKY_TRIGGER_DP) * (1f / parent.getScaleX()) && position.y < parent.getMeasuredHeight() - dp(112)) {
                     newStickyX = STICKY_CENTER;
-                } else if (Math.abs(position.x - (width() / 2f + getStickyPaddingLeft()) * getScaleX() - dp(STICKY_PADDING_X_DP)) <= dp(STICKY_TRIGGER_DP)) {
+                } else if (Math.abs(position.x - (width() / 2f + getStickyPaddingLeft()) * getScaleX() - dp(STICKY_PADDING_X_DP)) <= dp(STICKY_TRIGGER_DP) * (1f / parent.getScaleX())) {
                     newStickyX = STICKY_START;
-                } else if (Math.abs(position.x + (width() / 2f - getStickyPaddingRight()) * getScaleX() - (parent.getMeasuredWidth() - dp(STICKY_PADDING_X_DP))) <= dp(STICKY_TRIGGER_DP)) {
+                } else if (Math.abs(position.x + (width() / 2f - getStickyPaddingRight()) * getScaleX() - (parent.getMeasuredWidth() - dp(STICKY_PADDING_X_DP))) <= dp(STICKY_TRIGGER_DP) * (1f / parent.getScaleX())) {
                     newStickyX = STICKY_END;
                 }
             }
@@ -513,11 +518,11 @@ public class EntityView extends FrameLayout {
 
             int newStickyY = STICKY_NONE;
             if (!lastIsMultitouch) {
-                if (Math.abs(position.y - parent.getMeasuredHeight() / 2f) <= dp(STICKY_TRIGGER_DP)) {
+                if (Math.abs(position.y - parent.getMeasuredHeight() / 2f) <= dp(STICKY_TRIGGER_DP) * (1f / parent.getScaleY())) {
                     newStickyY = STICKY_CENTER;
-                } else if (Math.abs(position.y - (height() / 2f + getStickyPaddingTop()) * getScaleY() - dp(STICKY_PADDING_Y_DP)) <= dp(STICKY_TRIGGER_DP)) {
+                } else if (Math.abs(position.y - (height() / 2f + getStickyPaddingTop()) * getScaleY() - dp(STICKY_PADDING_Y_DP)) <= dp(STICKY_TRIGGER_DP) * (1f / parent.getScaleY())) {
                     newStickyY = STICKY_START;
-                } else if (Math.abs(position.y + (height() / 2f - getStickyPaddingBottom()) * getScaleY() - (parent.getMeasuredHeight() - dp(STICKY_PADDING_Y_DP))) <= dp(STICKY_TRIGGER_DP)) {
+                } else if (Math.abs(position.y + (height() / 2f - getStickyPaddingBottom()) * getScaleY() - (parent.getMeasuredHeight() - dp(STICKY_PADDING_Y_DP))) <= dp(STICKY_TRIGGER_DP) * (1f / parent.getScaleY())) {
                     newStickyY = STICKY_END;
                 }
             }

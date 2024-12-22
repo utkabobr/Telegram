@@ -11,6 +11,7 @@ package org.telegram.messenger;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.text.TextUtils;
 
 import com.android.billingclient.api.ProductDetails;
 
@@ -38,6 +39,10 @@ public class BuildVars {
 
     // You can use this flag to disable Google Play Billing (If you're making fork and want it to be in Google Play)
     public static boolean IS_BILLING_UNAVAILABLE = false;
+
+    // Contest-Only values. Should be configured for judges' convenience. Leave these values empty to disable contest info
+    public static String CONTEST_CONTESTANT = "";
+    public static String CONTEST_DESCRIPTION_URL = "";
 
     static {
         if (ApplicationLoader.applicationContext != null) {
@@ -79,6 +84,13 @@ public class BuildVars {
         return betaApp;
     }
 
+    private static Boolean isContestApp;
+    public static boolean isContestApp() {
+        if (isContestApp == null) {
+            isContestApp = !TextUtils.isEmpty(CONTEST_CONTESTANT);
+        }
+        return isContestApp;
+    }
 
     public static boolean isHuaweiStoreApp() {
         return ApplicationLoader.isHuaweiStoreBuild();

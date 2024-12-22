@@ -1094,7 +1094,9 @@ public class PeerStoriesView extends SizeNotifierFrameLayout implements Notifica
                 reactionsLongpressTooltip.hide();
             }
             checkReactionsLayoutForLike();
-            storyViewer.windowView.dispatchTouchEvent(AndroidUtilities.emptyMotionEvent());
+            MotionEvent ev = AndroidUtilities.emptyMotionEvent();
+            storyViewer.windowView.dispatchTouchEvent(ev);
+            ev.recycle();
             showLikesReaction(true);
             return true;
         });

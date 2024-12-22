@@ -446,7 +446,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                                     bitmap.recycle();
                                 }
                                 FileOutputStream outputStream = new FileOutputStream(path);
-                                scaled.compress(Bitmap.CompressFormat.JPEG, 80, outputStream);
+                                scaled.compress(Bitmap.CompressFormat.JPEG, 90, outputStream);
                                 outputStream.flush();
                                 outputStream.getFD().sync();
                                 outputStream.close();

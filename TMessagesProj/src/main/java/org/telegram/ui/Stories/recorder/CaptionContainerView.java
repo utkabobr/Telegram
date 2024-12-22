@@ -104,6 +104,7 @@ public class CaptionContainerView extends FrameLayout {
 
     public final KeyboardNotifier keyboardNotifier;
     public MentionsContainerView mentionContainer;
+    private boolean searchInDialogs = true;
 
     private int shiftDp = -4;
     private final BlurringShader.BlurManager blurManager;
@@ -410,6 +411,7 @@ public class CaptionContainerView extends FrameLayout {
             editText.getEditText().requestFocus();
             editText.openKeyboard();
             editText.getEditText().setScrollY(0);
+            onOpenKeyboard();
             bounce.setPressed(true);
             return true;
         } else if (ev.getAction() == MotionEvent.ACTION_UP || ev.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -419,6 +421,8 @@ public class CaptionContainerView extends FrameLayout {
     }
 
     private final ButtonBounce bounce = new ButtonBounce(this, 1f, 3.0f);
+
+    protected void onOpenKeyboard() {}
 
     @Override
     public void setPressed(boolean pressed) {
@@ -490,7 +494,14 @@ public class CaptionContainerView extends FrameLayout {
         mentionContainer.getAdapter().setAllowStickers(false);
         mentionContainer.getAdapter().setAllowBots(false);
         mentionContainer.getAdapter().setAllowChats(false);
-        mentionContainer.getAdapter().setSearchInDailogs(true);
+        mentionContainer.getAdapter().setSearchInDailogs(searchInDialogs);
+    }
+
+    public void setSearchInDialogs(boolean s) {
+        searchInDialogs = s;
+        if (mentionContainer != null) {
+            mentionContainer.getAdapter().setSearchInDailogs(s);
+        }
     }
 
     private void replaceWithText(int start, int len, CharSequence text, boolean parseEmoji) {
@@ -542,6 +553,10 @@ public class CaptionContainerView extends FrameLayout {
         return AndroidUtilities.navigationBarHeight;
     }
 
+    protected int getFrameBottomPadding() {
+        return sizeNotifierFrameLayout == null ? 0 : sizeNotifierFrameLayout.getBottomPadding();
+    }
+
     public void updateKeyboard(int keyboardHeight) {
         if (sizeNotifierFrameLayout != null) {
             sizeNotifierFrameLayout.notifyHeightChanged();
@@ -551,7 +566,7 @@ public class CaptionContainerView extends FrameLayout {
         } else if (editText.isWaitingForKeyboardOpen()) {
             keyboardHeight = Math.max(0, additionalKeyboardHeight() + editText.getKeyboardHeight());
         }
-        keyboardHeight = Math.max(0, keyboardHeight - (sizeNotifierFrameLayout == null ? 0 : sizeNotifierFrameLayout.getBottomPadding()));
+        keyboardHeight = Math.max(0, keyboardHeight - getFrameBottomPadding());
         View parent = (View) getParent();
         parent.clearAnimation();
 

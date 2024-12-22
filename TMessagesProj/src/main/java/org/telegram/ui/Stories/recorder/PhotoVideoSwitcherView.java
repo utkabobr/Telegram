@@ -19,6 +19,7 @@ import androidx.core.graphics.ColorUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 
@@ -27,6 +28,7 @@ public class PhotoVideoSwitcherView extends View implements FlashViews.Invertabl
     private TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+    private int selectorColor = 0x32ffffff;
     private StaticLayout photoText, videoText;
     private float photoTextLeft, photoTextWidth, photoTextHeight;
     private float videoTextLeft, videoTextWidth, videoTextHeight;
@@ -42,26 +44,20 @@ public class PhotoVideoSwitcherView extends View implements FlashViews.Invertabl
     public PhotoVideoSwitcherView(Context context) {
         super(context);
 
-        selectorPaint.setColor(0x32ffffff);
+        selectorPaint.setColor(selectorColor);
         textPaint.setColor(0xffffffff);
 
         textPaint.setTypeface(AndroidUtilities.bold());
         textPaint.setTextSize(AndroidUtilities.dpf2(14));
         textPaint.setShadowLayer(AndroidUtilities.dpf2(1), 0, AndroidUtilities.dpf2(0.4f), 0x33000000);
 
-        CharSequence text = LocaleController.getString("StoryPhoto");
-        if (text == null) {
-            text = "Photo";
-        }
+        CharSequence text = LocaleController.getString(R.string.StoryPhoto);
         photoText = new StaticLayout(text, textPaint, AndroidUtilities.displaySize.x / 2, Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
         photoTextLeft = photoText.getLineCount() > 0 ? photoText.getLineLeft(0) : 0;
         photoTextWidth = photoText.getLineCount() > 0 ? photoText.getLineWidth(0) : 0;
         photoTextHeight = photoText.getHeight();
 
-        text = LocaleController.getString("StoryVideo");
-        if (text == null) {
-            text = "Video";
-        }
+        text = LocaleController.getString(R.string.StoryVideo);
         videoText = new StaticLayout(text, textPaint, AndroidUtilities.displaySize.x / 2, Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
         videoTextLeft = videoText.getLineCount() > 0 ? videoText.getLineLeft(0) : 0;
         videoTextWidth = videoText.getLineCount() > 0 ? videoText.getLineWidth(0) : 0;
@@ -250,8 +246,13 @@ public class PhotoVideoSwitcherView extends View implements FlashViews.Invertabl
         return scrolledEnough || (scrolledEnough = Math.abs(mode - modeAtTouchDown) > .1f);
     }
 
+    public void setSelectorColor(int selectorColor) {
+        selectorPaint.setColor(this.selectorColor = selectorColor);
+        invalidate();
+    }
+
     public void setInvert(float invert) {
-        selectorPaint.setColor(ColorUtils.blendARGB(0x32ffffff, 0x20000000, invert));
+        selectorPaint.setColor(ColorUtils.blendARGB(selectorColor, 0x20000000, invert));
         textPaint.setColor(ColorUtils.blendARGB(0xffffffff, 0xff000000, invert));
     }
 }

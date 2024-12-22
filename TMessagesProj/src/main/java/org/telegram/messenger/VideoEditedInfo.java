@@ -202,6 +202,8 @@ public class VideoEditedInfo {
 
         public LinkPreview.WebPagePreview linkSettings;
 
+        public boolean fromAttachCamera;
+
         public MediaEntity() {
 
         }

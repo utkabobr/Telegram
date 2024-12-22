@@ -1,7 +1,6 @@
 package org.telegram.ui.Stories.recorder;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
-import static org.telegram.messenger.AndroidUtilities.getBitmapFromSurface;
 
 import android.app.Activity;
 import android.content.ContentUris;
@@ -46,8 +45,6 @@ import com.google.zxing.common.detector.MathUtils;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.ChatThemeController;
-import org.telegram.messenger.ImageLoader;
-import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.Utilities;
@@ -66,7 +63,6 @@ import org.telegram.ui.Components.VideoEditTextureView;
 import org.telegram.ui.Components.VideoPlayer;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashSet;
 
 public class PreviewView extends FrameLayout {
@@ -305,7 +301,11 @@ public class PreviewView extends FrameLayout {
                 } else {
                     duration = entry.audioDuration;
                 }
-                entry.audioRight = entry.audioDuration == 0 ? 1 : Math.min(1, Math.min(duration, TimelineView.MAX_SELECT_DURATION) / (float) entry.audioDuration);
+                if (needVideoDurationLimit()) {
+                    entry.audioRight = entry.audioDuration == 0 ? 1 : Math.min(1, Math.min(duration, TimelineView.MAX_SELECT_DURATION) / (float) entry.audioDuration);
+                } else {
+                    entry.audioRight = 1f;
+                }
             }
         }
         setupAudio(entry, animated);
@@ -415,10 +415,19 @@ public class PreviewView extends FrameLayout {
         }
     }
 
+    protected boolean needVideoDurationLimit() {
+        return true;
+    }
+
     public void setVideoTimelineView(TimelineView timelineView) {
         this.timelineView = timelineView;
         if (timelineView != null) {
             timelineView.setDelegate(new TimelineView.TimelineDelegate() {
+                @Override
+                public boolean needVideoDurationLimit() {
+                    return PreviewView.this.needVideoDurationLimit();
+                }
+
                 @Override
                 public void onProgressDragChange(boolean dragging) {
                     if (isCollage()) {
@@ -911,6 +920,9 @@ public class PreviewView extends FrameLayout {
             final boolean isRound = entry.isRepostMessage && entry.messageObjects != null && entry.messageObjects.size() == 1 && entry.messageObjects.get(0).type == MessageObject.TYPE_ROUND_VIDEO;
             timelineView.setVideo(isRound, entry.getOriginalFile().getAbsolutePath(), getDuration(), entry.videoVolume);
             timelineView.setVideoLeft(entry.left);
+            if (!entry.isEditSaved && !timelineView.needDurationLimit()) {
+                entry.right = 1f;
+            }
             timelineView.setVideoRight(entry.right);
             if (timelineView != null && seekTo > 0) {
                 timelineView.setProgress(seekTo);

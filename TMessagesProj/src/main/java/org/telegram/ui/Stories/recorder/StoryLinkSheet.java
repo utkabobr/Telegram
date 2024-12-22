@@ -63,10 +63,12 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
     private boolean needRemoveDefPrefix;
 
     private Utilities.Callback<LinkPreview.WebPagePreview> whenDone;
+    private boolean restrictClickable;
 
-    public StoryLinkSheet(Context context, Theme.ResourcesProvider resourcesProvider, PreviewView previewView, Utilities.Callback<LinkPreview.WebPagePreview> whenDone) {
+    public StoryLinkSheet(Context context, Theme.ResourcesProvider resourcesProvider, PreviewView previewView, boolean restrictClickable, Utilities.Callback<LinkPreview.WebPagePreview> whenDone) {
         super(context, null, true, false, false, true, ActionBarType.SLIDING, resourcesProvider);
         this.whenDone = whenDone;
+        this.restrictClickable = restrictClickable;
 
         fixNavigationBar();
         setSlidingActionBar();
@@ -396,10 +398,12 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
             items.add(WebpagePreviewView.Factory.item(webpage, this::closePreview));
         }
         items.add(UItem.asCustom(urlEditText));
-        items.add(UItem.asShadow(1, null));
-        items.add(UItem.asCheck(2, getString(R.string.StoryLinkNameHeader)).setChecked(nameOpen));
-        if (nameOpen) {
-            items.add(UItem.asCustom(nameEditText));
+        if (!restrictClickable) {
+            items.add(UItem.asShadow(1, null));
+            items.add(UItem.asCheck(2, getString(R.string.StoryLinkNameHeader)).setChecked(nameOpen));
+            if (nameOpen) {
+                items.add(UItem.asCustom(nameEditText));
+            }
         }
         items.add(UItem.asShadow(3, null));
         items.add(UItem.asCustom(buttonContainer));

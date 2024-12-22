@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -897,11 +898,13 @@ public class ItemOptions {
         }
 
         // discard all scrolls/gestures
+        MotionEvent ev = AndroidUtilities.emptyMotionEvent();
         if (fragment != null && fragment.getFragmentView() != null) {
-            fragment.getFragmentView().getRootView().dispatchTouchEvent(AndroidUtilities.emptyMotionEvent());
+            fragment.getFragmentView().getRootView().dispatchTouchEvent(ev);
         } else if (this.container != null) {
-            container.dispatchTouchEvent(AndroidUtilities.emptyMotionEvent());
+            container.dispatchTouchEvent(ev);
         }
+        ev.recycle();
 
         actionBarPopupWindow.showAtLocation(
             container,

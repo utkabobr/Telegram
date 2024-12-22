@@ -336,7 +336,9 @@ public class SelfStoryViewsView extends FrameLayout {
         }
         selfStoriesPreviewView.setProgressToOpen(progressToOpen);
         if (viewPager.gesturesEnabled && progressToOpen != 1f) {
-            viewPager.onTouchEvent(AndroidUtilities.emptyMotionEvent());
+            MotionEvent ev = AndroidUtilities.emptyMotionEvent();
+            viewPager.onTouchEvent(ev);
+            ev.recycle();
         }
         setVisibility(progressToOpen == 0 ? View.INVISIBLE : View.VISIBLE);
         if (progressToOpen != 1f) {

@@ -135,6 +135,7 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScrollerEnd;
@@ -303,7 +304,7 @@ import java.util.Objects;
 @SuppressLint("WrongConstant")
 @SuppressWarnings("unchecked")
 public class PhotoViewer implements NotificationCenter.NotificationCenterDelegate, GestureDetector2.OnGestureListener, GestureDetector2.OnDoubleTapListener {
-    private final static float ZOOM_SCALE = 0.1f;
+    public final static float ZOOM_SCALE = 0.1f;
     private final static int MARK_DEFERRED_IMAGE_LOADING = 1;
 
     private boolean ALLOW_USE_SURFACE = Build.VERSION.SDK_INT >= 30;
@@ -16600,7 +16601,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                             animators.add(ObjectAnimator.ofFloat(photoCropView, View.ALPHA, 0, 1.0f));
                         }
                         animatorSet.playTogether(animators);
-                        animatorSet.setDuration(200);
+                        animatorSet.setInterpolator(new FastOutSlowInInterpolator());
+                        animatorSet.setDuration(300);
                         animatorSet.addListener(new AnimatorListenerAdapter() {
                             @Override
                             public void onAnimationEnd(Animator animation) {
@@ -17210,7 +17212,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                     }
                 };
 
-                animatorSet.setDuration(200);
+                animatorSet.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                animatorSet.setDuration(300);
                 animatorSet.addListener(new AnimatorListenerAdapter() {
                     @Override
                     public void onAnimationEnd(Animator animation) {

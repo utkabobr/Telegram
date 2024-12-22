@@ -176,6 +176,10 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         cameraThread.stopRecording();
     }
 
+    protected boolean fixDualAspectRatio() {
+        return false;
+    }
+
     ValueAnimator flipAnimator;
     boolean flipHalfReached;
     boolean flipping = false;
@@ -930,6 +934,10 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
     public void setDelegate(CameraViewDelegate cameraViewDelegate) {
         delegate = cameraViewDelegate;
+    }
+
+    public boolean isFirstFrameRendered() {
+        return firstFrameRendered;
     }
 
     public boolean isInited() {
@@ -1717,10 +1725,30 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 GLES20.glUniformMatrix4fv(textureMatrixHandle, 1, false, mSTMatrix[i], 0);
                 GLES20.glUniformMatrix4fv(vertexMatrixHandle, 1, false, mMVPMatrix[i], 0);
                 if (i == 0) {
-                    GLES20.glUniform2f(pixelHandle, pixelW, pixelH);
+                    float w = pixelW, h = pixelH;
+                    if (dual && fixDualAspectRatio() && previewSize[i] != null) {
+                        int pw = previewSize[i].getWidth(), ph = previewSize[i].getHeight();
+                        if (w < h) {
+                            w = h * Math.min(pw, ph) / (float) Math.max(pw, ph);
+                        } else if (w > h) {
+                            h = w * Math.max(pw, ph) / (float) Math.min(pw, ph);
+                        }
+                    }
+
+                    GLES20.glUniform2f(pixelHandle, w, h);
                     GLES20.glUniform1f(dualHandle, dual ? 1 : 0);
                 } else {
-                    GLES20.glUniform2f(pixelHandle, pixelDualW, pixelDualH);
+                    float w = pixelDualW, h = pixelDualH;
+                    if (fixDualAspectRatio() && previewSize[i] != null) {
+                        int pw = previewSize[i].getWidth(), ph = previewSize[i].getHeight();
+                        if (w < h) {
+                            w = h * Math.min(pw, ph) / (float) Math.max(pw, ph);
+                        } else if (w > h) {
+                            h = w * Math.max(pw, ph) / (float) Math.min(pw, ph);
+                        }
+                    }
+
+                    GLES20.glUniform2f(pixelHandle, w, h);
                     GLES20.glUniform1f(dualHandle, 1f);
                 }
                 GLES20.glUniform1f(blurHandle, i == 0 ? camera1Blur : 0f);
@@ -2181,7 +2209,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         }
     }
 
-    private void onFirstFrameRendered(int i) {
+    protected void onFirstFrameRendered(int i) {
         if (i == 0) {
             flipping = false;
             if (blurredStubView.getVisibility() == View.VISIBLE) {
@@ -2739,10 +2767,30 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
                 GLES20.glUniform1f(blurHandle, 0);
                 if (i == 0) {
-                    GLES20.glUniform2f(pixelHandle, pixelW, pixelH);
+                    float w = pixelW, h = pixelH;
+                    if (dual && fixDualAspectRatio() && previewSize[i] != null) {
+                        int pw = previewSize[i].getWidth(), ph = previewSize[i].getHeight();
+                        if (w < h) {
+                            w = h * Math.min(pw, ph) / (float) Math.max(pw, ph);
+                        } else if (w > h) {
+                            h = w * Math.max(pw, ph) / (float) Math.min(pw, ph);
+                        }
+                    }
+
+                    GLES20.glUniform2f(pixelHandle, w, h);
                     GLES20.glUniform1f(dualHandle, isDual ? 1f : 0f);
                 } else {
-                    GLES20.glUniform2f(pixelHandle, pixelDualW, pixelDualH);
+                    float w = pixelDualW, h = pixelDualH;
+                    if (fixDualAspectRatio() && previewSize[i] != null) {
+                        int pw = previewSize[i].getWidth(), ph = previewSize[i].getHeight();
+                        if (w < h) {
+                            w = h * Math.min(pw, ph) / (float) Math.max(pw, ph);
+                        } else if (w > h) {
+                            h = w * Math.max(pw, ph) / (float) Math.min(pw, ph);
+                        }
+                    }
+
+                    GLES20.glUniform2f(pixelHandle, w, h);
                     GLES20.glUniform1f(dualHandle, 1f);
                 }
                 if (i == 1) {

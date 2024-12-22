@@ -1268,7 +1268,7 @@ public class TextureRenderer {
                         initStickerEntity(entity);
                     } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT) {
                         initTextEntity(entity);
-                    } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION) {
+                    } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION || (entity.type == VideoEditedInfo.MediaEntity.TYPE_WEATHER && entity.fromAttachCamera)) {
                         initLocationEntity(entity);
                     } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_LINK) {
                         initLinkEntity(entity);

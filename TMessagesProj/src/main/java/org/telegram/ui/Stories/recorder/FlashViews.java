@@ -65,12 +65,14 @@ public class FlashViews {
     private final View windowView;
     @Nullable
     private final WindowManager.LayoutParams windowViewParams;
+    private StoryRecorder.StoryRecorderDelegate delegate;
 
-    public FlashViews(Context context, @Nullable WindowManager windowManager, View windowView, @Nullable WindowManager.LayoutParams windowViewParams) {
+    public FlashViews(Context context, @Nullable WindowManager windowManager, View windowView, @Nullable WindowManager.LayoutParams windowViewParams, StoryRecorder.StoryRecorderDelegate delegate) {
         this.context = context;
         this.windowManager = windowManager;
         this.windowView = windowView;
         this.windowViewParams = windowViewParams;
+        this.delegate = delegate;
 
         backgroundView = new View(context) {
             @Override
@@ -113,7 +115,7 @@ public class FlashViews {
     }
 
     private void setScreenBrightness(float value) {
-        if (windowViewParams != null) {
+        if (windowViewParams != null && delegate.needAddRecorderToWindowManager()) {
             windowViewParams.screenBrightness = value;
             if (windowManager != null) {
                 windowManager.updateViewLayout(windowView, windowViewParams);
@@ -276,7 +278,11 @@ public class FlashViews {
                 canvas.drawRect(0, 0, lastWidth, lastHeight, paint);
             } else {
                 AndroidUtilities.rectTmp.set(0, 0, foregroundView.getMeasuredWidth(), foregroundView.getMeasuredHeight());
-                canvas.drawRoundRect(AndroidUtilities.rectTmp, dp(12) - 2, dp(12) - 2, paint);
+                if (!delegate.needRecorderFullscreen()) {
+                    canvas.drawRoundRect(AndroidUtilities.rectTmp, dp(12) - 2, dp(12) - 2, paint);
+                } else {
+                    canvas.drawRect(AndroidUtilities.rectTmp, paint);
+                }
             }
         }
     }

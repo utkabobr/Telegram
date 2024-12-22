@@ -148,6 +148,10 @@ public class PreviewHighlightView extends FrameLayout {
 
     private boolean shownTop = false, shownBottom = false;
 
+    protected boolean needShowHighlight() {
+        return true;
+    }
+
     public void show(boolean topOrBottom, boolean show, View fadeView) {
         if (topOrBottom) {
             if (shownTop == show)
@@ -161,8 +165,10 @@ public class PreviewHighlightView extends FrameLayout {
 
         View view = topOrBottom ? top : bottom;
 
-        view.clearAnimation();
-        view.animate().alpha(show ? (topOrBottom ? .5f : .2f) : 0f).start();
+        if (needShowHighlight()) {
+            view.clearAnimation();
+            view.animate().alpha(show ? (topOrBottom ? .5f : .2f) : 0f).start();
+        }
 
         if (fadeView != null) {
             fadeView.clearAnimation();

@@ -103,6 +103,7 @@ import org.telegram.ui.Components.voip.CellFlickerDrawable;
 import org.telegram.ui.Stories.recorder.DualCameraView;
 import org.telegram.ui.Stories.recorder.FlashViews;
 import org.telegram.ui.Stories.recorder.StoryEntry;
+import org.telegram.ui.Stories.recorder.StoryRecorder;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -285,7 +286,7 @@ public class InstantCameraView extends FrameLayout implements NotificationCenter
 
         rect = new RectF();
 
-        flashViews = new FlashViews(getContext(), null, this, null);
+        flashViews = new FlashViews(getContext(), null, this, null, new StoryRecorder.StoryRecorderDelegate() {});
         flashViews.setWarmth(.5f);
         addView(flashViews.backgroundView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
 

@@ -750,7 +750,9 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
     }
 
     public void onKeyboardShown() {
-        recyclerListView.dispatchTouchEvent(AndroidUtilities.emptyMotionEvent());
+        MotionEvent ev = AndroidUtilities.emptyMotionEvent();
+        recyclerListView.dispatchTouchEvent(ev);
+        ev.recycle();
         if (topViewsContainer.getTranslationY() != 0) {
             scroller.smoothScrollBy((int) topViewsContainer.getTranslationY(), AdjustPanLayoutHelper.keyboardDuration, AdjustPanLayoutHelper.keyboardInterpolator);
         }
@@ -762,7 +764,9 @@ public class SelfStoryViewsPage extends FrameLayout implements NotificationCente
             return true;
         }
         if (Math.abs(topViewsContainer.getTranslationY() - recyclerListView.getPaddingTop()) > AndroidUtilities.dp(2)) {
-            recyclerListView.dispatchTouchEvent(AndroidUtilities.emptyMotionEvent());
+            MotionEvent ev = AndroidUtilities.emptyMotionEvent();
+            recyclerListView.dispatchTouchEvent(ev);
+            ev.recycle();
             recyclerListView.smoothScrollToPosition(0);
             return true;
         }

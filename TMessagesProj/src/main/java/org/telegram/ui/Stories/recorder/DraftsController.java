@@ -29,6 +29,7 @@ import org.telegram.ui.ActionBar.Theme;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DraftsController {
@@ -272,10 +273,11 @@ public class DraftsController {
         }
         prepare(entry);
         entry.draftId = Utilities.random.nextLong();
-        final StoryDraft draft = new StoryDraft(entry);
         drafts.remove(entry);
         drafts.add(0, entry);
-        append(draft);
+        if (!entry.isCameraAttachment) {
+            append(new StoryDraft(entry));
+        }
     }
 
     private void append(StoryDraft draft) {
@@ -394,9 +396,7 @@ public class DraftsController {
     }
 
     public void delete(StoryEntry entry) {
-        ArrayList<StoryEntry> list = new ArrayList<>(1);
-        list.add(entry);
-        delete(list);
+        delete(Collections.singletonList(entry));
     }
 
     public void deleteExpired() {
@@ -416,7 +416,7 @@ public class DraftsController {
         delete(list);
     }
 
-    public void delete(ArrayList<StoryEntry> entries) {
+    public void delete(List<StoryEntry> entries) {
         if (entries == null) {
             return;
         }
@@ -425,7 +425,9 @@ public class DraftsController {
             StoryEntry entry = entries.get(i);
             if (entry != null) {
                 FileLog.d("StoryDraft delete " + entry.draftId + " (edit=" + entry.isEdit + (entry.isEdit ? ", storyId=" + entry.editStoryId + ", " + (entry.editDocumentId != 0 ? "documentId=" + entry.editDocumentId : "photoId=" + entry.editPhotoId) + ", expireDate=" + entry.editExpireDate : "") + ", now="+System.currentTimeMillis()+")");
-                ids.add(entry.draftId);
+                if (!entry.isCameraAttachment) {
+                    ids.add(entry.draftId);
+                }
                 entry.destroy(true);
             }
         }

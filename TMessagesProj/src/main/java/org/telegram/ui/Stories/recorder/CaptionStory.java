@@ -3,6 +3,7 @@ package org.telegram.ui.Stories.recorder;
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
 import static org.telegram.messenger.AndroidUtilities.lerp;
+import static org.telegram.messenger.LocaleController.getString;
 import static org.telegram.ui.ActionBar.Theme.RIPPLE_MASK_CIRCLE_20DP;
 
 import android.content.Context;
@@ -49,6 +50,7 @@ import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.SizeNotifierFrameLayout;
 import org.telegram.ui.Components.Text;
 import org.telegram.ui.Components.WaveDrawable;
+import org.telegram.ui.Stories.DarkThemeResourceProvider;
 
 public class CaptionStory extends CaptionContainerView {
 
@@ -59,6 +61,16 @@ public class CaptionStory extends CaptionContainerView {
     public PeriodDrawable periodDrawable;
     private ItemOptions periodPopup;
     private boolean periodVisible = true;
+
+    private final int SHOW_ONCE = 0x7FFFFFFF;
+    private final int[] timerValues = new int[] { SHOW_ONCE, 3, 10, 30, 0 };
+    private int timer = 0;
+
+    private boolean timerVisible;
+    private final ImageView timerButton;
+    private final PeriodDrawable timerDrawable;
+    private ItemOptions timerPopup;
+    private final HintView2 hint;
 
     public static final int[] periods = new int[] { 6 * 3600, 12 * 3600, 86400, 2 * 86400 };
     private int periodIndex = 0;
@@ -125,6 +137,115 @@ public class CaptionStory extends CaptionContainerView {
             }
             periodPopup.setDimAlpha(0).show();
         });
+
+        timerButton = new ImageView(context);
+        timerButton.setImageDrawable(timerDrawable = new PeriodDrawable());
+        timerButton.setBackground(Theme.createSelectorDrawable(Theme.ACTION_BAR_WHITE_SELECTOR_COLOR, RIPPLE_MASK_CIRCLE_20DP, dp(18)));
+        timerButton.setScaleType(ImageView.ScaleType.CENTER);
+        setTimerVisible(false, false);
+        addView(timerButton, LayoutHelper.createFrame(44, 44, Gravity.RIGHT | Gravity.BOTTOM, 0, 0, 11 + 44 - 4, 10));
+
+        hint = new HintView2(context, isAtTop() ? HintView2.DIRECTION_TOP : HintView2.DIRECTION_BOTTOM);
+        hint.setRounding(12);
+        hint.setPadding(dp(12), dp(isAtTop() ? 8 : 0), dp(12), dp(isAtTop() ? 0 : 8));
+        hint.setJoint(1, -21);
+        hint.setMultilineText(true);
+        addView(hint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 80, Gravity.RIGHT | (isAtTop() ? Gravity.TOP : Gravity.BOTTOM)));
+
+        timerButton.setOnClickListener(e -> {
+            if (timerPopup != null && timerPopup.isShown()) {
+                timerPopup.dismiss();
+                timerPopup = null;
+                return;
+            }
+            hint.hide();
+
+            timerPopup = ItemOptions.makeOptions(rootView, new DarkThemeResourceProvider(), timerButton);
+            timerPopup.setDimAlpha(0);
+            timerPopup.addText(getString(R.string.TimerPeriodHint), 13, dp(200));
+            timerPopup.addGap();
+            for (int value : timerValues) {
+                String text;
+                if (value == 0) {
+                    text = getString(R.string.TimerPeriodDoNotDelete);
+                } else if (value == SHOW_ONCE) {
+                    text = getString(R.string.TimerPeriodOnce);
+                } else {
+                    text = LocaleController.formatPluralString("Seconds", value);
+                }
+                timerPopup.add(0, text, () -> changeTimer(value));
+                if (this.timer == value) {
+                    timerPopup.putCheck();
+                }
+            }
+            timerPopup.show();
+        });
+    }
+
+    public void setTimer(int value) {
+        this.timer = value;
+        timerDrawable.setValue(timer == SHOW_ONCE ? 1 : Math.max(1, timer), timer > 0, true);
+        if (hint != null) {
+            hint.hide();
+        }
+    }
+
+    private Utilities.Callback<Integer> onTTLChange;
+    public void setOnTimerChange(Utilities.Callback<Integer> onTTLChange) {
+        this.onTTLChange = onTTLChange;
+    }
+
+    private boolean isVideo;
+    public void setIsVideo(boolean isVideo) {
+        this.isVideo = isVideo;
+    }
+
+    public boolean hasTimer() {
+        return timerVisible && timer > 0;
+    }
+
+    private void changeTimer(int value) {
+        if (this.timer == value) {
+            return;
+        }
+        setTimer(value);
+        if (onTTLChange != null) {
+            onTTLChange.run(value);
+        }
+        CharSequence text;
+        if (value == 0) {
+            text = getString(isVideo ? R.string.TimerPeriodVideoKeep : R.string.TimerPeriodPhotoKeep);
+            hint.setMaxWidthPx(getMeasuredWidth());
+            hint.setMultilineText(false);
+            hint.setInnerPadding(13, 4, 10, 4);
+            hint.setIconMargin(0);
+            hint.setIconTranslate(0, -dp(1));
+        } else if (value == SHOW_ONCE) {
+            text = getString(isVideo ? R.string.TimerPeriodVideoSetOnce : R.string.TimerPeriodPhotoSetOnce);
+            hint.setMaxWidthPx(getMeasuredWidth());
+            hint.setMultilineText(false);
+            hint.setInnerPadding(13, 4, 10, 4);
+            hint.setIconMargin(0);
+            hint.setIconTranslate(0, -dp(1));
+        } else if (value > 0) {
+            text = AndroidUtilities.replaceTags(LocaleController.formatPluralString(isVideo ? "TimerPeriodVideoSetSeconds" : "TimerPeriodPhotoSetSeconds", value));
+            hint.setMultilineText(true);
+            hint.setMaxWidthPx(HintView2.cutInFancyHalf(text, hint.getTextPaint()));
+            hint.setInnerPadding(12, 7, 11, 7);
+            hint.setIconMargin(2);
+            hint.setIconTranslate(0, 0);
+        } else {
+            return;
+        }
+        hint.setTranslationY((-Math.min(dp(34), getEditTextHeight()) - dp(14)) * (isAtTop() ? -1.0f : 1.0f));
+        hint.setText(text);
+        final int iconResId = value > 0 ? R.raw.fire_on : R.raw.fire_off;
+        RLottieDrawable icon = new RLottieDrawable(iconResId, "" + iconResId, dp(34), dp(34));
+        icon.start();
+        hint.setIcon(icon);
+        hint.show();
+
+        invalidate();
     }
 
     private void checkFlipButton() {
@@ -140,6 +261,23 @@ public class CaptionStory extends CaptionContainerView {
     public void setHasRoundVideo(boolean hasRoundVideo) {
         roundButton.setImageResource(hasRoundVideo ? R.drawable.input_video_story_remove : R.drawable.input_video_story);
         this.hasRoundVideo = hasRoundVideo;
+    }
+
+    public void setTimerVisible(boolean visible, boolean animated) {
+        timerVisible = visible;
+        timerButton.animate().cancel();
+        if (animated) {
+            timerButton.setVisibility(View.VISIBLE);
+            timerButton.animate().alpha(visible ? 1f : 0f).translationX(visible ? 0 : dp(8)).withEndAction(() -> {
+                if (!visible) {
+                    timerButton.setVisibility(View.GONE);
+                }
+            }).start();
+        } else {
+            timerButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+            timerButton.setAlpha(visible ? 1f : 0f);
+            timerButton.setTranslationX(visible ? 0 : dp(8));
+        }
     }
 
     private final RecordDot recordPaint = new RecordDot(this);
@@ -351,7 +489,7 @@ public class CaptionStory extends CaptionContainerView {
                 canvas.restore();
             }
 
-            if (periodButton.getVisibility() == View.INVISIBLE || collapsedT.get() > 0) {
+            if (periodVisible && (periodButton.getVisibility() == View.INVISIBLE || collapsedT.get() > 0)) {
                 canvas.save();
                 canvas.translate(periodButton.getX() + dp(180) * (1f - cancel), periodButton.getY());
                 periodButton.draw(canvas);
@@ -587,7 +725,7 @@ public class CaptionStory extends CaptionContainerView {
     private final Runnable doneCancel = () -> {
         setCollapsed(false, Integer.MIN_VALUE);
         roundButton.setVisibility(VISIBLE);
-        periodButton.setVisibility(VISIBLE);
+        periodButton.setVisibility(periodVisible ? VISIBLE : GONE);
     };
 
     private boolean roundButtonTouchEvent(MotionEvent ev) {
@@ -641,7 +779,7 @@ public class CaptionStory extends CaptionContainerView {
                     cancelling = true;
                     recording = false;
                     roundButton.setVisibility(INVISIBLE);
-                    periodButton.setVisibility(INVISIBLE);
+                    periodButton.setVisibility(periodVisible ? INVISIBLE : GONE);
                     recordPaint.playDeleteAnimation();
 
                     if (currentRecorder != null) {

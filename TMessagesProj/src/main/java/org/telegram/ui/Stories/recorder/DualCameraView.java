@@ -2,15 +2,11 @@ package org.telegram.ui.Stories.recorder;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
-import android.hardware.camera2.CameraAccessException;
 import android.os.Build;
-import android.text.TextUtils;
-import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
@@ -26,16 +22,11 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
-import org.telegram.messenger.camera.CameraController;
-import org.telegram.messenger.camera.CameraSession;
 import org.telegram.messenger.camera.CameraSessionWrapper;
 import org.telegram.messenger.camera.CameraView;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
-
-import java.util.Arrays;
-import java.util.Locale;
 
 public class DualCameraView extends CameraView {
 
@@ -172,11 +163,10 @@ public class DualCameraView extends CameraView {
 
             float w = getMeasuredWidth() * .43f;
             float h = getMeasuredHeight() * .43f;
-            float px = Math.min(getMeasuredWidth(), getMeasuredWidth()) * .025f;
-            float py = px * 2;
+            float px = Math.min(getMeasuredWidth(), getMeasuredHeight()) * .025f;
 
             matrix.postScale(w / getMeasuredWidth(), h / getMeasuredHeight());
-            matrix.postTranslate(getMeasuredWidth() - px - w, px);
+            matrix.postTranslate(getMeasuredWidth() - px - w - (fixDualAspectRatio() ? ((9f / 16f * getHeight()) - getWidth()) / 2f : 0), px);
             matrix.postConcat(toGL);
         }
         updateDualPosition();
@@ -193,8 +183,12 @@ public class DualCameraView extends CameraView {
         invMatrix.mapPoints(vertex);
         int shape = getDualShape() % 3;
         boolean square = shape == 0 || shape == 1 || shape == 3;
-        float H = square ? 9 / 16f : 1f;
+        float H = square ? getSquareAspectRatio() : 1f;
         return vertex[0] >= -1 && vertex[0] <= 1 && vertex[1] >= -H && vertex[1] <= H;
+    }
+
+    protected float getSquareAspectRatio() {
+        return 9 / 16f;
     }
 
     private float tapX, tapY;
@@ -447,7 +441,7 @@ public class DualCameraView extends CameraView {
         }
         int shape = getDualShape() % 3;
         boolean square = shape == 0 || shape == 1 || shape == 3;
-        float H = square ? 9 / 16f : 1f;
+        float H = square ? getSquareAspectRatio() : 1f;
         verticesSrc[0] = -1;
         verticesSrc[1] = -H;
         verticesSrc[2] = 1;
@@ -620,11 +614,11 @@ public class DualCameraView extends CameraView {
         return dualAvailableStatic(getContext()) && MessagesController.getGlobalMainSettings().getBoolean("dualcam", dualAvailableDefault(ApplicationLoader.applicationContext, false));
     }
 
-    private void resetSavedDual() {
+    protected void resetSavedDual() {
         MessagesController.getGlobalMainSettings().edit().putBoolean("dualcam", false).remove("dualmatrix").apply();
     }
 
-    private void saveDual() {
+    protected void saveDual() {
         SharedPreferences.Editor edit = MessagesController.getGlobalMainSettings().edit();
         edit.putBoolean("dualcam", isDual());
         if (isDual()) {

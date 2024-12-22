@@ -8511,4 +8511,10 @@
     <string name="MoveCaptionDown">Move caption down</string>
     <string name="MovedCaptionDown">Caption moved down</string>
     <string name="MovedCaptionDownText">Caption will be shown below the media</string>
+    <string name="AttachCameraSoundMuted">This video will have no sound.</string>
+    <string name="AttachCameraSoundNotMuted">This video will have sound.</string>
+    <string name="AttachCameraOriginalSoundMuted">Original audio will be removed.</string>
+    <string name="AttachCameraOriginalSoundNotMuted">Original audio will be preserved.</string>
+    <string name="ContestBadgeTitle">%s\'s Contest Entry</string>
+    <string name="ContestBadgeDescription">Tap here for entry description</string>
 </resources>
