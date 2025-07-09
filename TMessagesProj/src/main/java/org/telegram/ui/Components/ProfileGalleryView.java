@@ -265,7 +265,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         imagesLayerNum = value;
     }
 
-    public ProfileGalleryView(Context context, long dialogId, ActionBar parentActionBar, RecyclerListView parentListView, ProfileActivity.AvatarImageView parentAvatarImageView, int parentClassGuid, Callback callback) {
+    public ProfileGalleryView(Context context, long dialogId, ActionBar parentActionBar, RecyclerListView parentListView, ProfileAvatarImageView parentAvatarImageView, int parentClassGuid, Callback callback) {
         super(context);
         setVisibility(View.GONE);
         setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -628,12 +628,16 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         return !imagesLocations.isEmpty();
     }
 
-    public BackupImageView getCurrentItemView() {
-        if (adapter != null && !adapter.objects.isEmpty()) {
-            return adapter.objects.get(getCurrentItem()).imageView;
+    public BackupImageView getItemView(int index) {
+        if (adapter != null && !adapter.objects.isEmpty() && index >= 0 && index < adapter.objects.size()) {
+            return adapter.objects.get(index).imageView;
         } else {
             return null;
         }
+    }
+
+    public BackupImageView getCurrentItemView() {
+        return getItemView(getCurrentItem());
     }
 
     public boolean isLoadingCurrentVideo() {
@@ -1090,7 +1094,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         private BackupImageView parentAvatarImageView;
         private final ActionBar parentActionBar;
 
-        public ViewPagerAdapter(Context context, ProfileActivity.AvatarImageView parentAvatarImageView, ActionBar parentActionBar) {
+        public ViewPagerAdapter(Context context, ProfileAvatarImageView parentAvatarImageView, ActionBar parentActionBar) {
             this.context = context;
             this.parentAvatarImageView = parentAvatarImageView;
             this.parentActionBar = parentActionBar;
@@ -1371,31 +1375,11 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         private float radialProgressHideAnimatorStartValue;
         private long firstDrawTime = -1;
         public boolean isVideo;
-        private final int position;
-        private final Paint placeholderPaint;
+        private int position;
+        private Paint placeholderPaint;
 
-        public AvatarImageView(Context context, int position, Paint placeholderPaint) {
-            super(context);
-            this.position = position;
-            this.placeholderPaint = placeholderPaint;
-            setLayerNum(imagesLayerNum);
-        }
-
-        @Override
-        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-            super.onSizeChanged(w, h, oldw, oldh);
-            if (radialProgress != null) {
-                int paddingTop = (parentActionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
-                int paddingBottom = AndroidUtilities.dp2(80f);
-                radialProgress.setProgressRect((w - radialProgressSize) / 2, paddingTop + (h - paddingTop - paddingBottom - radialProgressSize) / 2, (w + radialProgressSize) / 2, paddingTop + (h - paddingTop - paddingBottom + radialProgressSize) / 2);
-            }
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (pinchToZoomHelper != null && pinchToZoomHelper.isInOverlayMode()) {
-                return;
-            }
+        private ProfileAvatarBlurHelper blurHelper;
+        private ProfileAvatarBlurHelper.Drawer drawer = c -> {
             if (radialProgress != null) {
                 int realPosition = getRealPosition(position);
                 if (hasActiveVideo) {
@@ -1452,10 +1436,10 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
                     invalidate();
                 }
                 if (roundTopRadius == 0 && roundBottomRadius == 0) {
-                    canvas.drawRect(0, 0, getWidth(), getHeight(), placeholderPaint);
+                    c.drawRect(0, 0, getWidth(), getHeight(), placeholderPaint);
                 } else if (roundTopRadius == roundBottomRadius) {
                     rect.set(0, 0, getWidth(), getHeight());
-                    canvas.drawRoundRect(rect, roundTopRadius, roundTopRadius, placeholderPaint);
+                    c.drawRoundRect(rect, roundTopRadius, roundTopRadius, placeholderPaint);
                 } else {
                     path.reset();
                     rect.set(0, 0, getWidth(), getHeight());
@@ -1464,14 +1448,58 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
                         radii[4 + i] = roundBottomRadius;
                     }
                     path.addRoundRect(rect, radii, Path.Direction.CW);
-                    canvas.drawPath(path, placeholderPaint);
+                    c.drawPath(path, placeholderPaint);
                 }
             }
-            super.onDraw(canvas);
+            super.onDraw(c);
 
             if (radialProgress != null && radialProgress.getOverrideAlpha() > 0f) {
-                radialProgress.draw(canvas);
+                radialProgress.draw(c);
             }
+        };
+
+        public AvatarImageView(Context context, int position, Paint placeholderPaint) {
+            super(context);
+            this.position = position;
+            this.placeholderPaint = placeholderPaint;
+            setLayerNum(imagesLayerNum);
+            drawFromStart = true;
+            blurHelper = new ProfileAvatarBlurHelper(this);
+            blurHelper.setProgress(1f);
+            blurHelper.setBlurEnabled(true);
+        }
+
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            if (radialProgress != null) {
+                int paddingTop = (parentActionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
+                int paddingBottom = AndroidUtilities.dp2(80f);
+                radialProgress.setProgressRect((w - radialProgressSize) / 2, paddingTop + (h - paddingTop - paddingBottom - radialProgressSize) / 2, (w + radialProgressSize) / 2, paddingTop + (h - paddingTop - paddingBottom + radialProgressSize) / 2);
+            }
+            blurHelper.onSizeChanged(w, h);
+        }
+
+        @Override
+        public void onNewImageSet() {
+            super.onNewImageSet();
+            blurHelper.invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            int w = getWidth(), h = getHeight() - AndroidUtilities.dp(ProfileActivity.PROFILE_BUTTONS_DP + ProfileActivity.BUTTONS_MARGIN_DP * 2);
+            setSize(w, h);
+            if (pinchToZoomHelper != null && pinchToZoomHelper.isInOverlayMode()) {
+                return;
+            }
+            blurHelper.draw(drawer, canvas);
+        }
+
+        @Override
+        protected void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            blurHelper.onDetached();
         }
 
         @Override

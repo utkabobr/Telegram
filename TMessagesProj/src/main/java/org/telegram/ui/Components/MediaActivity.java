@@ -84,7 +84,7 @@ public class MediaActivity extends BaseFragment implements SharedMediaLayout.Sha
     private FrameLayout[] titles = new FrameLayout[2];
     private SimpleTextView[] nameTextView = new SimpleTextView[2];
     private AnimatedTextView[] subtitleTextView = new AnimatedTextView[2];
-    ProfileActivity.AvatarImageView avatarImageView;
+    ProfileAvatarImageView avatarImageView;
     private BackDrawable backDrawable;
     private AnimatedTextView selectedTextView;
     private ActionBarMenuItem optionsItem;
@@ -373,7 +373,7 @@ public class MediaActivity extends BaseFragment implements SharedMediaLayout.Sha
             }
         }
 
-        avatarImageView = new ProfileActivity.AvatarImageView(context) {
+        avatarImageView = new ProfileAvatarImageView(context) {
             @Override
             public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
                 super.onInitializeAccessibilityNodeInfo(info);

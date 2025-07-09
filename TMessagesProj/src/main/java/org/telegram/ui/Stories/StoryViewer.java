@@ -2875,12 +2875,17 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
         public boolean checkParentScale;
         public int storyId;
 
+        public Float radius;
+
         public Integer getAvatarImageRoundRadius() {
+            float scale = 1f;
+            if (checkParentScale && view != null && view.getParent() != null) {
+                scale = ((ViewGroup) (view.getParent())).getScaleY();
+            }
+            if (radius != null) {
+                return (int) (radius * scale);
+            }
             if (avatarImage != null) {
-                float scale = 1f;
-                if (checkParentScale && view != null && view.getParent() != null) {
-                    scale = ((ViewGroup) (view.getParent())).getScaleY();
-                }
                 return (int) (avatarImage.getRoundRadius()[0] * scale);
             }
             return null;

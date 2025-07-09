@@ -1117,14 +1117,14 @@ public class AnimatedEmojiDrawable extends Drawable {
             if (hasParticles == show) return;
             if (animated) {
                 if (particles == null) {
-                    particles = new StarsReactionsSheet.Particles(StarsReactionsSheet.Particles.TYPE_RADIAL, 8);
+                    particles = new StarsReactionsSheet.Particles(StarsReactionsSheet.Particles.TYPE_RADIAL_INSIDE, 8);
                 }
                 hasParticles = show;
                 invalidate();
             } else {
                 hasParticles = show;
                 if (show && particles == null) {
-                    particles = new StarsReactionsSheet.Particles(StarsReactionsSheet.Particles.TYPE_RADIAL, 8);
+                    particles = new StarsReactionsSheet.Particles(StarsReactionsSheet.Particles.TYPE_RADIAL_INSIDE, 8);
                 } else if (!show && particles != null) {
                     particles = null;
                 }

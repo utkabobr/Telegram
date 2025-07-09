@@ -866,7 +866,7 @@ public class LinkSpanDrawable<S extends CharacterStyle> {
             this.resourcesProvider = resourcesProvider;
         }
 
-        private int getLinkColor() {
+        protected int getLinkColor() {
             return ColorUtils.setAlphaComponent(getTextColor(), (int) (Color.alpha(getTextColor()) * .1175f));
         }
 

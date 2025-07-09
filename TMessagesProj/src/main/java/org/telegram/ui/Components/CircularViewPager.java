@@ -11,6 +11,7 @@ import androidx.viewpager.widget.ViewPager;
 public class CircularViewPager extends ViewPager {
 
     private Adapter adapter;
+    public float positionOffset;
 
     public CircularViewPager(@NonNull Context context) {
         super(context);
@@ -27,6 +28,7 @@ public class CircularViewPager extends ViewPager {
 
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                CircularViewPager.this.positionOffset = positionOffset;
                 if (position == getCurrentItem() && positionOffset == 0f && scrollState == ViewPager.SCROLL_STATE_DRAGGING) {
                     checkCurrentItem();
                 }

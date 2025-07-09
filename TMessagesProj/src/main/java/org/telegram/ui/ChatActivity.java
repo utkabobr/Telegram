@@ -3788,6 +3788,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
                 } else if (id == call || id == video_call) {
                     if (currentUser != null && getParentActivity() != null) {
+                        if (userInfo != null && userInfo.phone_calls_private) {
+                            new CallingRestrictedBottomSheet(ChatActivity.this, currentUser).show();
+                            return;
+                        }
+
                         VoIPHelper.startCall(currentUser, id == video_call, userInfo != null && userInfo.video_calls_available, getParentActivity(), getMessagesController().getUserFull(currentUser.id), getAccountInstance());
                     }
                 } else if (id == text_bold) {

@@ -47,6 +47,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.AnimatedTextView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.ProfileAvatarImageView;
 import org.telegram.ui.Components.RadialProgress;
 import org.telegram.ui.ProfileActivity;
 
@@ -67,7 +68,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
     private final long dialogId;
     private final boolean isTopic;
     private final View avatarContainer;
-    private final ProfileActivity.AvatarImageView avatarImage;
+    private final ProfileAvatarImageView avatarImage;
 
     private final AnimatedTextView.AnimatedTextDrawable titleDrawable = new AnimatedTextView.AnimatedTextDrawable(false, true, true);
 
@@ -142,7 +143,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
 
     StoriesController storiesController;
 
-    public ProfileStoriesView(Context context, int currentAccount, long dialogId, boolean isTopic, @NonNull View avatarContainer, ProfileActivity.AvatarImageView avatarImage, Theme.ResourcesProvider resourcesProvider) {
+    public ProfileStoriesView(Context context, int currentAccount, long dialogId, boolean isTopic, @NonNull View avatarContainer, ProfileAvatarImageView avatarImage, Theme.ResourcesProvider resourcesProvider) {
         super(context);
 
         this.currentAccount = currentAccount;
@@ -154,7 +155,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
 
         readPaint.setColor(0x5affffff);
         readPaintAlpha = readPaint.getAlpha();
-        readPaint.setStrokeWidth(dpf2(1.5f));
+        readPaint.setStrokeWidth(dpf2(1.5f) * getStrokeMultiplier());
         readPaint.setStyle(Paint.Style.STROKE);
         readPaint.setStrokeCap(Paint.Cap.ROUND);
 
@@ -168,9 +169,13 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
         titleDrawable.setCallback(this);
 
         clipOutAvatar.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
-        paint.setStrokeWidth(dpf2(2.33f));
+        paint.setStrokeWidth(dpf2(2.33f) * getStrokeMultiplier());
         paint.setStyle(Paint.Style.STROKE);
         updateStories(false, false);
+    }
+
+    protected float getStrokeMultiplier() {
+        return 1f;
     }
 
     @Override
@@ -564,7 +569,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
             }
             radialProgress.setDiff(0);
             unreadPaint.setAlpha((int) (255 * segmentsAlpha * progressToUploading));
-            unreadPaint.setStrokeWidth(dpf2(2.33f));
+            unreadPaint.setStrokeWidth(dpf2(2.33f) * getStrokeMultiplier());
             radialProgress.setPaint(unreadPaint);
             radialProgress.setProgressRect((int) rect2.left, (int) rect2.top, (int) rect2.right, (int) rect2.bottom);
             radialProgress.setProgress(Utilities.clamp(uploadingProgress, 1f, 0), true);
@@ -589,9 +594,9 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
 
             if (isFailed) {
                 rect2.set(rect1);
-                rect2.inset(-dpf2(2.66f + 2.23f / 2), -dpf2(2.66f + 2.23f / 2));
+                rect2.inset(-dpf2(2.66f + 2.23f / 2) * getStrokeMultiplier(), -dpf2(2.66f + 2.23f / 2) * getStrokeMultiplier());
                 final Paint paint = StoriesUtilities.getErrorPaint(rect2);
-                paint.setStrokeWidth(AndroidUtilities.dp(2));
+                paint.setStrokeWidth(AndroidUtilities.dp(2) * getStrokeMultiplier());
                 paint.setAlpha((int) (255 * segmentsAlpha));
                 boolean isForum = ChatObject.isForum(UserConfig.selectedAccount, dialogId);
                 if (isForum) {
@@ -602,9 +607,9 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
                 }
             } else if ((mainCircle != null || uploadingStoriesCount > 0) && segmentsAlpha > 0) {
                 rect2.set(rect1);
-                rect2.inset(-dpf2(2.66f + 2.23f / 2), -dpf2(2.66f + 2.23f / 2));
+                rect2.inset(-dpf2(2.66f + 2.23f / 2) * getStrokeMultiplier(), -dpf2(2.66f + 2.23f / 2) * getStrokeMultiplier());
                 rect3.set(rect1);
-                rect3.inset(-dpf2(2.66f + 1.5f / 2), -dpf2(2.66f + 1.5f / 2));
+                rect3.inset(-dpf2(2.66f + 1.5f / 2) * getStrokeMultiplier(), -dpf2(2.66f + 1.5f / 2) * getStrokeMultiplier());
                 AndroidUtilities.lerp(rect2, rect3, avatarPullProgress, rect3);
 
                 float separatorAngle = lerp(0, (float) (dpf2(2 + 2.23f) / (rect1.width() * Math.PI) * 360f), clamp(segmentsCount - 1, 1, 0) * segmentsAlpha);
@@ -643,13 +648,13 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
                     if (read < 1) {
                         unreadPaint = gradientTools.getPaint(rect2);
                         unreadPaint.setAlpha((int) (0xFF * (1f - read) * segmentsAlpha));
-                        unreadPaint.setStrokeWidth(dpf2(2.33f));
+                        unreadPaint.setStrokeWidth(dpf2(2.33f) * getStrokeMultiplier());
                         drawArc(canvas, rect2, a, -widthAngle * appear, false, unreadPaint);
                     }
 
                     if (read > 0) {
                         readPaint.setAlpha((int) (readPaintAlpha * read * segmentsAlpha));
-                        readPaint.setStrokeWidth(dpf2(1.5f));
+                        readPaint.setStrokeWidth(dpf2(1.5f) * getStrokeMultiplier());
                         drawArc(canvas, rect3, a, -widthAngle * appear, false, readPaint);
                     }
 
@@ -689,14 +694,14 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
 
                 circle.cachedRect.set(rect3);
                 circle.borderRect.set(rect3);
-                final float inset = lerp(dpf2(2.66f), lerp(dpf2(1.33f), dpf2(2.33f), expandProgress), read * expandProgress);
+                final float inset = lerp(dpf2(2.66f), lerp(dpf2(1.33f), dpf2(2.33f), expandProgress), read * expandProgress) * getStrokeMultiplier();
                 circle.borderRect.inset(-inset * scale, -inset * scale);
             }
             readPaint.setColor(ColorUtils.blendARGB(0x5affffff, 0x80BBC4CC, expandProgress));
             readPaintAlpha = readPaint.getAlpha();
             unreadPaint = gradientTools.getPaint(rect2);
-            unreadPaint.setStrokeWidth(lerp(dpf2(2.33f), dpf2(1.5f), expandProgress));
-            readPaint.setStrokeWidth(lerp(dpf2(1.125f), dpf2(1.5f), expandProgress));
+            unreadPaint.setStrokeWidth(lerp(dpf2(2.33f), dpf2(1.5f), expandProgress) * getStrokeMultiplier());
+            readPaint.setStrokeWidth(lerp(dpf2(1.125f), dpf2(1.5f), expandProgress) * getStrokeMultiplier());
             if (expandProgress > 0) {
                 for (int i = 0; i < circles.size(); ++i) {
                     StoryCircle circle = circles.get(i);
@@ -760,7 +765,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
         }
 
         if (unreadPaint != null) {
-            unreadPaint.setStrokeWidth(dpf2(2.3f));
+            unreadPaint.setStrokeWidth(dpf2(2.3f) * getStrokeMultiplier());
         }
 
         canvas.restore();
@@ -801,7 +806,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
         }
 
         AndroidUtilities.rectTmp.set(nextCircle.cachedRect);
-        final float inset = dpf2(1.66f) * nextCircle.cachedScale;
+        final float inset = dpf2(1.66f) * nextCircle.cachedScale * getStrokeMultiplier();
         AndroidUtilities.rectTmp.inset(-inset, -inset);
         float xA = nextCircle.cachedRect.centerX(), rA = nextCircle.cachedRect.width() / 2f;
         float xB = circle.cachedRect.centerX(), rB = circle.cachedRect.width() / 2f;
@@ -1019,13 +1024,14 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.storiesUpdated);
     }
 
-    private final StoryViewer.PlaceProvider provider = new StoryViewer.PlaceProvider() {
+    public final StoryViewer.PlaceProvider provider = new StoryViewer.PlaceProvider() {
         @Override
         public boolean findView(long dialogId, int messageId, int storyId, int type, StoryViewer.TransitionViewHolder holder) {
             holder.avatarImage = null;
             holder.storyImage = null;
             if (expandProgress < .2f) {
                 holder.avatarImage = avatarImage.getImageReceiver();
+                holder.radius = avatarImage.getRadius();
                 holder.storyImage = null;
                 holder.view = avatarImage;
                 holder.clipTop = 0;

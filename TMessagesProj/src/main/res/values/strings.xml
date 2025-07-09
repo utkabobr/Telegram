@@ -9483,4 +9483,7 @@
     <string name="MessageTodoList">Checklist</string>
     <string name="TodoCheck">Check</string>
     <string name="TodoUncheck">Uncheck</string>
+    <string name="Discuss">Discuss</string>
+    <string name="ChangeAvatar">Change avatar</string>
+    <string name="CallingRestricted">**%s** restricts calling them. You can send them an invite link instead.</string>
 </resources>

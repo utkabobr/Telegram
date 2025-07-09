@@ -489,7 +489,7 @@ public class ImageReceiver implements NotificationCenter.NotificationCenterDeleg
             String filter;
             if (!big) {
                 location = ImageLocation.getForUserOrChat(object, ImageLocation.TYPE_SMALL);
-                filter = "50_50";
+                filter = "100_100";
             } else {
                 location = ImageLocation.getForUserOrChat(object, ImageLocation.TYPE_BIG);
                 filter = "100_100";
