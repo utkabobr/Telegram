@@ -220,16 +220,13 @@ public class ProfileButtonsView extends FrameLayout {
         mainButtons.clear();
         overflowButtons.clear();
 
-        int limit = buttons.contains(ProfileButton.REPORT) ? 3 : 4;
+        int limit = 4;
         for (ProfileButton btn : buttons) {
             if (mainButtons.size() >= limit) {
                 overflowButtons.add(btn);
             } else {
                 mainButtons.add(btn);
             }
-        }
-        if (buttons.contains(ProfileButton.REPORT)) {
-            mainButtons.add(ProfileButton.REPORT);
         }
         if (!overflowButtons.isEmpty()) {
             if (overflowButtons.contains(ProfileButton.GIFT) && buttons.contains(ProfileButton.DISCUSS)) {

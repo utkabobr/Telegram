@@ -7105,9 +7105,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (openAnimationInProgress && playProfileAnimation == 2) {
                 float avY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight() / 2.0f - AVATAR_SIZE_DP / 2 * AndroidUtilities.density + actionBar.getTranslationY();
 
-                nameTextView[0].setTranslationX(0);
+                nameTextView[0].setTranslationX(AndroidUtilities.lerp(AndroidUtilities.dp(64), 0, enterTransitionProgress));
                 nameTextView[0].setTranslationY((float) Math.floor(avY) + AndroidUtilities.dp(1.3f));
-                onlineTextView[0].setTranslationX(0);
+                onlineTextView[0].setTranslationX(AndroidUtilities.lerp(AndroidUtilities.dp(64), 0, enterTransitionProgress));
                 onlineTextView[0].setTranslationY((float) Math.floor(avY) + AndroidUtilities.dp(24));
                 nameTextView[0].setScaleX(1.0f);
                 nameTextView[0].setScaleY(1.0f);
