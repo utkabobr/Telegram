@@ -321,7 +321,7 @@ public class ProfileGooeyView extends FrameLayout {
             node.endRecording();
 
             // Blur only buffer
-            float blurScaleFactor = factorMult / 4f + 1.5f + blurIntensity * (5f - factorMult);
+            float blurScaleFactor = factorMult / 4f + 1f + blurIntensity * 0.5f * factorMult + (factorMult - 1f) * 2f;
             Canvas c = blurNode.beginRecording();
             c.scale(1f / blurScaleFactor, 1f / blurScaleFactor, 0, 0);
             c.drawRenderNode(node);
